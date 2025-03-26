@@ -1,0 +1,69 @@
+# LLM Configuration
+llm:
+  provider: "ollama"  # Can be "ollama" or "openai"
+  ollama:
+    model: "llama2"  # Default model
+    base_url: "http://localhost:11434"
+    timeout: 60
+  openai:
+    model: "gpt-4"
+    timeout: 60
+    # API key to be set via environment variable OPENAI_API_KEY
+
+# Agent Configuration
+agents:
+  researcher:
+    name: "IdeaResearcherAgent"
+    tools: ["web_search", "pdf_reader", "file_manager"]
+    max_iterations: 5
+    research_folder: "research_ideas"
+    
+  backtest_analyzer:
+    name: "BacktestAnalyzerAgent"
+    tools: ["data_analyzer", "metric_calculator"]
+    max_iterations: 3
+    
+  strategy_developer:
+    name: "StrategyDeveloperAgent"
+    tools: ["code_writer", "code_analyzer"]
+    max_iterations: 5
+    
+  backtester:
+    name: "BacktesterAgent"
+    tools: ["lean_cli"]
+    max_iterations: 2
+    test_data:
+      min_period: "1Y"  # 1 year minimum for testing
+      train_split: 0.7  # 70% for training
+    
+  reporter:
+    name: "ReportingAgent"
+    tools: ["logger", "notification"]
+    update_interval: 300  # seconds
+
+# Tool Configuration
+tools:
+  web_search:
+    engines: ["google", "arxiv"]
+    max_results: 10
+    
+  pdf_reader:
+    supported_formats: ["pdf", "html"]
+    max_file_size: 10485760  # 10MB
+    
+  lean_cli:
+    backtest_command: "lean backtest"
+    timeout: 3600  # 1 hour
+    
+  logger:
+    level: "INFO"
+    file: "system.log"
+    format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+
+# System Configuration
+system:
+  base_path: "/Users/vandanchopra/Vandan_Personal_Folder/CODE_STUFF/Projects/MathematricksQ/AgenticDeveloper"
+  strategies_path: "../Strategies"
+  human_pause_duration: 15  # seconds
+  max_concurrent_agents: 3
+  debug_mode: false

@@ -1,0 +1,32 @@
+# Python virtual environment
+qc_venv/
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / packaging
+*.egg-info/
+dist/
+build/
+
+# Data and storage
+data/
+storage/
+
+# IDE specific files
+.vscode/
+.idea/
+
+# Environment variables
+.env
+
+# Backtest results and logs
+**/backtests/
+*.log
+*-log.txt
+*-order-events.json
+*-summary.json
+results.json
+data-monitor-report-*.json
+failed-data-requests-*.txt
+succeeded-data-requests-*.txt
