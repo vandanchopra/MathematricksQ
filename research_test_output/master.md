@@ -1,0 +1,2 @@
+# Trading Strategy Research Ideas
+

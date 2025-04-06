@@ -2,7 +2,7 @@
 llm:
   provider: "ollama"  # Can be "ollama" or "openai"
   ollama:
-    model: "deepseek-r1"  # Using remote deepseek model  deepseek-r1:32b
+    model: "deepseek-r1:32b"  # Using remote deepseek model  deepseek-r1:32b
     base_url: "http://localhost:11434"  # Using SSH tunnel
     timeout: 60
   openai:

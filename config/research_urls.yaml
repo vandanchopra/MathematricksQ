@@ -1,0 +1,4 @@
+urls:
+- category: academic
+  description: Recent quantitative finance papers
+  url: https://arxiv.org/list/q-fin/recent

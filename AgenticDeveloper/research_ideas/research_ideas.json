@@ -1,0 +1,62 @@
+{
+  "Momentum universe shrinkage effect in price momentum Mid-Cap Momentum": {
+    "description": "Select KOSPI 100-50 mid-cap stocks. Rank by 6-month past returns. Go long top 20%, short bottom 20%. Hold for 3 months. Rebalance monthly. Avoid KOSPI 50 large caps to improve alpha.",
+    "pseudo_code": "def midcap_momentum():\n    universe = get_kospi_200()\n    midcaps = filter_market_cap(universe, rank_range=(50,100))\n    ranked = rank_by_past_return(midcaps, lookback=126)\n    longs = top_percentile(ranked, 20)\n    shorts = bottom_percentile(ranked, 20)\n    portfolio = long_short(longs, shorts)\n    hold(portfolio, 63)\n    rebalance_monthly()",
+    "source": {
+      "title": "Momentum universe shrinkage effect in price momentum",
+      "authors": [
+        "Jaehyung Choi",
+        "Sungsoo Choi",
+        "Wonseok Kang"
+      ],
+      "url": "http://arxiv.org/pdf/1211.6517v1",
+      "local_pdf_path": "AgenticDeveloper/research_papers/1211.6517v1.pdf"
+    },
+    "learnings_from_testing": []
+  },
+  "Momentum universe shrinkage effect in price momentum Liquidity Strategy": {
+    "description": "In KOSPI 200 excluding KOSPI 50, rank stocks by average daily turnover. Go long lowest 20% liquidity, short highest 20%. Hold 3 months, rebalance monthly. Low liquidity stocks tend to outperform.",
+    "pseudo_code": "def liquidity_strategy():\n    universe = get_kospi_200()\n    ex_largecaps = exclude_kospi_50(universe)\n    ranked = rank_by_liquidity(ex_largecaps, lookback=126)\n    longs = bottom_percentile(ranked, 20)\n    shorts = top_percentile(ranked, 20)\n    portfolio = long_short(longs, shorts)\n    hold(portfolio, 63)\n    rebalance_monthly()",
+    "source": {
+      "title": "Momentum universe shrinkage effect in price momentum",
+      "authors": [
+        "Jaehyung Choi",
+        "Sungsoo Choi",
+        "Wonseok Kang"
+      ],
+      "url": "http://arxiv.org/pdf/1211.6517v1",
+      "local_pdf_path": "AgenticDeveloper/research_papers/1211.6517v1.pdf"
+    },
+    "learnings_from_testing": []
+  },
+  "Rise of the Machines? Intraday High-Frequency Trading Patterns of Cryptocurrencies Mid-Cap Momentum": {
+    "description": "Select KOSPI 100-50 mid-cap stocks. Rank by 6-month past returns. Go long top 20%, short bottom 20%. Hold for 3 months. Rebalance monthly. Avoid KOSPI 50 large caps to improve alpha.",
+    "pseudo_code": "def midcap_momentum():\n    universe = get_kospi_200()\n    midcaps = filter_market_cap(universe, rank_range=(50,100))\n    ranked = rank_by_past_return(midcaps, lookback=126)\n    longs = top_percentile(ranked, 20)\n    shorts = bottom_percentile(ranked, 20)\n    portfolio = long_short(longs, shorts)\n    hold(portfolio, 63)\n    rebalance_monthly()",
+    "source": {
+      "title": "Rise of the Machines? Intraday High-Frequency Trading Patterns of Cryptocurrencies",
+      "authors": [
+        "Alla A. Petukhina",
+        "Raphael C. G. Reule",
+        "Wolfgang Karl H\u00e4rdle"
+      ],
+      "url": "http://arxiv.org/pdf/2009.04200v1",
+      "local_pdf_path": "AgenticDeveloper/research_papers/2009.04200v1.pdf"
+    },
+    "learnings_from_testing": []
+  },
+  "Rise of the Machines? Intraday High-Frequency Trading Patterns of Cryptocurrencies Liquidity Strategy": {
+    "description": "In KOSPI 200 excluding KOSPI 50, rank stocks by average daily turnover. Go long lowest 20% liquidity, short highest 20%. Hold 3 months, rebalance monthly. Low liquidity stocks tend to outperform.",
+    "pseudo_code": "def liquidity_strategy():\n    universe = get_kospi_200()\n    ex_largecaps = exclude_kospi_50(universe)\n    ranked = rank_by_liquidity(ex_largecaps, lookback=126)\n    longs = bottom_percentile(ranked, 20)\n    shorts = top_percentile(ranked, 20)\n    portfolio = long_short(longs, shorts)\n    hold(portfolio, 63)\n    rebalance_monthly()",
+    "source": {
+      "title": "Rise of the Machines? Intraday High-Frequency Trading Patterns of Cryptocurrencies",
+      "authors": [
+        "Alla A. Petukhina",
+        "Raphael C. G. Reule",
+        "Wolfgang Karl H\u00e4rdle"
+      ],
+      "url": "http://arxiv.org/pdf/2009.04200v1",
+      "local_pdf_path": "AgenticDeveloper/research_papers/2009.04200v1.pdf"
+    },
+    "learnings_from_testing": []
+  }
+}

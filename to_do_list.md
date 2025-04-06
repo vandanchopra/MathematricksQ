@@ -41,19 +41,35 @@ I want to make an agentic system that does the following: It is a algorithmic tr
    - Successfully tested with SMAStrategy backtests
    - Created detailed improvement suggestion generator
 
-## Next Tasks
-1. [ ] Research Agent Implementation
+5. [✓] Research Agent Implementation: In @AgenticDeveloper/agents/research_agent.py
    - Implement IdeaResearcherAgent
-   - Add internet search capability
+   - Add arxiv search capability (put this in the 'tools' folder)
    - Implement PDF reading and analysis
-   - Setup research database structure
-   - Create and maintain research ideas list
+   - Implement HTML reading and analysis
+   - Create and maintain research ideas_dump - ideas should be in a json, which is in this format {'idea_name':{'description': , 'pseudo_code': , 'learnings_from_testing': ['learnings1', 'learnings2']}}
+   - Create a unit test in @test_research_agent.py, which will get variable inputs from the user and various parts of the Research Agent Implementation
 
-2. [ ] Strategy Development Agent
-   - Create StrategyDeveloperAgent
+## Next Tasks
+
+1. [ ] Strategy Writer Agent
+   - Create StrategyDeveloperAgent: 
    - Implement strategy code generation
+      1) Strategy development agent will start with getting 'instructions': These instructions will be in 'str' format. Sometimes it'll be psuedo code, sometimes it'll be ideas, sometimes it'll be errors in the current code, sometimes it could be something else. 
+      2) We need to use an LLM to decipher what needs to be done and write the strategy in Quantconnect Lean format. The strategy should have a 'development_test_period' and 'development_list_of_assets' in it, which are only used for checking if the code is working (which are outside of the actual strategy requirements)
+      3) Once the strategy is written, we will use the 'Backtester Agent' to run the code on a small test of maybe 3 months with a limited number of 'assets'. Once the code test passes, then the strategy is 'ready for testing'.
+      4) Every time a strategy is created, it's created with a 'version'....eg. v1.23.23 (major.minor.bug_fixes format)
    - Add strategy modification capabilities
    - Setup version control integration
+   - Create a unit test in @test_strategy_writer_agent.py, which will take the first idea from @/Users/vandanchopra/Vandan_Personal_Folder/CODE_STUFF/Projects/MathematricksQ/AgenticDeveloper/research_ideas/research_ideas.json and give that as 'instructions' to 'strategy development agent'
+
+2. [ ] Alpha Seeker Agent
+   - The job of the Alpha Seeker is the use the StrategyWriter Agent, the reasearch agent, the Backtester Agent Implementation, and the strategy analyser agent to continuously improve the strategy.
+      i) The start point of this agent could be a) None - in which case it starts with running the 'research agent' for new ideas, b) STR: in which case it starts with running the 'research agent' for new ideas, but this time with the string input as a start point c) an existing strategy: in which case, it looks for the latest test results, uses the latest test results as benchmark and gives the latest test results to the strategy analyser agent to come up with 'feedback' which is then sent to the research agent.
+      ii) Then the inputs from the research agent are sent to the strategy writer to come up with an improved strategy.
+      iii) Then the improved strategy is backtested and it's results are sent to strategy analyser agent.
+      iv) the output of the strategy analyser agent are sent to step (i) where the researcher can do more research and come up with new ideas.
+   - The Alpha Seeker agent should also find out what data is available, and break it up into train-test, so that we're not curve fitting.
+   - Overall the Alpha Seekers job is to think about how to develop strategies in a way that we're not 'curve-fitting' or over-training on our train-data set.
 
 3. [ ] CLI Interface Development
    - Add --new flag for new strategy creation
@@ -76,7 +92,7 @@ I want to make an agentic system that does the following: It is a algorithmic tr
 2. [ ] Documentation
    - Add API documentation
    - Create user guide
-   - Add example workflows
+   - [COMPLETED] Add example workflows {Created comprehensive README.md with system architecture, usage examples, and workflows}
 
 3. [ ] System Enhancements
    - Improve error handling
@@ -91,3 +107,11 @@ I want to make an agentic system that does the following: It is a algorithmic tr
 - Successfully migrated to langchain-ollama package
 - Backtester now correctly stores all metrics and results
 - BacktestAnalyzer successfully processes and analyzes backtests
+
+
+## PHASE 2: 
+
+I want to make changes to @/AgenticDeveloper/agents/research_agent.py : 1) I want to see a tqdm loader when the various chunks are being run in _analyze_resource function, and the tqdm should print the a random part of the LLM response (about 30 characters only, so that we can see the LLM progress happening) 2) when the pdf is loaded, lets also save it to the disk somewhere, and put the name of the 'study' and it's 'authors' in the final findings' 3) Lets save the final findings in the folder /Users/vandanchopra/Vandan_Personal_Folder/CODE_STUFF/Projects/MathematricksQ/AgenticDeveloper/research_ideas -- in a file called 'research_ideas.json'. with name of the 'study' and it's 'authors' and the path to the saved pdf.
+
+- Download data from IBKR so that you can run backtests locally, and therefore faster (When using alternative data, run backtests in cloud, so that you can use their free data).
+- learn to save strategies from "lean cloud pull" to 'Strategies' folder.

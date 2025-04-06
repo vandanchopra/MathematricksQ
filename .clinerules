@@ -1,4 +1,4 @@
-- Start with understanding the project we're working on by reading the readme file associated with the project. but also read in the required files as needed.
+- Start with understanding the project we're working on by reading the @README.md file associated with the project. but also read in the required files as needed.
 - look at the @to_do_list.md and lets start fixing things one by one. 
 - Only work on items that do NOT have [COMPLETED] in front of them. 
 - After you finish a task, add a [COMPLETED] to it in the front.
@@ -9,3 +9,4 @@
 - Then before you start, can you add a step by step instructions in {curley} to the task on to_do_list.md, so that if the work stops mid-way because of roo-code having an issue, then we can start where we left off. 
 - Then switch to code mode and start following your instructions, And as you keep wrapping up tasks, keep add [DONE] in front of them as you go.
 - And ask the human if the task is completed, and if we should move to the next task.
+- IMPORTANT: If the human says yes, then update the readme file of the project, before moving on.

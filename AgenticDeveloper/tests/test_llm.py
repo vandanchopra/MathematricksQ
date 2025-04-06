@@ -15,10 +15,34 @@ async def main():
     # Initialize test agent with correct config path
     agent = TestAgent("AgenticDeveloper/config/system_config.yaml")
     
-    # Test prompt
-    prompt = "What is the capital of France? Keep the answer very short."
+    # Create large test content
+    content = """
+    Pairs trading is a market neutral trading strategy enabling traders to profit from virtually any market conditions: uptrend, downtrend, or sideways movement. This trading strategy is categorized as a statistical arbitrage and convergence trading strategy.
+
+    The strategy monitors performance of two historically correlated securities. When the correlation between the two securities temporarily weakens, i.e. one stock moves up while the other moves down, the pairs trade would be to short the outperforming stock and to long the underperforming one, betting that the "spread" between the two would eventually converge.
+    """ * 200  # Repeat to make it large
+    
+    content = content[:60000]  # Limit to 60k chars
+    print(f"Content length: {len(content)} chars")
+    
+    prompt = f"""Analyze this trading strategy content and extract key points:
+
+Content:
+{content}
+
+Return in JSON format:
+{{
+    "summary": "Brief summary of pairs trading",
+    "key_points": ["Main points about the strategy"],
+    "implementation": ["Implementation details"]
+}}
+"""
+    print(f"Total prompt length: {len(prompt)} chars")
     
     try:
+        print("\nFirst 100 chars of content:")
+        print(content[:100])
+        
         print("Testing LLM connection...")
         response = await agent.run(prompt)
         print(f"\nPrompt: {prompt}")
