@@ -147,8 +147,8 @@ flowchart TD
     Backtest[Backtester Tool]
     Analyze[Backtest Analyzer Tool]
 
-    Start -->|"str"| AlphaSeekerNew
-    Start -->|"Strategy Code, version_control_history, Backtest Results, Analysis"| AlphaSeekerExist
+    Start -->|"NewStrategy:True"| AlphaSeekerNew
+    Start -->|"NewStrategy:False, Strategy Code, version_control_history, Backtest Results, Analysis"| AlphaSeekerExist
 
     AlphaSeekerNew -->|Research Instructions| Research
     AlphaSeekerExist -->|Research or Fix Instructions| Research
