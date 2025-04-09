@@ -67,15 +67,47 @@ I want to make an agentic system that does the following: It is a algorithmic tr
 
 
 ## Next Tasks
-
-2. [ ] Alpha Seeker Agent
-   - The job of the Alpha Seeker is the use the StrategyWriter Agent, the reasearch agent, the Backtester Agent Implementation, and the strategy analyser agent to continuously improve the strategy.
+2. [ ] Alpha Seeker Agent:
+   - Detailed implementation @/Users/vandanchopra/Vandan_Personal_Folder/CODE_STUFF/Projects/MathematricksQ/AlphaSeeker_Workflow.md
+   - The job of the Alpha Seeker is the use the StrategyWriter Agent, the reasearch agent, the Backtester Agent Implementation, and the strategy analyser agent and the strategy writer agent to continuously improve the strategy.
+   - I want this agent to be like the CEO Agent, which uses all the agents that we have developed and find the most efficient way to improve performance:
+      - Coordinator agent — manages and synchronizes other agents
+      - Centralized controller — a single agent making decisions for all agents (contrasts with decentralized approaches)
+      - Meta-agent — an agent that reasons about or controls the behavior of lower-level agents
+      - Orchestrator — organizes, sequences, and manages multiple agents’ activities (common in AI system orchestration)
+   - Also, i want this agent to improve strategies, one small idea at a time, each idea will be treated as a new indicator, and then backtested to see if adding it helped improve performance in any way, and if not, then we move to try out a new indicator. The idea is to find small incremental 'edges' / 'alphas', so that we can put them together to create a better strategy.
       i) The start point of this agent could be a) None - in which case it starts with running the 'research agent' for new ideas, b) STR: in which case it starts with running the 'research agent' for new ideas, but this time with the string input as a start point c) an existing strategy: in which case, it looks for the latest test results, uses the latest test results as benchmark and gives the latest test results to the strategy analyser agent to come up with 'feedback' which is then sent to the research agent.
       ii) Then the inputs from the research agent are sent to the strategy writer to come up with an improved strategy.
       iii) Then the improved strategy is backtested and it's results are sent to strategy analyser agent.
       iv) the output of the strategy analyser agent are sent to step (i) where the researcher can do more research and come up with new ideas.
    - The Alpha Seeker agent should also find out what data is available, and break it up into train-test, so that we're not curve fitting.
    - Overall the Alpha Seekers job is to think about how to develop strategies in a way that we're not 'curve-fitting' or over-training on our train-data set.
+
+   {
+Alpha Seeker Agent: Incremental Development Plan
+
+PHASE 1: Analysis and Design
+1. Review existing agents' APIs and capabilities (research_agent.py, backtest_analyzer.py, strategy_developer.py, backtester.py)
+2. Define Alpha Seeker's core responsibilities: orchestrate agents, manage incremental improvements, avoid overfitting, facilitate human-in-the-loop
+3. Design Alpha Seeker architecture: class structure, key methods (initialize, run, coordinate_agents, evaluate_results), configurable start modes
+
+PHASE 2: Implementation
+4. Create AlphaSeekerAgent class skeleton in AgenticDeveloper/agents/alpha_seeker.py
+5. Implement initialization logic
+6. Integrate Research Agent
+7. Integrate Strategy Developer
+8. Integrate Backtester
+9. Integrate Backtest Analyzer
+10. Implement incremental improvement loop
+11. Add orchestration logic (iterations, stopping criteria, pause points, logging)
+
+PHASE 3: Testing and Documentation
+12. Develop unit tests for Alpha Seeker logic
+13. Create integration tests with mock agents
+14. Document usage, configuration, and workflow
+15. Update README.md and to_do_list.md with progress
+
+
 
 3. [ ] CLI Interface Development
    - Add --new flag for new strategy creation
@@ -122,5 +154,7 @@ I want to make changes to @/AgenticDeveloper/agents/research_agent.py : 1) I wan
 
 - Download data from IBKR so that you can run backtests locally, and therefore faster (When using alternative data, run backtests in cloud, so that you can use their free data).
 - learn to save strategies from "lean cloud pull" to 'Strategies' folder.
+
+
 
 - [ ] Improve Backtester Agent: Make IBKR data download work on a mac.
