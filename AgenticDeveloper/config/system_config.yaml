@@ -1,6 +1,11 @@
 # LLM Configuration
 llm:
-  provider: "ollama"  # Can be "ollama" or "openai"
+  provider: "openrouter"  # Can be "ollama" or "openai" or "openrouter"
+  openrouter:
+    model: "openrouter/quasar-alpha"
+    temperature: 0.7
+    max_tokens: 1000
+    timeout: 60
   ollama:
     model: "deepseek-r1:32b"  # Using remote deepseek model  deepseek-r1:32b
     base_url: "http://localhost:11434"  # Using SSH tunnel

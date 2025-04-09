@@ -1,0 +1,34 @@
+{
+    "algorithm-language": "Python",
+    "parameters": {
+        "start-date": "2024-01-01",
+        "end-date": "2024-12-31"
+    },
+    "description": "",
+    "local-id": 399672565,
+    "data-folder": "/data",
+    "docker": {
+        "mounts": [
+            {
+                "host": "/Users/vandanchopra/Vandan_Personal_Folder/CODE_STUFF/Projects/MathematricksQ/Strategies/testSMAStrategy",
+                "container": "/LeanCLI"
+            }
+        ]
+    },
+    "algorithm-path": "/LeanCLI/main.py",
+    "environments": {
+        "backtesting": {
+            "live-mode": false,
+            "setup-handler": "QuantConnect.Lean.Engine.Setup.BacktestingSetupHandler",
+            "result-handler": "QuantConnect.Lean.Engine.Results.BacktestingResultHandler",
+            "data-feed-handler": "QuantConnect.Lean.Engine.DataFeeds.FileSystemDataFeed",
+            "real-time-handler": "QuantConnect.Lean.Engine.RealTime.BacktestingRealTimeHandler",
+            "history-provider": [
+                "QuantConnect.Lean.Engine.HistoricalData.SubscriptionDataReaderHistoryProvider"
+            ],
+            "transaction-handler": "QuantConnect.Lean.Engine.TransactionHandlers.BacktestingTransactionHandler"
+        }
+    },
+    "cloud-id": 22350949,
+    "organization-id": "cd6f2f0926974671b071a3da0a9d36d0"
+}

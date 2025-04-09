@@ -1,8 +1,10 @@
 import sys
 import os
+from dotenv import load_dotenv
+load_dotenv()
 import asyncio
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
+import time
 from agents.base import BaseAgent
 
 class TestAgent(BaseAgent):
@@ -40,6 +42,21 @@ Return in JSON format:
     print(f"Total prompt length: {len(prompt)} chars")
     
     try:
+        start = time.time()
+        print(('--'*20))
+        response = await agent.run('Quick test to check if LLM is working')
+        print(f"Response: {response}")
+        print(f"Time taken 1: {time.time() - start:.2f} seconds")
+        
+        
+        start = time.time()
+        print(('--'*20))
+        response = await agent.run('Quick test 2 to check if LLM is working')
+        print(f"Response: {response}")
+        print(f"Time taken 2: {time.time() - start:.2f} seconds")
+        
+        print(('--'*20))
+        start = time.time()
         print("\nFirst 100 chars of content:")
         print(content[:100])
         
@@ -48,6 +65,15 @@ Return in JSON format:
         print(f"\nPrompt: {prompt}")
         print(f"Response: {response}")
         print("\nLLM integration is working! ✅")
+        print(f"Time taken 3: {time.time() - start:.2f} seconds")
+        
+        
+        start = time.time()
+        print(('--'*20))
+        response = await agent.run('Quick test to check if LLM is working')
+        print(f"Response: {response}")
+        print(f"Time taken 4: {time.time() - start:.2f} seconds")
+        
     except Exception as e:
         print(f"\nError testing LLM: {str(e)} ❌")
 

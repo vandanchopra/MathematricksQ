@@ -6,8 +6,61 @@ from pathlib import Path
 from typing import Dict, List, Any, Optional
 from langchain_core.language_models.llms import BaseLLM
 from langchain_ollama import OllamaLLM
-from langchain_community.llms import OpenAI
+from langchain_openai import OpenAI
 from pydantic import BaseModel, Field
+from openai import OpenAI as OpenAIClient
+import concurrent.futures
+import asyncio
+from dotenv import load_dotenv
+load_dotenv()
+
+
+class OpenRouterLLMWrapper:
+    def __init__(self, api_key: str, model: str, temperature: float = 0.7, max_tokens: int = 4000, timeout: int = 60):
+        self.client = OpenAIClient(
+            base_url="https://openrouter.ai/api/v1",
+            api_key=api_key,
+        )
+        self.model = model
+        self.temperature = temperature
+        self.max_tokens = max_tokens
+        self.timeout = timeout
+
+    def invoke(self, prompt: str) -> str:
+        response = self.client.chat.completions.create(
+            extra_headers={
+                "HTTP-Referer": "https://your-site-url.com",
+                "X-Title": "Your Site Name",
+            },
+            extra_body={},
+            model=self.model,
+            temperature=self.temperature,
+            max_tokens=self.max_tokens,
+            messages=[
+                {"role": "user", "content": prompt}
+            ]
+        )
+        return response.choices[0].message.content
+
+    async def ainvoke(self, prompt: str) -> str:
+        loop = asyncio.get_event_loop()
+        def sync_call():
+            response = self.client.chat.completions.create(
+                extra_headers={
+                    "HTTP-Referer": "https://your-site-url.com",
+                    "X-Title": "Your Site Name",
+                },
+                extra_body={},
+                model=self.model,
+                temperature=self.temperature,
+                max_tokens=self.max_tokens,
+                messages=[
+                    {"role": "user", "content": prompt}
+                ]
+            )
+            return response.choices[0].message.content
+        return await loop.run_in_executor(None, sync_call)
+
 
 # Configure logging
 logging.basicConfig(
@@ -55,6 +108,8 @@ class BaseAgent(ABC):
             return self._initialize_ollama(llm_config.get("ollama", {}))
         elif provider == "openai":
             return self._initialize_openai(llm_config.get("openai", {}))
+        elif provider == "openrouter":
+            return self._initialize_openrouter(llm_config.get("openrouter", {}))
         else:
             raise ValueError(f"Unsupported LLM provider: {provider}")
             
@@ -106,6 +161,22 @@ class BaseAgent(ABC):
             temperature=config.get("temperature", 0.7),
             max_tokens=config.get("max_tokens", 1000),
             timeout=config.get("timeout", 60)
+        )
+    def _initialize_openrouter(self, config: Dict) -> BaseLLM:
+        """Initialize OpenRouter LLM"""
+        api_key = os.getenv("OPENROUTER_API_KEY")
+        if not api_key:
+            raise ValueError("OPENROUTER_API_KEY environment variable not set")
+        model = config.get("model", "mistralai/mixtral-8x7b")
+        temperature = config.get("temperature", 0.7)
+        max_tokens = config.get("max_tokens", 4000)
+        timeout = config.get("timeout", 60)
+        return OpenRouterLLMWrapper(
+            api_key=api_key,
+            model=model,
+            temperature=temperature,
+            max_tokens=max_tokens,
+            timeout=timeout
         )
         
     def _initialize_tools(self) -> Dict[str, Any]:

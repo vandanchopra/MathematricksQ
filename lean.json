@@ -6,7 +6,7 @@
     "api-handler": "QuantConnect.Api.Api",
     "map-file-provider": "QuantConnect.Data.Auxiliary.LocalZipMapFileProvider",
     "factor-file-provider": "QuantConnect.Data.Auxiliary.LocalZipFactorFileProvider",
-    "data-provider": "QuantConnect.Lean.Engine.DataFeeds.DownloaderDataProvider",
+    "data-provider": "QuantConnect.Lean.Engine.DataFeeds.DefaultDataProvider",
     "data-channel-provider": "DataChannelProvider",
     "object-store": "QuantConnect.Lean.Engine.Storage.LocalObjectStore",
     "data-aggregator": "QuantConnect.Lean.Engine.DataFeeds.AggregationManager",
@@ -158,6 +158,7 @@
         "Python"
     ],
     "python-additional-paths": [],
+    "algorithm-path": "/LeanCLI/main.py",
     "environments": {
         "backtesting": {
             "live-mode": false,
@@ -590,8 +591,8 @@
     },
     "job-organization-id": "cd6f2f0926974671b071a3da0a9d36d0",
     "organization-id": "cd6f2f0926974671b071a3da0a9d36d0",
-    "file-database-last-update": "04/02/2025 09:51:13",
-    "id": "InteractiveBrokersBrokerage",
+    "file-database-last-update": "04/09/2025 10:10:06",
+    "id": "Local",
     "data-downloader": "QuantConnect.DownloaderDataProvider.Launcher.Models.BrokerageDataDownloader",
     "load-existing-holdings": "false",
     "data-downloader-brokerage": "InteractiveBrokersBrokerage"

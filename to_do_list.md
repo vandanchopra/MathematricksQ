@@ -49,9 +49,12 @@ I want to make an agentic system that does the following: It is a algorithmic tr
    - Create and maintain research ideas_dump - ideas should be in a json, which is in this format {'idea_name':{'description': , 'pseudo_code': , 'learnings_from_testing': ['learnings1', 'learnings2']}}
    - Create a unit test in @test_research_agent.py, which will get variable inputs from the user and various parts of the Research Agent Implementation
 
-## Next Tasks
+6. [✓] Improve Backtester Agent: Write tests and make it work @test_backtester.py
+   - Make the local backtest work
+   - Make the random data backtest work
+   - Make the cloud backtest work
 
-1. [ ] Strategy Writer Agent
+7. [✓] Strategy Writer Agent
    - Create StrategyDeveloperAgent: 
    - Implement strategy code generation
       1) Strategy development agent will start with getting 'instructions': These instructions will be in 'str' format. Sometimes it'll be psuedo code, sometimes it'll be ideas, sometimes it'll be errors in the current code, sometimes it could be something else. 
@@ -61,6 +64,9 @@ I want to make an agentic system that does the following: It is a algorithmic tr
    - Add strategy modification capabilities
    - Setup version control integration
    - Create a unit test in @test_strategy_writer_agent.py, which will take the first idea from @/Users/vandanchopra/Vandan_Personal_Folder/CODE_STUFF/Projects/MathematricksQ/AgenticDeveloper/research_ideas/research_ideas.json and give that as 'instructions' to 'strategy development agent'
+
+
+## Next Tasks
 
 2. [ ] Alpha Seeker Agent
    - The job of the Alpha Seeker is the use the StrategyWriter Agent, the reasearch agent, the Backtester Agent Implementation, and the strategy analyser agent to continuously improve the strategy.
@@ -103,6 +109,7 @@ I want to make an agentic system that does the following: It is a algorithmic tr
 ## Known Issues
 - None currently
 
+{Debugging OpenRouter API calls on 2025-04-09:\n- Initial approach used LangChain's deprecated OpenAI wrapper, which caused 400 errors ('Input required: specify "prompt"').\n- Updated to langchain-openai package, but still received 400 errors.\n- Root cause: LangChain wrappers incompatible with OpenRouter's API payload expectations.\n- Created a direct test script using the official OpenAI SDK with base_url set to OpenRouter.\n- This direct approach worked perfectly, returning valid completions.\n- **Conclusion:** Use the official OpenAI SDK directly for OpenRouter API calls.\n- **Next:** Refactor BaseAgent to replace LangChain LLM calls with OpenAI SDK client calls.\n- This will ensure compatibility and fix the prompt errors.\n}\n
 ## Notes
 - Successfully migrated to langchain-ollama package
 - Backtester now correctly stores all metrics and results
@@ -115,3 +122,5 @@ I want to make changes to @/AgenticDeveloper/agents/research_agent.py : 1) I wan
 
 - Download data from IBKR so that you can run backtests locally, and therefore faster (When using alternative data, run backtests in cloud, so that you can use their free data).
 - learn to save strategies from "lean cloud pull" to 'Strategies' folder.
+
+- [ ] Improve Backtester Agent: Make IBKR data download work on a mac.
