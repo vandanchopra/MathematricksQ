@@ -1,0 +1,79 @@
+2025-04-13T19:59:54.2695858Z TRACE:: Engine.Main(): LEAN ALGORITHMIC TRADING ENGINE v2.5.0.0 Mode: DEBUG (64bit) Host: b2c3aa98519e
+2025-04-13T19:59:54.2739667Z TRACE:: Engine.Main(): Started 7:59 PM
+2025-04-13T19:59:54.2763841Z TRACE:: Config.Get(): Configuration key not found. Key: lean-manager-type - Using default value: LocalLeanManager
+2025-04-13T19:59:54.2938868Z TRACE:: JobQueue.NextJob(): Selected /Algorithm/main.py
+2025-04-13T19:59:54.3036562Z TRACE:: Config.GetValue(): scheduled-event-leaky-bucket-capacity - Using default value: 120
+2025-04-13T19:59:54.3036879Z TRACE:: Config.GetValue(): scheduled-event-leaky-bucket-time-interval-minutes - Using default value: 1440
+2025-04-13T19:59:54.3036971Z TRACE:: Config.GetValue(): scheduled-event-leaky-bucket-refill-amount - Using default value: 18
+2025-04-13T19:59:54.3050303Z TRACE:: Config.GetValue(): storage-limit - Using default value: 10737418240
+2025-04-13T19:59:54.3050523Z TRACE:: Config.GetValue(): storage-file-count - Using default value: 10000
+2025-04-13T19:59:54.3050598Z TRACE:: Config.GetValue(): storage-permissions - Using default value: 3
+2025-04-13T19:59:54.3050678Z TRACE:: Config.Get(): Configuration key not found. Key: algorithm-id - Using default value: BasicTemplateFrameworkAlgorithm
+2025-04-13T19:59:54.3051028Z TRACE:: Config.Get(): Configuration key not found. Key: optimization-id - Using default value: 
+2025-04-13T19:59:54.3051099Z TRACE:: Config.Get(): Configuration key not found. Key: backtest-name - Using default value: local
+2025-04-13T19:59:54.3062998Z TRACE:: Config.Get(): Configuration key not found. Key: data-channel - Using default value: 
+2025-04-13T19:59:54.3063909Z TRACE:: Config.Get(): Configuration key not found. Key: python-venv - Using default value: 
+2025-04-13T19:59:54.3064232Z TRACE:: Config.Get(): Configuration key not found. Key: out-of-sample-max-end-date - Using default value: 
+2025-04-13T19:59:54.3064339Z TRACE:: Config.GetValue(): out-of-sample-days - Using default value: 0
+2025-04-13T19:59:54.3069939Z TRACE:: Config.Get(): Configuration key not found. Key: data-permission-manager - Using default value: DataPermissionManager
+2025-04-13T19:59:54.3070079Z TRACE:: Config.Get(): Configuration key not found. Key: data-monitor - Using default value: QuantConnect.Data.DataMonitor
+2025-04-13T19:59:54.3149280Z TRACE:: Config.GetValue(): algorithm-creation-timeout - Using default value: 90
+2025-04-13T19:59:54.3231503Z TRACE:: Config.GetValue(): zip-data-cache-provider - Using default value: 10
+2025-04-13T19:59:54.3237988Z TRACE:: Config.Get(): Configuration key not found. Key: fundamental-data-provider - Using default value: CoarseFundamentalDataProvider
+2025-04-13T19:59:54.3249620Z TRACE:: AlgorithmManager.CreateTokenBucket(): Initializing LeakyBucket: Capacity: 120 RefillAmount: 18 TimeInterval: 1440
+2025-04-13T19:59:54.3252223Z TRACE:: Config.GetValue(): algorithm-manager-time-loop-maximum - Using default value: 20
+2025-04-13T19:59:54.3295573Z TRACE:: Engine.Run(): Resource limits '0' CPUs. 2147483647 MB RAM.
+2025-04-13T19:59:54.3298720Z TRACE:: TextSubscriptionDataSourceReader.SetCacheSize(): Setting cache size to 71582788 items
+2025-04-13T19:59:54.3690964Z TRACE:: Config.GetValue(): downloader-data-update-period - Using default value: 7
+2025-04-13T19:59:54.3703215Z TRACE:: Extensions.IsDirectoryEmpty(): directory '/Data/market-hours' not found or empty
+2025-04-13T19:59:54.3831861Z ERROR:: Engine.Run():  System.AggregateException: One or more errors occurred. (Could not find a part of the path '/Data/market-hours/market-hours-database.json'.)
+ ---> System.IO.DirectoryNotFoundException: Could not find a part of the path '/Data/market-hours/market-hours-database.json'.
+   at Interop.ThrowExceptionForIoErrno(ErrorInfo errorInfo, String path, Boolean isDirError)
+   at Microsoft.Win32.SafeHandles.SafeFileHandle.Open(String path, OpenFlags flags, Int32 mode, Boolean failForSymlink, Boolean& wasSymlink, Func`4 createOpenException)
+   at Microsoft.Win32.SafeHandles.SafeFileHandle.Open(String fullPath, FileMode mode, FileAccess access, FileShare share, FileOptions options, Int64 preallocationSize, UnixFileMode openPermissions, Int64& fileLength, UnixFileMode& filePermissions, Boolean failForSymlink, Boolean& wasSymlink, Func`4 createOpenException)
+   at System.IO.Strategies.OSFileStreamStrategy..ctor(String path, FileMode mode, FileAccess access, FileShare share, FileOptions options, Int64 preallocationSize, Nullable`1 unixCreateMode)
+   at System.IO.FileStream..ctor(String path, FileMode mode, FileAccess access, FileShare share, Int32 bufferSize, FileOptions options, Int64 preallocationSize)
+   at System.IO.StreamReader.ValidateArgsAndOpenPath(String path, Encoding encoding, Int32 bufferSize)
+   at System.IO.File.ReadAllText(String path, Encoding encoding)
+   at QuantConnect.Securities.MarketHoursDatabase.FromFile(String path) in Common/Securities/MarketHoursDatabase.cs:line 142
+   at QuantConnect.Securities.MarketHoursDatabase.FromDataFolder() in Common/Securities/MarketHoursDatabase.cs:line 127
+   at QuantConnect.Lean.Engine.Engine.StaticInitializations() in Engine/Engine.cs:line 541
+   at QuantConnect.Lean.Engine.Engine.<>c.<Run>b__10_0() in Engine/Engine.cs:line 85
+   at System.Threading.Tasks.Task`1.InnerInvoke()
+   at System.Threading.ExecutionContext.RunFromThreadPoolDispatchLoop(Thread threadPoolThread, ExecutionContext executionContext, ContextCallback callback, Object state)
+--- End of stack trace from previous location ---
+   at System.Threading.ExecutionContext.RunFromThreadPoolDispatchLoop(Thread threadPoolThread, ExecutionContext executionContext, ContextCallback callback, Object state)
+   at System.Threading.Tasks.Task.ExecuteWithThreadLocal(Task& currentTaskSlot, Thread threadPoolThread)
+   --- End of inner exception stack trace ---
+   at System.Threading.Tasks.Task`1.GetResultCore(Boolean waitCompletionNotification)
+   at QuantConnect.Lean.Engine.Engine.Run(AlgorithmNodePacket job, AlgorithmManager manager, String assemblyPath, WorkerThread workerThread) in Engine/Engine.cs:line 111
+2025-04-13T19:59:54.3835774Z TRACE:: JOB HANDLERS:
+         DataFeed:             QuantConnect.Lean.Engine.DataFeeds.FileSystemDataFeed
+         Setup:                QuantConnect.Lean.Engine.Setup.BacktestingSetupHandler
+         RealTime:             QuantConnect.Lean.Engine.RealTime.BacktestingRealTimeHandler
+         Results:              QuantConnect.Lean.Engine.Results.BacktestingResultHandler
+         Transactions:         QuantConnect.Lean.Engine.TransactionHandlers.BacktestingTransactionHandler
+         Object Store:         QuantConnect.Lean.Engine.Storage.LocalObjectStore
+         History Provider:     
+         Brokerage:            
+         Data Provider:        QuantConnect.Lean.Engine.DataFeeds.DefaultDataProvider
+
+2025-04-13T19:59:54.3839382Z TRACE:: BacktestingResultHandler.Exit(): starting...
+2025-04-13T19:59:54.3842869Z TRACE:: BacktestingResultHandler.Exit(): Saving logs...
+2025-04-13T19:59:54.3844583Z ERROR:: Algorithm.Initialize() Error: One or more errors occurred. (Could not find a part of the path '/Data/market-hours/market-hours-database.json'.) Stack Trace: One or more errors occurred. (Could not find a part of the path '/Data/market-hours/market-hours-database.json'.)
+ One or more errors occurred. (Could not find a part of the path '/Data/market-hours/market-hours-database.json'.)
+2025-04-13T19:59:54.3851048Z TRACE:: Debug: Your log was successfully created and can be retrieved from: /Results/BasicTemplateFrameworkAlgorithm-log.txt
+2025-04-13T19:59:54.3851122Z TRACE:: BacktestingResultHandler.Run(): Ending Thread...
+2025-04-13T19:59:54.3851440Z TRACE:: StopSafely(): Waiting for 'Result Thread' thread to stop...
+2025-04-13T19:59:54.3882204Z TRACE:: BacktestingResultHandler.CreateResultSummary(): 'Strategy Equity' chart not found
+2025-04-13T19:59:54.4502583Z TRACE:: 
+STATISTICS:: OrderListHash d41d8cd98f00b204e9800998ecf8427e
+2025-04-13T19:59:54.4502840Z TRACE:: BacktestingResultHandler.SendAnalysisResult(): Processed final packet
+2025-04-13T19:59:54.4504831Z TRACE:: Engine.Run(): Disposing of setup handler...
+2025-04-13T19:59:54.4505049Z TRACE:: Engine.Main(): Analysis Completed and Results Posted.
+2025-04-13T19:59:54.4510370Z TRACE:: Config.GetValue(): close-automatically - Using default value: False
+2025-04-13T19:59:54.4511781Z TRACE:: Engine.Main(): Packet removed from queue: BasicTemplateFrameworkAlgorithm
+2025-04-13T19:59:54.4512297Z TRACE:: LeanEngineSystemHandlers.Dispose(): start...
+2025-04-13T19:59:54.4515931Z TRACE:: LeanEngineSystemHandlers.Dispose(): Disposed of system handlers.
+2025-04-13T19:59:54.4517002Z TRACE:: LeanEngineAlgorithmHandlers.Dispose(): start...
+2025-04-13T19:59:54.4521264Z TRACE:: LeanEngineAlgorithmHandlers.Dispose(): Disposed of algorithm handlers.

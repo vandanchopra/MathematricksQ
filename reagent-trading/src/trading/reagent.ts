@@ -4,6 +4,7 @@ import { DEFAULT_TRADING_TARGETS } from './config';
 import path from 'path';
 import { exec } from 'child_process';
 import fetch from 'node-fetch';
+import dotenv from 'dotenv';
 
 export class ReAgent {
   private tradingTargets: TradingTargets;
@@ -12,13 +13,23 @@ export class ReAgent {
   private strategyEvaluatorAgent: StrategyEvaluatorAgent;
   private strategyOptimizerAgent: StrategyOptimizerAgent;
   private webSearchAgent: WebSearchAgent;
+  private openRouterApiKey: string;
 
-  constructor(tradingTargets: TradingTargets = DEFAULT_TRADING_TARGETS) {
+  constructor(
+    tradingTargets: TradingTargets = DEFAULT_TRADING_TARGETS,
+    openRouterApiKey?: string,
+    useOllamaFallback: boolean = true
+  ) {
+    // Load environment variables
+    dotenv.config();
+
     this.tradingTargets = tradingTargets;
-    this.backtestAgent = new BacktestAgent(this.tradingTargets);
-    this.strategyGeneratorAgent = new StrategyGeneratorAgent();
-    this.strategyEvaluatorAgent = new StrategyEvaluatorAgent(this.tradingTargets);
-    this.strategyOptimizerAgent = new StrategyOptimizerAgent();
+    this.openRouterApiKey = openRouterApiKey || process.env.OPENROUTER_API_KEY || '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';
+
+    this.backtestAgent = new BacktestAgent();
+    this.strategyGeneratorAgent = new StrategyGeneratorAgent(this.openRouterApiKey, useOllamaFallback);
+    this.strategyEvaluatorAgent = new StrategyEvaluatorAgent(this.tradingTargets, this.openRouterApiKey, useOllamaFallback);
+    this.strategyOptimizerAgent = new StrategyOptimizerAgent(this.openRouterApiKey, useOllamaFallback);
     this.webSearchAgent = new WebSearchAgent();
   }
 
@@ -30,30 +41,32 @@ export class ReAgent {
     await this.startBrowserService();
 
     // Generate initial strategies
-    const strategies = await this.strategyGeneratorAgent.generateStrategies();
+    const strategies = await this.strategyGeneratorAgent.execute({});
 
     console.log('Generated strategies:', strategies);
 
     // Backtest the strategies
-    const backtestResults = await this.backtestAgent.backtestStrategies(strategies);
+    const backtestResults = await Promise.all(
+      strategies.map((strategy: any) => this.backtestAgent.runBacktest(strategy))
+    );
 
     console.log('Backtest results:', backtestResults);
 
     // Evaluate the strategies
-    const evaluatedStrategies = await this.strategyEvaluatorAgent.evaluateStrategies(strategies, backtestResults);
+    const evaluatedStrategies = await this.strategyEvaluatorAgent.execute(strategies);
 
     console.log('Evaluated strategies:', evaluatedStrategies);
 
     // Select the best strategies
     const bestStrategies = evaluatedStrategies
-      .filter(strategy => strategy.score >= 0.7)
-      .sort((a, b) => b.score - a.score)
+      .filter((strategy: any) => strategy.score >= 0.7)
+      .sort((a: any, b: any) => b.score - a.score)
       .slice(0, 5);
 
     console.log('Best strategies:', bestStrategies);
 
     // Optimize the best strategies
-    const optimizedStrategies = await this.strategyOptimizerAgent.optimizeStrategies(bestStrategies);
+    const optimizedStrategies = await this.strategyOptimizerAgent.execute(bestStrategies);
 
     console.log('Optimized strategies:', optimizedStrategies);
 
