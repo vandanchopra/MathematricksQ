@@ -1,0 +1,15 @@
+[
+  {
+    "strategyId": "sma_crossover",
+    "description": "SMA Crossover Strategy (20/50)",
+    "metrics": {
+      "cagr": 0.0868,
+      "sharpeRatio": 0.438,
+      "maxDrawdown": 0.101,
+      "winRate": 0.75,
+      "profitFactor": 26.32,
+      "totalTrades": 9,
+      "averageProfit": 0.0315
+    }
+  }
+]

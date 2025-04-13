@@ -1,0 +1,33 @@
+{
+  "name": "reagent-trading",
+  "version": "1.0.0",
+  "description": "AI-powered trading strategy development and optimization system",
+  "main": "dist/cli.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/cli.js",
+    "docker:start": "cd docker && ./manage.sh start",
+    "docker:stop": "cd docker && ./manage.sh stop",
+    "docker:status": "cd docker && ./manage.sh status",
+    "docker:build": "cd docker && ./manage.sh build",
+    "example": "./run_example.sh",
+    "search": "node dist/cli.js search",
+    "research": "node dist/cli.js research"
+  },
+  "dependencies": {
+    "axios": "^1.6.7",
+    "dotenv": "^16.4.1",
+    "openai": "^4.28.0",
+    "typescript": "^5.3.3",
+    "puppeteer-core": "^22.0.0",
+    "node-fetch": "^3.3.2"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.5",
+    "@types/puppeteer-core": "^7.0.4"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "license": "MIT"
+}

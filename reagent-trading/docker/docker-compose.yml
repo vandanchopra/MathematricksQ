@@ -1,0 +1,47 @@
+version: '3'
+
+services:
+  lean:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.lean
+    volumes:
+      - ../strategies:/app/strategies
+      - ../data:/app/data
+      - ../results:/app/results
+    environment:
+      - QC_USER_ID=${QC_USER_ID:-357130}
+      - QC_API_TOKEN=${QC_API_TOKEN:-400c99249479b8bca6e035d5817d85c01eafaea0a210b022e1d826196e3d4c0b}
+    command: -c "lean backtest /app/strategies/strategy_id --data-provider-historical QuantConnect"
+    networks:
+      - reagent-network
+
+  puppeteer:
+    image: browserless/chrome:latest
+    ports:
+      - "3000:3000"
+    environment:
+      - CONNECTION_TIMEOUT=60000
+      - MAX_CONCURRENT_SESSIONS=10
+      - ENABLE_DEBUGGER=true
+      - DEFAULT_LAUNCH_ARGS=["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"]
+    restart: always
+    networks:
+      - reagent-network
+
+  # Web server for serving static files and reports
+  web:
+    image: nginx:alpine
+    ports:
+      - "8080:80"
+    volumes:
+      - ../results:/usr/share/nginx/html/results
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - lean
+    networks:
+      - reagent-network
+
+networks:
+  reagent-network:
+    driver: bridge

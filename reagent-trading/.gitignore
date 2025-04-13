@@ -1,0 +1,34 @@
+# Node.js
+node_modules/
+dist/
+npm-debug.log
+yarn-error.log
+.env
+
+# TypeScript
+*.tsbuildinfo
+
+# Docker
+.docker/
+
+# QuantConnect
+data/
+backtests/
+
+# Results
+results/*.json
+!results/list.json
+
+# Logs
+logs/
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo

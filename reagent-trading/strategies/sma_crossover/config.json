@@ -1,0 +1,8 @@
+{
+  "algorithm-type-name": "SmaCrossoverStrategy",
+  "algorithm-language": "Python",
+  "algorithm-location": "main.py",
+  "parameters": {},
+  "description": "SMA Crossover Strategy",
+  "local-id": "sma_crossover"
+}

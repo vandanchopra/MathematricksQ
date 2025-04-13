@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ReAgent Trading System - Results</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        header {
+            background-color: #f4f4f4;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+        }
+        h1 {
+            color: #0066cc;
+        }
+        h2 {
+            color: #0066cc;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 10px;
+        }
+        .results-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        .result-card {
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 15px;
+            background-color: #fff;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
+        }
+        .result-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        .metrics {
+            margin-top: 15px;
+        }
+        .metric {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+        }
+        .good {
+            color: green;
+        }
+        .bad {
+            color: red;
+        }
+        .neutral {
+            color: orange;
+        }
+        footer {
+            margin-top: 50px;
+            text-align: center;
+            color: #777;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>ReAgent Trading System - Results</h1>
+            <p>View the results of your trading strategy backtests.</p>
+        </header>
+
+        <section>
+            <h2>Recent Backtest Results</h2>
+            <div class="results-list" id="results-container">
+                <!-- Results will be loaded dynamically -->
+            </div>
+        </section>
+
+        <footer>
+            <p>&copy; 2025 ReAgent Trading System. All rights reserved.</p>
+        </footer>
+    </div>
+
+    <script>
+        // Function to load results
+        async function loadResults() {
+            try {
+                const response = await fetch('/results/list.json');
+                if (!response.ok) {
+                    throw new Error('Failed to load results');
+                }
+                
+                const results = await response.json();
+                const container = document.getElementById('results-container');
+                
+                // Clear existing content
+                container.innerHTML = '';
+                
+                // Add each result
+                results.forEach(result => {
+                    const card = document.createElement('div');
+                    card.className = 'result-card';
+                    
+                    const metrics = result.metrics || {};
+                    
+                    card.innerHTML = `
+                        <h3>${result.strategyId || 'Unknown Strategy'}</h3>
+                        <p>${result.description || 'No description available'}</p>
+                        <div class="metrics">
+                            <div class="metric">
+                                <span>CAGR:</span>
+                                <span class="${getMetricClass(metrics.cagr, 0.1, 0.25)}">${formatPercent(metrics.cagr)}</span>
+                            </div>
+                            <div class="metric">
+                                <span>Sharpe Ratio:</span>
+                                <span class="${getMetricClass(metrics.sharpeRatio, 0.8, 1.0)}">${formatNumber(metrics.sharpeRatio)}</span>
+                            </div>
+                            <div class="metric">
+                                <span>Max Drawdown:</span>
+                                <span class="${getMetricClass(1 - metrics.maxDrawdown, 0.7, 0.85)}">${formatPercent(metrics.maxDrawdown)}</span>
+                            </div>
+                            <div class="metric">
+                                <span>Win Rate:</span>
+                                <span class="${getMetricClass(metrics.winRate, 0.4, 0.6)}">${formatPercent(metrics.winRate)}</span>
+                            </div>
+                        </div>
+                    `;
+                    
+                    container.appendChild(card);
+                });
+                
+            } catch (error) {
+                console.error('Error loading results:', error);
+            }
+        }
+        
+        // Helper functions
+        function getMetricClass(value, neutral, good) {
+            if (value === undefined || value === null) return 'neutral';
+            if (value >= good) return 'good';
+            if (value >= neutral) return 'neutral';
+            return 'bad';
+        }
+        
+        function formatPercent(value) {
+            if (value === undefined || value === null) return 'N/A';
+            return (value * 100).toFixed(2) + '%';
+        }
+        
+        function formatNumber(value) {
+            if (value === undefined || value === null) return 'N/A';
+            return value.toFixed(2);
+        }
+        
+        // Load results when page loads
+        window.addEventListener('DOMContentLoaded', loadResults);
+    </script>
+</body>
+</html>
