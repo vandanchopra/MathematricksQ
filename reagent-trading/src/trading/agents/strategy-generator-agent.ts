@@ -1,11 +1,13 @@
 import { Agent } from './agent';
 import { OpenRouterService } from '../../services/openrouter-service';
+import { YahooFinanceService } from '../../services/yahoo-finance-service';
 
 /**
  * Agent responsible for generating trading strategies
  */
 export class StrategyGeneratorAgent extends Agent {
   private openRouterService: OpenRouterService;
+  private yahooFinanceService: YahooFinanceService;
 
   /**
    * Initialize the strategy generator agent
@@ -15,6 +17,7 @@ export class StrategyGeneratorAgent extends Agent {
   constructor(apiKey: string, useOllamaFallback: boolean = true) {
     super();
     this.openRouterService = new OpenRouterService(apiKey, useOllamaFallback);
+    this.yahooFinanceService = new YahooFinanceService();
   }
 
   /**
@@ -26,8 +29,14 @@ export class StrategyGeneratorAgent extends Agent {
     console.log('Generating strategies...');
 
     try {
-      // Generate strategies using OpenRouter
-      const strategies = await this.generateStrategies();
+      // Extract parameters from input
+      const { symbols = ['SPY', 'AAPL', 'MSFT', 'AMZN', 'GOOGL'], period = '1y', interval = '1d' } = input || {};
+
+      // Get market data for the specified symbols
+      const marketData = await this.getMarketData(symbols, period, interval);
+
+      // Generate strategies using OpenRouter with market data
+      const strategies = await this.generateStrategies(marketData);
 
       // If we got strategies, return them
       if (strategies && strategies.length > 0) {
@@ -47,9 +56,10 @@ export class StrategyGeneratorAgent extends Agent {
 
   /**
    * Generate strategies using OpenRouter
+   * @param marketData Market data for strategy generation
    * @returns Generated strategies
    */
-  public async generateStrategies(): Promise<any[]> {
+  public async generateStrategies(marketData?: any): Promise<any[]> {
     const strategyTypes = ['trend-following', 'mean-reversion', 'breakout', 'momentum'];
     const assetClasses = ['equities', 'forex', 'crypto'];
 
@@ -61,7 +71,10 @@ export class StrategyGeneratorAgent extends Agent {
       const asset = assetClasses[Math.floor(Math.random() * assetClasses.length)];
 
       try {
-        const strategy = await this.openRouterService.generateStrategy(type, asset);
+        // Generate strategy with market data if available
+        const strategy = marketData
+          ? await this.openRouterService.generateStrategyWithMarketData(type, asset, marketData)
+          : await this.openRouterService.generateStrategy(type, asset);
 
         // Add required fields for the system
         const processedStrategy = {
@@ -76,7 +89,8 @@ export class StrategyGeneratorAgent extends Agent {
           riskManagement: strategy.riskManagement,
           indicators: strategy.indicators,
           timeframes: strategy.timeframes,
-          expectedPerformance: strategy.expectedPerformance
+          expectedPerformance: strategy.expectedPerformance,
+          marketDataUsed: marketData ? Object.keys(marketData) : []
         };
 
         strategies.push(processedStrategy);
@@ -88,6 +102,41 @@ export class StrategyGeneratorAgent extends Agent {
     }
 
     return strategies;
+  }
+
+  /**
+   * Get market data for the specified symbols
+   * @param symbols Array of stock symbols
+   * @param period Period for historical data
+   * @param interval Interval for historical data
+   * @returns Market data for the specified symbols
+   */
+  private async getMarketData(symbols: string[], period: string, interval: string): Promise<any> {
+    const marketData: any = {};
+
+    for (const symbol of symbols) {
+      try {
+        // Get stock quote
+        const quote = await this.yahooFinanceService.getStockQuote(symbol);
+
+        // Get historical data
+        const historicalData = await this.yahooFinanceService.getHistoricalData(symbol, period, interval);
+
+        // Get company info
+        const companyInfo = await this.yahooFinanceService.getCompanyInfo(symbol);
+
+        // Add data to market data object
+        marketData[symbol] = {
+          quote,
+          historicalData,
+          companyInfo
+        };
+      } catch (error) {
+        console.error(`Error getting market data for ${symbol}:`, error);
+      }
+    }
+
+    return marketData;
   }
 
   /**

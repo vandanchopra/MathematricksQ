@@ -175,6 +175,134 @@ async function main() {
       } else {
         console.log('No papers found');
       }
+    } else if (command === 'stock-quote') {
+      // Get stock quote
+      const symbol = nonFlagArgs.slice(1).join(' ');
+      if (!symbol) {
+        console.error('Error: Stock symbol is required');
+        process.exit(1);
+      }
+
+      console.log(`Getting stock quote for: ${symbol}`);
+      const quote = await reagent.getStockQuote(symbol);
+
+      if (quote) {
+        console.log('\nStock Quote:');
+        console.log(`Symbol: ${quote.symbol}`);
+        console.log(`Price: ${quote.regularMarketPrice}`);
+        console.log(`Change: ${quote.regularMarketChange} (${quote.regularMarketChangePercent}%)`);
+        console.log(`Previous Close: ${quote.regularMarketPreviousClose}`);
+        console.log(`Open: ${quote.regularMarketOpen}`);
+        console.log(`Day Range: ${quote.regularMarketDayLow} - ${quote.regularMarketDayHigh}`);
+        console.log(`Volume: ${quote.regularMarketVolume}`);
+      } else {
+        console.log('No quote data found');
+      }
+    } else if (command === 'historical-data') {
+      // Get historical data
+      const symbol = nonFlagArgs[1];
+      const period = nonFlagArgs[2] || '1y';
+      const interval = nonFlagArgs[3] || '1d';
+
+      if (!symbol) {
+        console.error('Error: Stock symbol is required');
+        process.exit(1);
+      }
+
+      console.log(`Getting historical data for: ${symbol}`);
+      const data = await reagent.getHistoricalData(symbol, period, interval);
+
+      if (data && data.length > 0) {
+        console.log(`\nHistorical Data for ${symbol} (${period}, ${interval}):`);
+        console.log(`Found ${data.length} data points`);
+
+        // Display the first 5 and last 5 data points
+        const displayCount = Math.min(5, data.length);
+
+        console.log('\nFirst data points:');
+        for (let i = 0; i < displayCount; i++) {
+          const point = data[i];
+          console.log(`${point.date}: Open ${point.open}, High ${point.high}, Low ${point.low}, Close ${point.close}, Volume ${point.volume}`);
+        }
+
+        if (data.length > 10) {
+          console.log('\n...');
+
+          console.log('\nLast data points:');
+          for (let i = data.length - displayCount; i < data.length; i++) {
+            const point = data[i];
+            console.log(`${point.date}: Open ${point.open}, High ${point.high}, Low ${point.low}, Close ${point.close}, Volume ${point.volume}`);
+          }
+        }
+      } else {
+        console.log('No historical data found');
+      }
+    } else if (command === 'company-info') {
+      // Get company information
+      const symbol = nonFlagArgs.slice(1).join(' ');
+      if (!symbol) {
+        console.error('Error: Stock symbol is required');
+        process.exit(1);
+      }
+
+      console.log(`Getting company info for: ${symbol}`);
+      const info = await reagent.getCompanyInfo(symbol);
+
+      if (info) {
+        console.log('\nCompany Information:');
+        console.log(`Name: ${info.longName}`);
+        console.log(`Symbol: ${info.symbol}`);
+        console.log(`Industry: ${info.industry}`);
+        console.log(`Sector: ${info.sector}`);
+        console.log(`Website: ${info.website}`);
+        console.log(`Description: ${info.longBusinessSummary}`);
+      } else {
+        console.log('No company information found');
+      }
+    } else if (command === 'market-news') {
+      // Get market news
+      const category = nonFlagArgs[1] || 'general';
+      const count = parseInt(nonFlagArgs[2] || '10');
+
+      console.log(`Getting market news for category: ${category}`);
+      const news = await reagent.getMarketNews(category, count);
+
+      if (news && news.length > 0) {
+        console.log(`\nMarket News (${category}):`);
+        news.forEach((item: any, index: number) => {
+          console.log(`\n[${index + 1}] ${item.title}`);
+          console.log(`Published: ${item.published}`);
+          console.log(`Source: ${item.source}`);
+          console.log(`URL: ${item.url}`);
+          console.log(`Summary: ${item.summary}`);
+        });
+      } else {
+        console.log('No news found');
+      }
+    } else if (command === 'search-financial') {
+      // Search for financial instruments
+      const query = nonFlagArgs.slice(1).join(' ');
+      if (!query) {
+        console.error('Error: Search query is required');
+        process.exit(1);
+      }
+
+      console.log(`Searching financial instruments for: ${query}`);
+      const results = await reagent.searchFinancial(query);
+
+      if (results && results.length > 0) {
+        console.log(`\nSearch Results for "${query}":`);
+        results.forEach((item: any, index: number) => {
+          console.log(`\n[${index + 1}] ${item.shortname} (${item.symbol})`);
+          console.log(`Exchange: ${item.exchange}`);
+          console.log(`Type: ${item.typeDisp}`);
+          if (item.price) {
+            console.log(`Price: ${item.price}`);
+          }
+        });
+      } else {
+        console.log('No search results found');
+      }
     } else {
       console.error(`Error: Unknown command '${command}'`);
       console.log('\nAvailable commands:');
@@ -184,6 +312,11 @@ async function main() {
       console.log('  research-papers <query> - Research trading strategies from academic papers');
       console.log('  research-paper <paper_id> - Research a specific paper by ID');
       console.log('  search-papers <query> - Search for papers on ArXiv');
+      console.log('  stock-quote <symbol> - Get stock quote data');
+      console.log('  historical-data <symbol> [period] [interval] - Get historical stock data');
+      console.log('  company-info <symbol> - Get company information');
+      console.log('  market-news [category] [count] - Get market news');
+      console.log('  search-financial <query> - Search for financial instruments');
       process.exit(1);
     }
   } catch (error) {

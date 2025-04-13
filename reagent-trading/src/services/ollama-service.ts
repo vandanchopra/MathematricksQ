@@ -145,6 +145,111 @@ export class OllamaService {
   }
 
   /**
+   * Generate a trading strategy using market data
+   * @param type Type of strategy to generate
+   * @param asset Asset class to focus on
+   * @param marketData Market data to use for strategy generation
+   * @returns Generated strategy
+   */
+  public async generateStrategyWithMarketData(type: string, asset: string, marketData: any): Promise<any> {
+    // Create a summary of the market data to include in the prompt
+    let marketDataSummary = 'Based on the following market data:\n\n';
+
+    for (const symbol in marketData) {
+      const data = marketData[symbol];
+      marketDataSummary += `Symbol: ${symbol}\n`;
+
+      if (data.quote) {
+        marketDataSummary += `Current Price: ${data.quote.regularMarketPrice}\n`;
+        marketDataSummary += `Change: ${data.quote.regularMarketChange} (${data.quote.regularMarketChangePercent}%)\n`;
+      }
+
+      if (data.companyInfo) {
+        marketDataSummary += `Company: ${data.companyInfo.longName || symbol}\n`;
+        marketDataSummary += `Industry: ${data.companyInfo.industry || 'N/A'}\n`;
+        marketDataSummary += `Sector: ${data.companyInfo.sector || 'N/A'}\n`;
+      }
+
+      if (data.historicalData && data.historicalData.length > 0) {
+        const firstPoint = data.historicalData[0];
+        const lastPoint = data.historicalData[data.historicalData.length - 1];
+
+        marketDataSummary += `Historical Data: ${data.historicalData.length} data points\n`;
+        marketDataSummary += `First Point: ${firstPoint.date} - Open: ${firstPoint.open}, Close: ${firstPoint.close}\n`;
+        marketDataSummary += `Last Point: ${lastPoint.date} - Open: ${lastPoint.open}, Close: ${lastPoint.close}\n`;
+
+        // Calculate simple metrics
+        const startPrice = firstPoint.close;
+        const endPrice = lastPoint.close;
+        const percentChange = ((endPrice - startPrice) / startPrice) * 100;
+
+        marketDataSummary += `Overall Change: ${percentChange.toFixed(2)}%\n`;
+      }
+
+      marketDataSummary += '\n';
+    }
+
+    const prompt = `
+      Generate a detailed trading strategy with the following characteristics:
+
+      Type: ${type}
+      Asset Class: ${asset}
+
+      ${marketDataSummary}
+
+      Please provide:
+      1. Strategy name that references the specific symbols in the market data
+      2. Detailed description based on the market data analysis
+      3. Entry conditions (specific and quantifiable) based on the market data
+      4. Exit conditions (specific and quantifiable) based on the market data
+      5. Risk management rules appropriate for these assets
+      6. Required indicators with parameters optimized for these assets
+      7. Timeframe recommendations based on the historical data patterns
+      8. Expected performance metrics based on backtesting with this market data
+
+      Format the response as JSON with the following structure:
+      {
+        "name": "Strategy Name",
+        "type": "${type}",
+        "assetClass": "${asset}",
+        "description": "Detailed description",
+        "entryConditions": ["condition1", "condition2"],
+        "exitConditions": ["condition1", "condition2"],
+        "riskManagement": ["rule1", "rule2"],
+        "indicators": [
+          {"name": "indicator1", "parameters": {"param1": value1}},
+          {"name": "indicator2", "parameters": {"param1": value1}}
+        ],
+        "timeframes": ["timeframe1", "timeframe2"],
+        "expectedPerformance": {
+          "cagr": 0.15,
+          "sharpeRatio": 1.2,
+          "maxDrawdown": 0.12,
+          "winRate": 0.55
+        },
+        "symbols": [${Object.keys(marketData).map(symbol => `"${symbol}"`).join(', ')}]
+      }
+
+      Return only the JSON without any additional text.
+    `;
+
+    const generatedText = await this.generateText(prompt);
+
+    try {
+      // Extract JSON from the response
+      const jsonMatch = generatedText.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        return JSON.parse(jsonMatch[0]);
+      } else {
+        throw new Error('No valid JSON found in the response');
+      }
+    } catch (error) {
+      console.error('Error parsing generated strategy with market data:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Optimize a trading strategy using the Ollama API
    * @param strategy The strategy to optimize
    * @param performanceMetrics Current performance metrics

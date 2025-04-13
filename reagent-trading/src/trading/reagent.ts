@@ -1,4 +1,4 @@
-import { BacktestAgent, StrategyGeneratorAgent, StrategyEvaluatorAgent, StrategyOptimizerAgent, WebSearchAgent } from './agents';
+import { BacktestAgent, StrategyGeneratorAgent, StrategyEvaluatorAgent, StrategyOptimizerAgent, WebSearchAgent, YahooFinanceAgent } from './agents';
 import { ResearchAgent } from './agents/research-agent';
 import { TradingTargets } from './types';
 import { DEFAULT_TRADING_TARGETS } from './config';
@@ -15,6 +15,7 @@ export class ReAgent {
   private strategyOptimizerAgent: StrategyOptimizerAgent;
   private webSearchAgent: WebSearchAgent;
   private researchAgent: ResearchAgent;
+  private yahooFinanceAgent: YahooFinanceAgent;
   private openRouterApiKey: string;
 
   constructor(
@@ -34,6 +35,7 @@ export class ReAgent {
     this.strategyOptimizerAgent = new StrategyOptimizerAgent(this.openRouterApiKey, useOllamaFallback);
     this.webSearchAgent = new WebSearchAgent();
     this.researchAgent = new ResearchAgent(this.openRouterApiKey, useOllamaFallback);
+    this.yahooFinanceAgent = new YahooFinanceAgent();
   }
 
   /**
@@ -183,6 +185,62 @@ export class ReAgent {
 
     // Use the research agent to search for papers
     return await this.researchAgent.searchPapers(query, maxResults);
+  }
+
+  /**
+   * Get stock quote data
+   * @param symbol Stock symbol
+   */
+  public async getStockQuote(symbol: string): Promise<any> {
+    console.log(`Getting stock quote for: ${symbol}`);
+    return await this.yahooFinanceAgent.getStockQuote(symbol);
+  }
+
+  /**
+   * Get historical stock data
+   * @param symbol Stock symbol
+   * @param period Period (e.g., '1y', '6mo')
+   * @param interval Interval (e.g., '1d', '1wk')
+   */
+  public async getHistoricalData(
+    symbol: string,
+    period: string = '1y',
+    interval: string = '1d'
+  ): Promise<any> {
+    console.log(`Getting historical data for: ${symbol}`);
+    return await this.yahooFinanceAgent.getHistoricalData(symbol, period, interval);
+  }
+
+  /**
+   * Get company information
+   * @param symbol Stock symbol
+   */
+  public async getCompanyInfo(symbol: string): Promise<any> {
+    console.log(`Getting company info for: ${symbol}`);
+    return await this.yahooFinanceAgent.getCompanyInfo(symbol);
+  }
+
+  /**
+   * Get market news
+   * @param category News category (e.g., 'general', 'stocks', 'economy', 'crypto')
+   * @param count Number of news items to retrieve
+   */
+  public async getMarketNews(
+    category: string = 'general',
+    count: number = 10
+  ): Promise<any> {
+    console.log(`Getting market news for category: ${category}`);
+    return await this.yahooFinanceAgent.getMarketNews(category, count);
+  }
+
+  /**
+   * Search for financial instruments
+   * @param query Search query
+   * @param limit Maximum number of results to return
+   */
+  public async searchFinancial(query: string, limit: number = 10): Promise<any> {
+    console.log(`Searching financial instruments for: ${query}`);
+    return await this.yahooFinanceAgent.search(query, limit);
   }
 
   /**

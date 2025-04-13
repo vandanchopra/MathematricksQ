@@ -1,0 +1,24 @@
+version: '3'
+
+services:
+  yahoo-finance-mcp-server:
+    image: node:18-slim
+    container_name: yahoo-finance-mcp-server
+    working_dir: /app
+    volumes:
+      - ../data/yahoo-finance:/app/data
+    ports:
+      - "8001:8001"
+    environment:
+      - PORT=8001
+      - NODE_ENV=production
+    command: >
+      bash -c "npm install -g yahoo-finance-mcp &&
+               mkdir -p /app/data &&
+               yahoo-finance-mcp --port 8001"
+    networks:
+      - reagent-network
+
+networks:
+  reagent-network:
+    driver: bridge
