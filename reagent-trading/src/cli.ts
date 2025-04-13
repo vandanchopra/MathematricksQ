@@ -439,6 +439,180 @@ async function main() {
       } else {
         console.log('No search results found');
       }
+    } else if (command === 'analyze-data') {
+      // Analyze financial data
+      const symbol = nonFlagArgs[1];
+      const period = nonFlagArgs[2] || '1y';
+      const interval = nonFlagArgs[3] || '1d';
+
+      if (!symbol) {
+        console.error('Error: Stock symbol is required');
+        process.exit(1);
+      }
+
+      console.log(`Analyzing financial data for: ${symbol}`);
+      const results = await reagent.analyzeFinancialData(symbol, period, interval);
+
+      if (results && !results.error) {
+        console.log(`\nAnalysis Results for ${symbol}:`);
+
+        if (results.dataframeInfo) {
+          console.log('\nDataFrame Information:');
+          console.log(`Columns: ${results.dataframeInfo.columns.join(', ')}`);
+          console.log(`Shape: ${results.dataframeInfo.shape[0]} rows, ${results.dataframeInfo.shape[1]} columns`);
+        }
+
+        if (results.dataframeStats) {
+          console.log('\nDataFrame Statistics:');
+          for (const column in results.dataframeStats) {
+            console.log(`${column}:`);
+            for (const stat in results.dataframeStats[column]) {
+              console.log(`  ${stat}: ${results.dataframeStats[column][stat]}`);
+            }
+          }
+        }
+
+        if (results.stockQuote) {
+          console.log('\nCurrent Stock Quote:');
+          console.log(`Price: ${results.stockQuote.regularMarketPrice}`);
+          console.log(`Change: ${results.stockQuote.regularMarketChange} (${results.stockQuote.regularMarketChangePercent}%)`);
+        }
+      } else {
+        console.log('Error analyzing data:', results.error || 'Unknown error');
+      }
+    } else if (command === 'run-query') {
+      // Run a custom analysis query
+      const symbol = nonFlagArgs[1];
+      const query = nonFlagArgs.slice(2).join(' ');
+
+      if (!symbol) {
+        console.error('Error: Stock symbol is required');
+        process.exit(1);
+      }
+
+      if (!query) {
+        console.error('Error: Analysis query is required');
+        process.exit(1);
+      }
+
+      console.log(`Running analysis query for: ${symbol}`);
+      console.log(`Query: ${query}`);
+      const results = await reagent.runAnalysisQuery(symbol, query);
+
+      if (results && !results.error) {
+        console.log(`\nAnalysis Results for ${symbol}:`);
+
+        if (results.analysisResult) {
+          console.log('\nAnalysis Result:');
+          console.log(results.analysisResult);
+        }
+      } else {
+        console.log('Error running query:', results.error || 'Unknown error');
+      }
+    } else if (command === 'generate-data-strategy') {
+      // Generate a data-driven trading strategy
+      const symbol = nonFlagArgs[1];
+      const strategyType = nonFlagArgs[2] || 'momentum';
+      const period = nonFlagArgs[3] || '1y';
+      const interval = nonFlagArgs[4] || '1d';
+
+      if (!symbol) {
+        console.error('Error: Stock symbol is required');
+        process.exit(1);
+      }
+
+      console.log(`Generating ${strategyType} strategy for: ${symbol}`);
+      const results = await reagent.generateDataDrivenStrategy(symbol, strategyType, period, interval);
+
+      if (results && !results.error) {
+        console.log(`\nGenerated Strategy for ${symbol}:`);
+
+        if (results.strategy) {
+          console.log(`\nStrategy: ${results.strategy.name}`);
+          console.log(`Description: ${results.strategy.description}`);
+
+          if (results.strategy.entryConditions) {
+            console.log('\nEntry Conditions:');
+            results.strategy.entryConditions.forEach((condition: string, index: number) => {
+              console.log(`  ${index + 1}. ${condition}`);
+            });
+          }
+
+          if (results.strategy.exitConditions) {
+            console.log('\nExit Conditions:');
+            results.strategy.exitConditions.forEach((condition: string, index: number) => {
+              console.log(`  ${index + 1}. ${condition}`);
+            });
+          }
+
+          if (results.strategy.indicators) {
+            console.log('\nIndicators:');
+            results.strategy.indicators.forEach((indicator: any, index: number) => {
+              console.log(`  ${index + 1}. ${indicator.name}`);
+              for (const param in indicator.parameters) {
+                console.log(`     ${param}: ${indicator.parameters[param]}`);
+              }
+            });
+          }
+        }
+
+        if (results.backtestResults) {
+          console.log('\nBacktest Results:');
+          console.log(`Total Return: ${results.backtestResults.totalReturn}%`);
+          console.log(`Annual Return: ${results.backtestResults.annualReturn}%`);
+          console.log(`Sharpe Ratio: ${results.backtestResults.sharpeRatio}`);
+          console.log(`Max Drawdown: ${results.backtestResults.maxDrawdown}%`);
+          console.log(`Win Rate: ${results.backtestResults.winRate}%`);
+        }
+      } else {
+        console.log('Error generating strategy:', results.error || 'Unknown error');
+      }
+    } else if (command === 'compare-symbols') {
+      // Compare multiple symbols
+      const symbols = nonFlagArgs.slice(1);
+      const period = flagsObj['period'] || '1y';
+      const interval = flagsObj['interval'] || '1d';
+
+      if (symbols.length < 2) {
+        console.error('Error: At least two stock symbols are required');
+        process.exit(1);
+      }
+
+      console.log(`Comparing symbols: ${symbols.join(', ')}`);
+      const results = await reagent.compareSymbols(symbols, period, interval);
+
+      if (results && !results.error) {
+        console.log(`\nComparison Results:`);
+
+        for (const symbol in results.individualResults) {
+          const result = results.individualResults[symbol];
+
+          if (!result.error) {
+            console.log(`\n${symbol}:`);
+
+            if (result.stockQuote) {
+              console.log(`  Current Price: ${result.stockQuote.regularMarketPrice}`);
+              console.log(`  Change: ${result.stockQuote.regularMarketChange} (${result.stockQuote.regularMarketChangePercent}%)`);
+            }
+
+            if (result.dataframeStats && result.dataframeStats.Close) {
+              console.log(`  Mean: ${result.dataframeStats.Close.mean}`);
+              console.log(`  Std Dev: ${result.dataframeStats.Close.std}`);
+              console.log(`  Min: ${result.dataframeStats.Close.min}`);
+              console.log(`  Max: ${result.dataframeStats.Close.max}`);
+            }
+          } else {
+            console.log(`\n${symbol}: Error - ${result.error}`);
+          }
+        }
+
+        if (results.comparisonAnalysis) {
+          console.log('\nComparison Analysis:');
+          console.log(results.comparisonAnalysis);
+        }
+      } else {
+        console.log('Error comparing symbols:', results.error || 'Unknown error');
+      }
     } else {
       console.error(`Error: Unknown command '${command}'`);
       console.log('\nAvailable commands:');
@@ -459,6 +633,11 @@ async function main() {
       console.log('  company-info <symbol> - Get company information');
       console.log('  market-news [category] [count] - Get market news');
       console.log('  search-financial <query> - Search for financial instruments');
+      console.log('\nData Analysis:');
+      console.log('  analyze-data <symbol> [period] [interval] - Analyze financial data');
+      console.log('  run-query <symbol> <query> - Run a custom analysis query');
+      console.log('  generate-data-strategy <symbol> [strategy_type] [period] [interval] - Generate a data-driven trading strategy');
+      console.log('  compare-symbols <symbol1> <symbol2> [symbol3...] [--period=1y] [--interval=1d] - Compare multiple symbols');
       process.exit(1);
     }
   } catch (error) {

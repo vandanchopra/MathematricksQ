@@ -1,0 +1,22 @@
+version: '3'
+
+services:
+  pandas-ai-mcp-server:
+    image: python:3.11-slim
+    container_name: pandas-ai-mcp-server
+    working_dir: /app
+    volumes:
+      - ../data/pandas-ai:/app/data
+    ports:
+      - "8003:8003"
+    environment:
+      - PANDAS_AI_STORAGE_PATH=/app/data
+    command: >
+      bash -c "pip install pandas-ai-mcp-server pandas numpy matplotlib seaborn scikit-learn yfinance && 
+               pandas-ai-mcp-server --port 8003 --storage-path /app/data"
+    networks:
+      - reagent-network
+
+networks:
+  reagent-network:
+    driver: bridge

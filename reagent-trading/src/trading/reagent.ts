@@ -1,4 +1,4 @@
-import { BacktestAgent, StrategyGeneratorAgent, StrategyEvaluatorAgent, StrategyOptimizerAgent, WebSearchAgent, YahooFinanceAgent, AcademicSearchAgent } from './agents';
+import { BacktestAgent, StrategyGeneratorAgent, StrategyEvaluatorAgent, StrategyOptimizerAgent, WebSearchAgent, YahooFinanceAgent, AcademicSearchAgent, DataAnalysisAgent } from './agents';
 import { ResearchAgent } from './agents/research-agent';
 import { TradingTargets } from './types';
 import { DEFAULT_TRADING_TARGETS } from './config';
@@ -17,6 +17,7 @@ export class ReAgent {
   private researchAgent: ResearchAgent;
   private yahooFinanceAgent: YahooFinanceAgent;
   private academicSearchAgent: AcademicSearchAgent;
+  private dataAnalysisAgent: DataAnalysisAgent;
   private openRouterApiKey: string;
 
   constructor(
@@ -38,6 +39,7 @@ export class ReAgent {
     this.researchAgent = new ResearchAgent(this.openRouterApiKey, useOllamaFallback);
     this.yahooFinanceAgent = new YahooFinanceAgent();
     this.academicSearchAgent = new AcademicSearchAgent(this.openRouterApiKey, useOllamaFallback);
+    this.dataAnalysisAgent = new DataAnalysisAgent();
   }
 
   /**
@@ -243,6 +245,70 @@ export class ReAgent {
   public async searchFinancial(query: string, limit: number = 10): Promise<any> {
     console.log(`Searching financial instruments for: ${query}`);
     return await this.yahooFinanceAgent.search(query, limit);
+  }
+
+  /**
+   * Analyze financial data for a specific symbol
+   * @param symbol Stock symbol
+   * @param period Period (e.g., '1y', '6mo')
+   * @param interval Interval (e.g., '1d', '1wk')
+   */
+  public async analyzeFinancialData(
+    symbol: string,
+    period: string = '1y',
+    interval: string = '1d'
+  ): Promise<any> {
+    console.log(`Analyzing financial data for: ${symbol}`);
+    return await this.dataAnalysisAgent.analyzeFinancialData(symbol, period, interval);
+  }
+
+  /**
+   * Run a custom analysis query on financial data
+   * @param symbol Stock symbol
+   * @param query Analysis query
+   * @param period Period (e.g., '1y', '6mo')
+   * @param interval Interval (e.g., '1d', '1wk')
+   */
+  public async runAnalysisQuery(
+    symbol: string,
+    query: string,
+    period: string = '1y',
+    interval: string = '1d'
+  ): Promise<any> {
+    console.log(`Running analysis query for: ${symbol}`);
+    return await this.dataAnalysisAgent.runAnalysisQuery(symbol, query, period, interval);
+  }
+
+  /**
+   * Generate a trading strategy based on financial data analysis
+   * @param symbol Stock symbol
+   * @param strategyType Type of strategy to generate
+   * @param period Period (e.g., '1y', '6mo')
+   * @param interval Interval (e.g., '1d', '1wk')
+   */
+  public async generateDataDrivenStrategy(
+    symbol: string,
+    strategyType: string,
+    period: string = '1y',
+    interval: string = '1d'
+  ): Promise<any> {
+    console.log(`Generating ${strategyType} strategy for: ${symbol}`);
+    return await this.dataAnalysisAgent.generateTradingStrategy(symbol, strategyType, period, interval);
+  }
+
+  /**
+   * Compare multiple symbols
+   * @param symbols Array of stock symbols
+   * @param period Period (e.g., '1y', '6mo')
+   * @param interval Interval (e.g., '1d', '1wk')
+   */
+  public async compareSymbols(
+    symbols: string[],
+    period: string = '1y',
+    interval: string = '1d'
+  ): Promise<any> {
+    console.log(`Comparing symbols: ${symbols.join(', ')}`);
+    return await this.dataAnalysisAgent.compareSymbols(symbols, period, interval);
   }
 
   /**
