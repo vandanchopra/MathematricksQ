@@ -1,0 +1,22 @@
+version: '3'
+
+services:
+  arxiv-mcp-server:
+    image: python:3.11-slim
+    container_name: arxiv-mcp-server
+    working_dir: /app
+    volumes:
+      - ../data/papers:/app/papers
+    ports:
+      - "8000:8000"
+    environment:
+      - ARXIV_STORAGE_PATH=/app/papers
+    command: >
+      bash -c "pip install arxiv-mcp-server && 
+               arxiv-mcp-server --storage-path /app/papers"
+    networks:
+      - reagent-network
+
+networks:
+  reagent-network:
+    driver: bridge

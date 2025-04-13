@@ -77,12 +77,113 @@ async function main() {
       } else {
         console.log('No information found for this strategy type');
       }
+    } else if (command === 'research-papers') {
+      // Research papers for trading strategies
+      const query = nonFlagArgs.slice(1).join(' ');
+      if (!query) {
+        console.error('Error: Search query is required');
+        process.exit(1);
+      }
+
+      console.log(`Researching papers for: ${query}`);
+      const results = await reagent.researchPapers(query);
+
+      if (results && results.papers) {
+        console.log(`\nFound ${results.papers.length} papers:`);
+        results.papers.forEach((paper: any, index: number) => {
+          console.log(`\n[${index + 1}] ${paper.title}`);
+          console.log(`Authors: ${paper.authors.join(', ')}`);
+          console.log(`ID: ${paper.id}`);
+          console.log(`Published: ${paper.published}`);
+          console.log(`Categories: ${paper.categories.join(', ')}`);
+        });
+
+        if (results.strategies) {
+          console.log(`\nGenerated ${results.strategies.length} strategies from papers:`);
+          results.strategies.forEach((strategy: any, index: number) => {
+            console.log(`\n[${index + 1}] ${strategy.name}`);
+            console.log(`Description: ${strategy.description}`);
+            console.log(`Hypothesis: ${strategy.hypothesis}`);
+          });
+        }
+
+        if (results.optimizedStrategies) {
+          console.log(`\nOptimized strategies:`);
+          results.optimizedStrategies.forEach((strategy: any, index: number) => {
+            console.log(`\n[${index + 1}] ${strategy.name}`);
+            console.log(`Description: ${strategy.description}`);
+            console.log(`Score: ${strategy.score}`);
+          });
+        }
+      } else {
+        console.log('No papers or strategies found');
+      }
+    } else if (command === 'research-paper') {
+      // Research a specific paper by ID
+      const paperId = nonFlagArgs.slice(1).join(' ');
+      if (!paperId) {
+        console.error('Error: Paper ID is required');
+        process.exit(1);
+      }
+
+      console.log(`Researching paper: ${paperId}`);
+      const result = await reagent.researchPaper(paperId);
+
+      if (result && result.paper) {
+        console.log(`\nPaper: ${result.paper.title}`);
+        console.log(`Authors: ${result.paper.authors.join(', ')}`);
+        console.log(`ID: ${result.paper.id}`);
+
+        if (result.strategy) {
+          console.log(`\nGenerated Strategy: ${result.strategy.name}`);
+          console.log(`Description: ${result.strategy.description}`);
+          console.log(`Hypothesis: ${result.strategy.hypothesis}`);
+
+          if (result.evaluatedStrategy) {
+            console.log(`\nEvaluation Score: ${result.evaluatedStrategy.score}`);
+          }
+
+          if (result.optimizedStrategy) {
+            console.log(`\nOptimized Strategy: ${result.optimizedStrategy.name}`);
+            console.log(`Description: ${result.optimizedStrategy.description}`);
+          }
+        }
+      } else {
+        console.log('Paper not found or could not be analyzed');
+      }
+    } else if (command === 'search-papers') {
+      // Search for papers on ArXiv
+      const query = nonFlagArgs.slice(1).join(' ');
+      if (!query) {
+        console.error('Error: Search query is required');
+        process.exit(1);
+      }
+
+      console.log(`Searching papers for: ${query}`);
+      const papers = await reagent.searchPapers(query);
+
+      if (papers && papers.length > 0) {
+        console.log(`\nFound ${papers.length} papers:`);
+        papers.forEach((paper: any, index: number) => {
+          console.log(`\n[${index + 1}] ${paper.title}`);
+          console.log(`Authors: ${paper.authors.join(', ')}`);
+          console.log(`ID: ${paper.id}`);
+          console.log(`Published: ${paper.published}`);
+          console.log(`Categories: ${paper.categories.join(', ')}`);
+          console.log(`Abstract: ${paper.abstract.substring(0, 200)}...`);
+        });
+      } else {
+        console.log('No papers found');
+      }
     } else {
       console.error(`Error: Unknown command '${command}'`);
       console.log('\nAvailable commands:');
       console.log('  (no command)  - Run the full ReAgent system');
       console.log('  search <query> - Search for market information');
       console.log('  research <strategy_type> - Research a specific strategy type');
+      console.log('  research-papers <query> - Research trading strategies from academic papers');
+      console.log('  research-paper <paper_id> - Research a specific paper by ID');
+      console.log('  search-papers <query> - Search for papers on ArXiv');
       process.exit(1);
     }
   } catch (error) {

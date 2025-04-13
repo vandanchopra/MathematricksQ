@@ -1,4 +1,5 @@
 import { BacktestAgent, StrategyGeneratorAgent, StrategyEvaluatorAgent, StrategyOptimizerAgent, WebSearchAgent } from './agents';
+import { ResearchAgent } from './agents/research-agent';
 import { TradingTargets } from './types';
 import { DEFAULT_TRADING_TARGETS } from './config';
 import path from 'path';
@@ -13,6 +14,7 @@ export class ReAgent {
   private strategyEvaluatorAgent: StrategyEvaluatorAgent;
   private strategyOptimizerAgent: StrategyOptimizerAgent;
   private webSearchAgent: WebSearchAgent;
+  private researchAgent: ResearchAgent;
   private openRouterApiKey: string;
 
   constructor(
@@ -31,6 +33,7 @@ export class ReAgent {
     this.strategyEvaluatorAgent = new StrategyEvaluatorAgent(this.tradingTargets, this.openRouterApiKey, useOllamaFallback);
     this.strategyOptimizerAgent = new StrategyOptimizerAgent(this.openRouterApiKey, useOllamaFallback);
     this.webSearchAgent = new WebSearchAgent();
+    this.researchAgent = new ResearchAgent(this.openRouterApiKey, useOllamaFallback);
   }
 
   /**
@@ -100,6 +103,86 @@ export class ReAgent {
     const strategyInfo = await this.webSearchAgent.searchTradingStrategy(strategyType);
 
     return strategyInfo;
+  }
+
+  /**
+   * Research trading strategies from academic papers
+   * @param query Search query for finding relevant papers
+   * @param maxResults Maximum number of papers to analyze
+   */
+  public async researchPapers(query: string, maxResults: number = 3): Promise<any> {
+    console.log(`Researching papers for: ${query}`);
+
+    // Use the research agent to find and analyze papers
+    const researchResults = await this.researchAgent.execute({
+      query: query,
+      maxResults: maxResults
+    });
+
+    // If strategies were generated, evaluate them
+    if (researchResults.strategies && researchResults.strategies.length > 0) {
+      console.log(`Evaluating ${researchResults.strategies.length} strategies from research papers`);
+
+      // Evaluate the strategies
+      const evaluatedStrategies = await this.strategyEvaluatorAgent.execute(researchResults.strategies);
+
+      // Select the best strategies
+      const bestStrategies = evaluatedStrategies
+        .filter((strategy: any) => strategy.score >= 0.6)
+        .sort((a: any, b: any) => b.score - a.score)
+        .slice(0, 3);
+
+      // Optimize the best strategies
+      const optimizedStrategies = await this.strategyOptimizerAgent.execute(bestStrategies);
+
+      // Add the optimized strategies to the results
+      researchResults.evaluatedStrategies = evaluatedStrategies;
+      researchResults.bestStrategies = bestStrategies;
+      researchResults.optimizedStrategies = optimizedStrategies;
+    }
+
+    return researchResults;
+  }
+
+  /**
+   * Research a specific paper by ID
+   * @param paperId ArXiv paper ID
+   */
+  public async researchPaper(paperId: string): Promise<any> {
+    console.log(`Researching paper: ${paperId}`);
+
+    // Use the research agent to analyze the paper
+    const researchResult = await this.researchAgent.researchPaper(paperId);
+
+    if (researchResult && researchResult.strategy) {
+      // Evaluate the strategy
+      const evaluatedStrategy = await this.strategyEvaluatorAgent.execute([researchResult.strategy]);
+
+      // Optimize the strategy if it's good enough
+      if (evaluatedStrategy[0].score >= 0.6) {
+        const optimizedStrategy = await this.strategyOptimizerAgent.execute([evaluatedStrategy[0]]);
+
+        // Add the evaluated and optimized strategy to the result
+        researchResult.evaluatedStrategy = evaluatedStrategy[0];
+        researchResult.optimizedStrategy = optimizedStrategy[0];
+      } else {
+        researchResult.evaluatedStrategy = evaluatedStrategy[0];
+      }
+    }
+
+    return researchResult;
+  }
+
+  /**
+   * Search for papers on ArXiv
+   * @param query Search query
+   * @param maxResults Maximum number of results to return
+   */
+  public async searchPapers(query: string, maxResults: number = 10): Promise<any[]> {
+    console.log(`Searching papers for: ${query}`);
+
+    // Use the research agent to search for papers
+    return await this.researchAgent.searchPapers(query, maxResults);
   }
 
   /**

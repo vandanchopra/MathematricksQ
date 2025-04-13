@@ -3,6 +3,7 @@ import { WebSearchAgent } from './web-search-agent';
 import { StrategyGeneratorAgent } from './strategy-generator-agent';
 import { StrategyEvaluatorAgent } from './strategy-evaluator-agent';
 import { StrategyOptimizerAgent } from './strategy-optimizer-agent';
+import { ResearchAgent } from './research-agent';
 import { Agent } from './agent';
 
 export {
@@ -11,5 +12,6 @@ export {
   StrategyGeneratorAgent,
   StrategyEvaluatorAgent,
   StrategyOptimizerAgent,
+  ResearchAgent,
   Agent
 };
