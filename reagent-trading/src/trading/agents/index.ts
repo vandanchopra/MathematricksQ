@@ -5,6 +5,7 @@ import { StrategyEvaluatorAgent } from './strategy-evaluator-agent';
 import { StrategyOptimizerAgent } from './strategy-optimizer-agent';
 import { ResearchAgent } from './research-agent';
 import { YahooFinanceAgent } from './yahoo-finance-agent';
+import { AcademicSearchAgent } from './academic-search-agent';
 import { Agent } from './agent';
 
 export {
@@ -15,5 +16,6 @@ export {
   StrategyOptimizerAgent,
   ResearchAgent,
   YahooFinanceAgent,
+  AcademicSearchAgent,
   Agent
 };

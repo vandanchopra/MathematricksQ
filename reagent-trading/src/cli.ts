@@ -7,9 +7,22 @@ async function main() {
 
   const args = process.argv.slice(2);
 
-  // Filter out flags
-  const flags = args.filter(arg => arg.startsWith('--'));
-  const nonFlagArgs = args.filter(arg => !arg.startsWith('--'));
+  // Parse flags
+  const flagsObj: { [key: string]: string } = {};
+  const nonFlagArgs = [];
+
+  for (const arg of args) {
+    if (arg.startsWith('--')) {
+      const parts = arg.substring(2).split('=');
+      if (parts.length === 2) {
+        flagsObj[parts[0]] = parts[1];
+      } else {
+        flagsObj[parts[0]] = 'true';
+      }
+    } else {
+      nonFlagArgs.push(arg);
+    }
+  }
 
   const command = nonFlagArgs[0];
 
@@ -17,7 +30,7 @@ async function main() {
   const openRouterApiKey = process.env.OPENROUTER_API_KEY || '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';
 
   // Check if Ollama fallback is enabled
-  const useOllamaFallback = flags.includes('--use-ollama') || process.env.USE_OLLAMA_FALLBACK === 'true';
+  const useOllamaFallback = flagsObj['use-ollama'] === 'true' || process.env.USE_OLLAMA_FALLBACK === 'true';
 
   console.log('Using OpenRouter API for enhanced strategy generation and analysis');
   if (useOllamaFallback) {
@@ -175,6 +188,129 @@ async function main() {
       } else {
         console.log('No papers found');
       }
+    } else if (command === 'search-academic') {
+      // Search for academic papers across multiple sources
+      const query = nonFlagArgs.slice(1).join(' ');
+      if (!query) {
+        console.error('Error: Search query is required');
+        process.exit(1);
+      }
+
+      // Extract sources from flags
+      const sources = flagsObj['sources'] ? flagsObj['sources'].split(',') : ['arxiv', 'pubmed', 'semanticscholar'];
+      const maxResults = flagsObj['max'] ? parseInt(flagsObj['max']) : 10;
+
+      console.log(`Searching academic papers for: ${query}`);
+      console.log(`Sources: ${sources.join(', ')}`);
+      const papers = await reagent.searchAcademicPapers(query, maxResults, sources);
+
+      if (papers && papers.length > 0) {
+        console.log(`\nFound ${papers.length} papers:`);
+        papers.forEach((paper: any, index: number) => {
+          console.log(`\n[${index + 1}] ${paper.title}`);
+          console.log(`Authors: ${paper.authors.join(', ')}`);
+          console.log(`ID: ${paper.id}`);
+          console.log(`Source: ${paper.source}`);
+          console.log(`Published: ${paper.published || 'N/A'}`);
+          if (paper.abstract) {
+            console.log(`Abstract: ${paper.abstract.substring(0, 200)}...`);
+          }
+        });
+      } else {
+        console.log('No papers found');
+      }
+    } else if (command === 'research-academic') {
+      // Research a specific academic paper
+      const paperId = nonFlagArgs[1];
+      const source = nonFlagArgs[2] || 'arxiv';
+
+      if (!paperId) {
+        console.error('Error: Paper ID is required');
+        process.exit(1);
+      }
+
+      console.log(`Researching academic paper: ${paperId} from ${source}`);
+      const result = await reagent.researchAcademicPaper(paperId, source);
+
+      if (result && result.paper) {
+        console.log(`\nPaper: ${result.paper.title}`);
+        console.log(`Authors: ${result.paper.authors.join(', ')}`);
+        console.log(`ID: ${result.paper.id}`);
+        console.log(`Source: ${result.paper.source}`);
+
+        if (result.citations && result.citations.length > 0) {
+          console.log(`\nCitations (${result.citations.length}):`);
+          result.citations.slice(0, 5).forEach((citation: any, index: number) => {
+            console.log(`  [${index + 1}] ${citation.title}`);
+          });
+          if (result.citations.length > 5) {
+            console.log(`  ... and ${result.citations.length - 5} more`);
+          }
+        }
+
+        if (result.references && result.references.length > 0) {
+          console.log(`\nReferences (${result.references.length}):`);
+          result.references.slice(0, 5).forEach((reference: any, index: number) => {
+            console.log(`  [${index + 1}] ${reference.title}`);
+          });
+          if (result.references.length > 5) {
+            console.log(`  ... and ${result.references.length - 5} more`);
+          }
+        }
+
+        if (result.strategy) {
+          console.log(`\nGenerated Strategy: ${result.strategy.name}`);
+          console.log(`Description: ${result.strategy.description}`);
+          console.log(`Hypothesis: ${result.strategy.hypothesis}`);
+        }
+      } else {
+        console.log('Paper not found or could not be analyzed');
+      }
+    } else if (command === 'academic-strategies') {
+      // Research trading strategies from academic papers
+      const query = nonFlagArgs.slice(1).join(' ');
+      if (!query) {
+        console.error('Error: Search query is required');
+        process.exit(1);
+      }
+
+      // Extract sources from flags
+      const sources = flagsObj['sources'] ? flagsObj['sources'].split(',') : ['arxiv', 'pubmed', 'semanticscholar'];
+      const maxResults = flagsObj['max'] ? parseInt(flagsObj['max']) : 5;
+
+      console.log(`Researching academic strategies for: ${query}`);
+      console.log(`Sources: ${sources.join(', ')}`);
+      const results = await reagent.researchAcademicStrategies(query, maxResults, sources);
+
+      if (results && results.papers) {
+        console.log(`\nFound ${results.papers.length} papers:`);
+        results.papers.forEach((paper: any, index: number) => {
+          console.log(`\n[${index + 1}] ${paper.title}`);
+          console.log(`Authors: ${paper.authors.join(', ')}`);
+          console.log(`ID: ${paper.id}`);
+          console.log(`Source: ${paper.source}`);
+        });
+
+        if (results.strategies) {
+          console.log(`\nGenerated ${results.strategies.length} strategies from papers:`);
+          results.strategies.forEach((strategy: any, index: number) => {
+            console.log(`\n[${index + 1}] ${strategy.name}`);
+            console.log(`Description: ${strategy.description}`);
+            console.log(`Hypothesis: ${strategy.hypothesis}`);
+          });
+        }
+
+        if (results.optimizedStrategies) {
+          console.log(`\nOptimized strategies:`);
+          results.optimizedStrategies.forEach((strategy: any, index: number) => {
+            console.log(`\n[${index + 1}] ${strategy.name}`);
+            console.log(`Description: ${strategy.description}`);
+            console.log(`Score: ${strategy.score}`);
+          });
+        }
+      } else {
+        console.log('No papers or strategies found');
+      }
     } else if (command === 'stock-quote') {
       // Get stock quote
       const symbol = nonFlagArgs.slice(1).join(' ');
@@ -309,9 +445,15 @@ async function main() {
       console.log('  (no command)  - Run the full ReAgent system');
       console.log('  search <query> - Search for market information');
       console.log('  research <strategy_type> - Research a specific strategy type');
+      console.log('\nArXiv Research:');
       console.log('  research-papers <query> - Research trading strategies from academic papers');
       console.log('  research-paper <paper_id> - Research a specific paper by ID');
       console.log('  search-papers <query> - Search for papers on ArXiv');
+      console.log('\nAcademic Research:');
+      console.log('  search-academic <query> [--sources=arxiv,pubmed,semanticscholar] [--max=10] - Search for academic papers');
+      console.log('  research-academic <paper_id> <source> - Research a specific academic paper');
+      console.log('  academic-strategies <query> [--sources=arxiv,pubmed,semanticscholar] [--max=5] - Research trading strategies from academic papers');
+      console.log('\nFinancial Data:');
       console.log('  stock-quote <symbol> - Get stock quote data');
       console.log('  historical-data <symbol> [period] [interval] - Get historical stock data');
       console.log('  company-info <symbol> - Get company information');

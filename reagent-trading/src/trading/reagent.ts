@@ -1,4 +1,4 @@
-import { BacktestAgent, StrategyGeneratorAgent, StrategyEvaluatorAgent, StrategyOptimizerAgent, WebSearchAgent, YahooFinanceAgent } from './agents';
+import { BacktestAgent, StrategyGeneratorAgent, StrategyEvaluatorAgent, StrategyOptimizerAgent, WebSearchAgent, YahooFinanceAgent, AcademicSearchAgent } from './agents';
 import { ResearchAgent } from './agents/research-agent';
 import { TradingTargets } from './types';
 import { DEFAULT_TRADING_TARGETS } from './config';
@@ -16,6 +16,7 @@ export class ReAgent {
   private webSearchAgent: WebSearchAgent;
   private researchAgent: ResearchAgent;
   private yahooFinanceAgent: YahooFinanceAgent;
+  private academicSearchAgent: AcademicSearchAgent;
   private openRouterApiKey: string;
 
   constructor(
@@ -36,6 +37,7 @@ export class ReAgent {
     this.webSearchAgent = new WebSearchAgent();
     this.researchAgent = new ResearchAgent(this.openRouterApiKey, useOllamaFallback);
     this.yahooFinanceAgent = new YahooFinanceAgent();
+    this.academicSearchAgent = new AcademicSearchAgent(this.openRouterApiKey, useOllamaFallback);
   }
 
   /**
@@ -241,6 +243,106 @@ export class ReAgent {
   public async searchFinancial(query: string, limit: number = 10): Promise<any> {
     console.log(`Searching financial instruments for: ${query}`);
     return await this.yahooFinanceAgent.search(query, limit);
+  }
+
+  /**
+   * Search for academic papers across multiple sources
+   * @param query Search query
+   * @param maxResults Maximum number of results to return
+   * @param sources Sources to search (e.g., 'arxiv', 'pubmed', 'semanticscholar')
+   */
+  public async searchAcademicPapers(
+    query: string,
+    maxResults: number = 10,
+    sources: string[] = ['arxiv', 'pubmed', 'semanticscholar']
+  ): Promise<any[]> {
+    console.log(`Searching academic papers for: ${query}`);
+    return await this.academicSearchAgent.searchPapers(query, maxResults, sources);
+  }
+
+  /**
+   * Research a specific academic paper
+   * @param paperId Paper ID
+   * @param source Source of the paper (e.g., 'arxiv', 'pubmed', 'semanticscholar')
+   */
+  public async researchAcademicPaper(paperId: string, source: string): Promise<any> {
+    console.log(`Researching academic paper: ${paperId} from ${source}`);
+    return await this.academicSearchAgent.researchPaper(paperId, source);
+  }
+
+  /**
+   * Get citations for a paper
+   * @param paperId Paper ID
+   * @param source Source of the paper (e.g., 'arxiv', 'pubmed', 'semanticscholar')
+   * @param maxResults Maximum number of results to return
+   */
+  public async getCitations(
+    paperId: string,
+    source: string,
+    maxResults: number = 10
+  ): Promise<any[]> {
+    console.log(`Getting citations for paper: ${paperId} from ${source}`);
+    return await this.academicSearchAgent.getCitations(paperId, source, maxResults);
+  }
+
+  /**
+   * Get references for a paper
+   * @param paperId Paper ID
+   * @param source Source of the paper (e.g., 'arxiv', 'pubmed', 'semanticscholar')
+   * @param maxResults Maximum number of results to return
+   */
+  public async getReferences(
+    paperId: string,
+    source: string,
+    maxResults: number = 10
+  ): Promise<any[]> {
+    console.log(`Getting references for paper: ${paperId} from ${source}`);
+    return await this.academicSearchAgent.getReferences(paperId, source, maxResults);
+  }
+
+  /**
+   * Research trading strategies from academic papers across multiple sources
+   * @param query Search query for finding relevant papers
+   * @param maxResults Maximum number of papers to analyze
+   * @param sources Sources to search (e.g., 'arxiv', 'pubmed', 'semanticscholar')
+   */
+  public async researchAcademicStrategies(
+    query: string,
+    maxResults: number = 5,
+    sources: string[] = ['arxiv', 'pubmed', 'semanticscholar']
+  ): Promise<any> {
+    console.log(`Researching academic strategies for: ${query}`);
+
+    // Use the academic search agent to find and analyze papers
+    const researchResults = await this.academicSearchAgent.execute({
+      query: query,
+      maxResults: maxResults,
+      sources: sources
+    });
+
+    // If strategies were generated, evaluate them
+    if (researchResults.strategies && researchResults.strategies.length > 0) {
+      console.log(`Evaluating ${researchResults.strategies.length} strategies from academic papers`);
+
+      // Evaluate the strategies
+      const evaluatedStrategies = await this.strategyEvaluatorAgent.execute(researchResults.strategies);
+
+      // Select the best strategies
+      const bestStrategies = evaluatedStrategies
+        .filter((strategy: any) => strategy.score >= 0.6)
+        .sort((a: any, b: any) => b.score - a.score)
+        .slice(0, 3);
+
+      // Optimize the best strategies
+      const optimizedStrategies = await this.strategyOptimizerAgent.execute(bestStrategies);
+
+      // Add the optimized strategies to the results
+      researchResults.evaluatedStrategies = evaluatedStrategies;
+      researchResults.bestStrategies = bestStrategies;
+      researchResults.optimizedStrategies = optimizedStrategies;
+    }
+
+    return researchResults;
   }
 
   /**
