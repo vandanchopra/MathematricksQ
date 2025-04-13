@@ -1,0 +1,22 @@
+version: '3'
+
+services:
+  huggingface-mcp-server:
+    image: python:3.11-slim
+    container_name: huggingface-mcp-server
+    working_dir: /app
+    volumes:
+      - ../data/huggingface:/app/data
+    ports:
+      - "8005:8005"
+    environment:
+      - HUGGINGFACE_STORAGE_PATH=/app/data
+    command: >
+      bash -c "pip install huggingface-mcp-server transformers torch pandas numpy scikit-learn && 
+               huggingface-mcp-server --port 8005 --storage-path /app/data"
+    networks:
+      - reagent-network
+
+networks:
+  reagent-network:
+    driver: bridge

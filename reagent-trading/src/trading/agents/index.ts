@@ -8,6 +8,7 @@ import { YahooFinanceAgent } from './yahoo-finance-agent';
 import { AcademicSearchAgent } from './academic-search-agent';
 import { DataAnalysisAgent } from './data-analysis-agent';
 import { VisualizationAgent } from './visualization-agent';
+import { MLAgent } from './ml-agent';
 import { Agent } from './agent';
 
 export {
@@ -21,5 +22,6 @@ export {
   AcademicSearchAgent,
   DataAnalysisAgent,
   VisualizationAgent,
+  MLAgent,
   Agent
 };

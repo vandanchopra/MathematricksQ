@@ -708,6 +708,152 @@ async function main() {
       } else {
         console.log('Error creating returns histogram: Unknown error');
       }
+    } else if (command === 'analyze-sentiment') {
+      // Analyze sentiment of a text
+      const text = nonFlagArgs.slice(1).join(' ');
+      const model = flagsObj['model'];
+
+      if (!text) {
+        console.error('Error: Text to analyze is required');
+        process.exit(1);
+      }
+
+      console.log(`Analyzing sentiment of text: ${text.substring(0, 50)}...`);
+      const result = await reagent.analyzeSentiment(text, model);
+
+      if (result && !result.error) {
+        console.log(`\nSentiment Analysis Result:`);
+        console.log(`Label: ${result.label}`);
+        console.log(`Score: ${result.score}`);
+      } else {
+        console.log('Error analyzing sentiment:', result.error || 'Unknown error');
+      }
+    } else if (command === 'analyze-news-sentiment') {
+      // Analyze sentiment of market news
+      const symbol = nonFlagArgs[1];
+      const count = flagsObj['count'] ? parseInt(flagsObj['count']) : 10;
+      const model = flagsObj['model'];
+
+      if (!symbol) {
+        console.error('Error: Stock symbol is required');
+        process.exit(1);
+      }
+
+      console.log(`Analyzing market news sentiment for: ${symbol}`);
+      const result = await reagent.analyzeMarketNewsSentiment(symbol, count, model);
+
+      if (result && !result.error) {
+        console.log(`\nMarket News Sentiment Analysis for ${symbol}:`);
+        console.log(`Aggregate Sentiment:`);
+        console.log(`  Positive: ${(result.aggregateSentiment.positive * 100).toFixed(2)}%`);
+        console.log(`  Negative: ${(result.aggregateSentiment.negative * 100).toFixed(2)}%`);
+
+        console.log(`\nAnalyzed Articles:`);
+        result.articles.forEach((article: any, index: number) => {
+          console.log(`\n[${index + 1}] ${article.article.title}`);
+          console.log(`  Publisher: ${article.article.publisher}`);
+          console.log(`  Published: ${article.article.publishedAt}`);
+          console.log(`  Sentiment: ${article.sentiment.label} (${article.sentiment.score.toFixed(4)})`);
+        });
+      } else {
+        console.log('Error analyzing news sentiment:', result.error || 'Unknown error');
+      }
+    } else if (command === 'forecast-prices') {
+      // Forecast stock prices
+      const symbol = nonFlagArgs[1];
+      const period = nonFlagArgs[2] || '1y';
+      const interval = nonFlagArgs[3] || '1d';
+      const forecastDays = flagsObj['days'] ? parseInt(flagsObj['days']) : 30;
+      const model = flagsObj['model'];
+
+      if (!symbol) {
+        console.error('Error: Stock symbol is required');
+        process.exit(1);
+      }
+
+      console.log(`Forecasting stock prices for: ${symbol}`);
+      const result = await reagent.forecastStockPrices(symbol, period, interval, forecastDays, model);
+
+      if (result && !result.error) {
+        console.log(`\nStock Price Forecast for ${symbol}:`);
+        console.log(`Forecast Period: ${forecastDays} days`);
+
+        if (result.forecast && result.forecast.forecast) {
+          console.log(`\nForecast Results:`);
+          console.log(`  Start Date: ${result.forecast.forecast[0].ds}`);
+          console.log(`  End Date: ${result.forecast.forecast[result.forecast.forecast.length - 1].ds}`);
+          console.log(`  Current Price: ${result.historicalData[result.historicalData.length - 1].y.toFixed(2)}`);
+          console.log(`  Forecasted End Price: ${result.forecast.forecast[result.forecast.forecast.length - 1].yhat.toFixed(2)}`);
+          console.log(`  Forecasted Change: ${((result.forecast.forecast[result.forecast.forecast.length - 1].yhat - result.historicalData[result.historicalData.length - 1].y) / result.historicalData[result.historicalData.length - 1].y * 100).toFixed(2)}%`);
+        }
+      } else {
+        console.log('Error forecasting prices:', result.error || 'Unknown error');
+      }
+    } else if (command === 'detect-anomalies') {
+      // Detect anomalies in stock prices
+      const symbol = nonFlagArgs[1];
+      const period = nonFlagArgs[2] || '1y';
+      const interval = nonFlagArgs[3] || '1d';
+      const model = flagsObj['model'];
+
+      if (!symbol) {
+        console.error('Error: Stock symbol is required');
+        process.exit(1);
+      }
+
+      console.log(`Detecting anomalies in stock prices for: ${symbol}`);
+      const result = await reagent.detectStockAnomalies(symbol, period, interval, model);
+
+      if (result && !result.error) {
+        console.log(`\nStock Price Anomalies for ${symbol}:`);
+
+        if (result.anomalies && result.anomalies.anomalies) {
+          console.log(`\nDetected ${result.anomalies.anomalies.length} anomalies:`);
+          result.anomalies.anomalies.forEach((anomaly: any, index: number) => {
+            console.log(`\n[${index + 1}] Date: ${anomaly.ds}`);
+            console.log(`  Expected: ${anomaly.expected.toFixed(2)}`);
+            console.log(`  Actual: ${anomaly.actual.toFixed(2)}`);
+            console.log(`  Deviation: ${anomaly.deviation.toFixed(2)}%`);
+          });
+        } else {
+          console.log('No anomalies detected');
+        }
+      } else {
+        console.log('Error detecting anomalies:', result.error || 'Unknown error');
+      }
+    } else if (command === 'cluster-stocks') {
+      // Cluster stocks based on their price movements
+      const symbols = nonFlagArgs.slice(1);
+      const period = flagsObj['period'] || '1y';
+      const interval = flagsObj['interval'] || '1d';
+      const numClusters = flagsObj['clusters'] ? parseInt(flagsObj['clusters']) : 3;
+      const model = flagsObj['model'];
+
+      if (symbols.length < 2) {
+        console.error('Error: At least two stock symbols are required');
+        process.exit(1);
+      }
+
+      console.log(`Clustering stocks: ${symbols.join(', ')}`);
+      const result = await reagent.clusterStocks(symbols, period, interval, numClusters, model);
+
+      if (result && !result.error) {
+        console.log(`\nStock Clustering Results:`);
+
+        if (result.clusters && result.clusters.clusters) {
+          console.log(`\nIdentified ${Object.keys(result.clusters.clusters).length} clusters:`);
+
+          for (const clusterId in result.clusters.clusters) {
+            const cluster = result.clusters.clusters[clusterId];
+            console.log(`\nCluster ${clusterId}:`);
+            console.log(`  Stocks: ${cluster.map((item: any) => item.symbol).join(', ')}`);
+          }
+        } else {
+          console.log('No clusters identified');
+        }
+      } else {
+        console.log('Error clustering stocks:', result.error || 'Unknown error');
+      }
     } else {
       console.error(`Error: Unknown command '${command}'`);
       console.log('\nAvailable commands:');
@@ -738,6 +884,12 @@ async function main() {
       console.log('  create-comparison-chart <symbol1> <symbol2> [symbol3...] [--period=1y] [--interval=1d] [--title=title] - Create a price comparison chart');
       console.log('  create-correlation-heatmap <symbol1> <symbol2> [symbol3...] [--period=1y] [--interval=1d] [--title=title] - Create a correlation heatmap');
       console.log('  create-returns-histogram <symbol> [period] [interval] [--title=title] - Create a returns distribution histogram');
+      console.log('\nMachine Learning:');
+      console.log('  analyze-sentiment <text> [--model=model_name] - Analyze sentiment of a text');
+      console.log('  analyze-news-sentiment <symbol> [--count=10] [--model=model_name] - Analyze sentiment of market news');
+      console.log('  forecast-prices <symbol> [period] [interval] [--days=30] [--model=model_name] - Forecast stock prices');
+      console.log('  detect-anomalies <symbol> [period] [interval] [--model=model_name] - Detect anomalies in stock prices');
+      console.log('  cluster-stocks <symbol1> <symbol2> [symbol3...] [--period=1y] [--interval=1d] [--clusters=3] [--model=model_name] - Cluster stocks based on price movements');
       process.exit(1);
     }
   } catch (error) {

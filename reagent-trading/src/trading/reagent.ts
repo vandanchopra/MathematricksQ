@@ -1,4 +1,4 @@
-import { BacktestAgent, StrategyGeneratorAgent, StrategyEvaluatorAgent, StrategyOptimizerAgent, WebSearchAgent, YahooFinanceAgent, AcademicSearchAgent, DataAnalysisAgent, VisualizationAgent } from './agents';
+import { BacktestAgent, StrategyGeneratorAgent, StrategyEvaluatorAgent, StrategyOptimizerAgent, WebSearchAgent, YahooFinanceAgent, AcademicSearchAgent, DataAnalysisAgent, VisualizationAgent, MLAgent } from './agents';
 import { ResearchAgent } from './agents/research-agent';
 import { TradingTargets } from './types';
 import { DEFAULT_TRADING_TARGETS } from './config';
@@ -19,6 +19,7 @@ export class ReAgent {
   private academicSearchAgent: AcademicSearchAgent;
   private dataAnalysisAgent: DataAnalysisAgent;
   private visualizationAgent: VisualizationAgent;
+  private mlAgent: MLAgent;
   private openRouterApiKey: string;
 
   constructor(
@@ -42,6 +43,7 @@ export class ReAgent {
     this.academicSearchAgent = new AcademicSearchAgent(this.openRouterApiKey, useOllamaFallback);
     this.dataAnalysisAgent = new DataAnalysisAgent();
     this.visualizationAgent = new VisualizationAgent();
+    this.mlAgent = new MLAgent();
   }
 
   /**
@@ -416,6 +418,168 @@ export class ReAgent {
   ): Promise<any> {
     console.log('Creating dashboard');
     return await this.visualizationAgent.createDashboard(charts, title);
+  }
+
+  /**
+   * Analyze sentiment of a text
+   * @param text Text to analyze
+   * @param model Model to use for sentiment analysis
+   * @param options Additional options for the model
+   */
+  public async analyzeSentiment(
+    text: string,
+    model?: string,
+    options?: any
+  ): Promise<any> {
+    console.log(`Analyzing sentiment of text: ${text.substring(0, 50)}...`);
+    return await this.mlAgent.analyzeSentiment(text, model, options);
+  }
+
+  /**
+   * Classify a text
+   * @param text Text to classify
+   * @param model Model to use for classification
+   * @param options Additional options for the model
+   */
+  public async classifyText(
+    text: string,
+    model?: string,
+    options?: any
+  ): Promise<any> {
+    console.log(`Classifying text: ${text.substring(0, 50)}...`);
+    return await this.mlAgent.classifyText(text, model, options);
+  }
+
+  /**
+   * Generate text
+   * @param prompt Prompt for text generation
+   * @param model Model to use for generation
+   * @param options Additional options for the model
+   */
+  public async generateText(
+    prompt: string,
+    model?: string,
+    options?: any
+  ): Promise<any> {
+    console.log(`Generating text from prompt: ${prompt.substring(0, 50)}...`);
+    return await this.mlAgent.generateText(prompt, model, options);
+  }
+
+  /**
+   * Summarize a text
+   * @param text Text to summarize
+   * @param model Model to use for summarization
+   * @param options Additional options for the model
+   */
+  public async summarizeText(
+    text: string,
+    model?: string,
+    options?: any
+  ): Promise<any> {
+    console.log(`Summarizing text: ${text.substring(0, 50)}...`);
+    return await this.mlAgent.summarizeText(text, model, options);
+  }
+
+  /**
+   * Extract named entities from a text
+   * @param text Text to analyze
+   * @param model Model to use for named entity recognition
+   * @param options Additional options for the model
+   */
+  public async extractEntities(
+    text: string,
+    model?: string,
+    options?: any
+  ): Promise<any> {
+    console.log(`Extracting entities from text: ${text.substring(0, 50)}...`);
+    return await this.mlAgent.extractEntities(text, model, options);
+  }
+
+  /**
+   * Answer a question
+   * @param question Question to answer
+   * @param context Context for the question
+   * @param model Model to use for question answering
+   * @param options Additional options for the model
+   */
+  public async answerQuestion(
+    question: string,
+    context: string,
+    model?: string,
+    options?: any
+  ): Promise<any> {
+    console.log(`Answering question: ${question}`);
+    return await this.mlAgent.answerQuestion(question, context, model, options);
+  }
+
+  /**
+   * Analyze sentiment of market news
+   * @param symbol Stock symbol
+   * @param count Number of news articles to analyze
+   * @param model Model to use for sentiment analysis
+   */
+  public async analyzeMarketNewsSentiment(
+    symbol: string,
+    count: number = 10,
+    model?: string
+  ): Promise<any> {
+    console.log(`Analyzing market news sentiment for: ${symbol}`);
+    return await this.mlAgent.analyzeMarketNewsSentiment(symbol, count, model);
+  }
+
+  /**
+   * Forecast stock prices
+   * @param symbol Stock symbol
+   * @param period Period of historical data to use
+   * @param interval Interval of historical data
+   * @param forecastDays Number of days to forecast
+   * @param model Model to use for forecasting
+   */
+  public async forecastStockPrices(
+    symbol: string,
+    period: string = '1y',
+    interval: string = '1d',
+    forecastDays: number = 30,
+    model?: string
+  ): Promise<any> {
+    console.log(`Forecasting stock prices for: ${symbol}`);
+    return await this.mlAgent.forecastStockPrices(symbol, period, interval, forecastDays, model);
+  }
+
+  /**
+   * Detect anomalies in stock prices
+   * @param symbol Stock symbol
+   * @param period Period of historical data to use
+   * @param interval Interval of historical data
+   * @param model Model to use for anomaly detection
+   */
+  public async detectStockAnomalies(
+    symbol: string,
+    period: string = '1y',
+    interval: string = '1d',
+    model?: string
+  ): Promise<any> {
+    console.log(`Detecting anomalies in stock prices for: ${symbol}`);
+    return await this.mlAgent.detectStockAnomalies(symbol, period, interval, model);
+  }
+
+  /**
+   * Cluster stocks based on their price movements
+   * @param symbols Array of stock symbols
+   * @param period Period of historical data to use
+   * @param interval Interval of historical data
+   * @param numClusters Number of clusters to create
+   * @param model Model to use for clustering
+   */
+  public async clusterStocks(
+    symbols: string[],
+    period: string = '1y',
+    interval: string = '1d',
+    numClusters: number = 3,
+    model?: string
+  ): Promise<any> {
+    console.log(`Clustering stocks: ${symbols.join(', ')}`);
+    return await this.mlAgent.clusterStocks(symbols, period, interval, numClusters, model);
   }
 
   /**
