@@ -1051,6 +1051,455 @@ async function main() {
       } else {
         console.log('Error getting strategy results:', result.error || 'Unknown error');
       }
+    } else if (command === 'alpha-time-series') {
+      // Get time series data from Alpha Vantage
+      const symbol = nonFlagArgs[1];
+      const interval = nonFlagArgs[2] || 'daily';
+      const outputSize = nonFlagArgs[3] || 'compact';
+
+      if (!symbol) {
+        console.error('Error: Stock symbol is required');
+        process.exit(1);
+      }
+
+      console.log(`Getting Alpha Vantage time series data for: ${symbol} (${interval})`);
+      const result = await reagent.getAlphaVantageTimeSeries(symbol, interval, outputSize);
+
+      if (result && !result.error) {
+        console.log(`\nTime Series Data for ${symbol}:`);
+
+        // Find the time series key in the response
+        const timeSeriesKey = Object.keys(result).find(key => key.includes('Time Series'));
+
+        if (timeSeriesKey && result[timeSeriesKey]) {
+          const timeSeriesData = result[timeSeriesKey];
+          const dates = Object.keys(timeSeriesData).sort().reverse();
+
+          console.log(`\nFound ${dates.length} data points`);
+
+          // Display the first 5 data points
+          console.log('\nRecent data points:');
+          dates.slice(0, 5).forEach(date => {
+            const data = timeSeriesData[date];
+            console.log(`${date}: Open ${data['1. open']}, High ${data['2. high']}, Low ${data['3. low']}, Close ${data['4. close']}, Volume ${data['5. volume']}`);
+          });
+        } else {
+          console.log('No time series data found in the response');
+        }
+      } else {
+        console.log('Error getting time series data:', result.error || 'Unknown error');
+      }
+    } else if (command === 'technical-indicator') {
+      // Get technical indicator data from Alpha Vantage
+      const symbol = nonFlagArgs[1];
+      const indicator = nonFlagArgs[2];
+      const interval = flagsObj['interval'] || 'daily';
+      const timePeriod = flagsObj['period'] ? parseInt(flagsObj['period']) : 14;
+      const seriesType = flagsObj['series'] || 'close';
+
+      if (!symbol) {
+        console.error('Error: Stock symbol is required');
+        process.exit(1);
+      }
+
+      if (!indicator) {
+        console.error('Error: Technical indicator is required');
+        process.exit(1);
+      }
+
+      console.log(`Getting ${indicator} data for: ${symbol} (${interval}, period: ${timePeriod})`);
+      const result = await reagent.getTechnicalIndicator(symbol, indicator, interval, timePeriod, seriesType);
+
+      if (result && !result.error) {
+        console.log(`\n${indicator} Data for ${symbol}:`);
+
+        // Find the indicator key in the response
+        const indicatorKey = Object.keys(result).find(key => key.includes('Technical'));
+
+        if (indicatorKey && result[indicatorKey]) {
+          const indicatorData = result[indicatorKey];
+          const dates = Object.keys(indicatorData).sort().reverse();
+
+          console.log(`\nFound ${dates.length} data points`);
+
+          // Display the first 5 data points
+          console.log('\nRecent data points:');
+          dates.slice(0, 5).forEach(date => {
+            const data = indicatorData[date];
+            const values = Object.values(data).join(', ');
+            console.log(`${date}: ${values}`);
+          });
+        } else {
+          console.log('No indicator data found in the response');
+        }
+      } else {
+        console.log('Error getting technical indicator data:', result.error || 'Unknown error');
+      }
+    } else if (command === 'sector-performance') {
+      // Get sector performance data from Alpha Vantage
+      console.log('Getting sector performance data');
+      const result = await reagent.getSectorPerformance();
+
+      if (result && !result.error) {
+        console.log('\nSector Performance:');
+
+        // Find the sector performance data in the response
+        if (result['Rank A: Real-Time Performance']) {
+          console.log('\nReal-Time Performance:');
+          Object.entries(result['Rank A: Real-Time Performance']).forEach(([sector, performance]) => {
+            console.log(`  ${sector}: ${performance}`);
+          });
+        }
+
+        if (result['Rank B: 1 Day Performance']) {
+          console.log('\n1 Day Performance:');
+          Object.entries(result['Rank B: 1 Day Performance']).forEach(([sector, performance]) => {
+            console.log(`  ${sector}: ${performance}`);
+          });
+        }
+
+        if (result['Rank C: 5 Day Performance']) {
+          console.log('\n5 Day Performance:');
+          Object.entries(result['Rank C: 5 Day Performance']).forEach(([sector, performance]) => {
+            console.log(`  ${sector}: ${performance}`);
+          });
+        }
+
+        if (result['Rank D: 1 Month Performance']) {
+          console.log('\n1 Month Performance:');
+          Object.entries(result['Rank D: 1 Month Performance']).forEach(([sector, performance]) => {
+            console.log(`  ${sector}: ${performance}`);
+          });
+        }
+      } else {
+        console.log('Error getting sector performance data:', result.error || 'Unknown error');
+      }
+    } else if (command === 'forex-data') {
+      // Get forex data from Alpha Vantage
+      const fromCurrency = nonFlagArgs[1];
+      const toCurrency = nonFlagArgs[2];
+      const interval = nonFlagArgs[3] || 'daily';
+      const outputSize = nonFlagArgs[4] || 'compact';
+
+      if (!fromCurrency) {
+        console.error('Error: From currency is required');
+        process.exit(1);
+      }
+
+      if (!toCurrency) {
+        console.error('Error: To currency is required');
+        process.exit(1);
+      }
+
+      console.log(`Getting forex data for: ${fromCurrency}/${toCurrency} (${interval})`);
+      const result = await reagent.getForexData(fromCurrency, toCurrency, interval, outputSize);
+
+      if (result && !result.error) {
+        console.log(`\nForex Data for ${fromCurrency}/${toCurrency}:`);
+
+        // Find the forex data key in the response
+        const forexKey = Object.keys(result).find(key => key.includes('Time Series'));
+
+        if (forexKey && result[forexKey]) {
+          const forexData = result[forexKey];
+          const dates = Object.keys(forexData).sort().reverse();
+
+          console.log(`\nFound ${dates.length} data points`);
+
+          // Display the first 5 data points
+          console.log('\nRecent data points:');
+          dates.slice(0, 5).forEach(date => {
+            const data = forexData[date];
+            console.log(`${date}: Open ${data['1. open']}, High ${data['2. high']}, Low ${data['3. low']}, Close ${data['4. close']}`);
+          });
+        } else {
+          console.log('No forex data found in the response');
+        }
+      } else {
+        console.log('Error getting forex data:', result.error || 'Unknown error');
+      }
+    } else if (command === 'crypto-data') {
+      // Get crypto data from Alpha Vantage
+      const symbol = nonFlagArgs[1];
+      const market = nonFlagArgs[2] || 'USD';
+      const interval = nonFlagArgs[3] || 'daily';
+
+      if (!symbol) {
+        console.error('Error: Crypto symbol is required');
+        process.exit(1);
+      }
+
+      console.log(`Getting crypto data for: ${symbol}/${market} (${interval})`);
+      const result = await reagent.getCryptoData(symbol, market, interval);
+
+      if (result && !result.error) {
+        console.log(`\nCrypto Data for ${symbol}/${market}:`);
+
+        // Find the crypto data key in the response
+        const cryptoKey = Object.keys(result).find(key => key.includes('Time Series'));
+
+        if (cryptoKey && result[cryptoKey]) {
+          const cryptoData = result[cryptoKey];
+          const dates = Object.keys(cryptoData).sort().reverse();
+
+          console.log(`\nFound ${dates.length} data points`);
+
+          // Display the first 5 data points
+          console.log('\nRecent data points:');
+          dates.slice(0, 5).forEach(date => {
+            const data = cryptoData[date];
+            console.log(`${date}: Open ${data['1a. open (USD)']}, High ${data['2a. high (USD)']}, Low ${data['3a. low (USD)']}, Close ${data['4a. close (USD)']}, Volume ${data['5. volume']}`);
+          });
+        } else {
+          console.log('No crypto data found in the response');
+        }
+      } else {
+        console.log('Error getting crypto data:', result.error || 'Unknown error');
+      }
+    } else if (command === 'economic-indicator') {
+      // Get economic indicator data from Alpha Vantage
+      const economicIndicator = nonFlagArgs[1];
+      const interval = nonFlagArgs[2] || 'monthly';
+      const maturity = nonFlagArgs[3] || '';
+
+      if (!economicIndicator) {
+        console.error('Error: Economic indicator is required');
+        process.exit(1);
+      }
+
+      console.log(`Getting economic indicator data for: ${economicIndicator} (${interval})`);
+      const result = await reagent.getEconomicIndicator(economicIndicator, interval, maturity);
+
+      if (result && !result.error) {
+        console.log(`\nEconomic Indicator Data for ${economicIndicator}:`);
+
+        // Find the data key in the response
+        const dataKey = Object.keys(result).find(key => key.includes('data'));
+
+        if (dataKey && result[dataKey]) {
+          const economicData = result[dataKey];
+
+          console.log(`\nFound ${economicData.length} data points`);
+
+          // Display the first 5 data points
+          console.log('\nRecent data points:');
+          economicData.slice(0, 5).forEach((item: any) => {
+            console.log(`${item.date}: ${item.value}`);
+          });
+        } else {
+          console.log('No economic indicator data found in the response');
+        }
+      } else {
+        console.log('Error getting economic indicator data:', result.error || 'Unknown error');
+      }
+    } else if (command === 'company-overview') {
+      // Get company overview from Alpha Vantage
+      const symbol = nonFlagArgs[1];
+
+      if (!symbol) {
+        console.error('Error: Stock symbol is required');
+        process.exit(1);
+      }
+
+      console.log(`Getting company overview for: ${symbol}`);
+      const result = await reagent.getCompanyOverview(symbol);
+
+      if (result && !result.error) {
+        console.log(`\nCompany Overview for ${symbol}:`);
+        console.log(`Name: ${result.Name}`);
+        console.log(`Description: ${result.Description}`);
+        console.log(`Exchange: ${result.Exchange}`);
+        console.log(`Currency: ${result.Currency}`);
+        console.log(`Country: ${result.Country}`);
+        console.log(`Sector: ${result.Sector}`);
+        console.log(`Industry: ${result.Industry}`);
+        console.log(`Market Cap: ${result.MarketCapitalization}`);
+        console.log(`PE Ratio: ${result.PERatio}`);
+        console.log(`Dividend Yield: ${result.DividendYield}`);
+        console.log(`52 Week High: ${result['52WeekHigh']}`);
+        console.log(`52 Week Low: ${result['52WeekLow']}`);
+        console.log(`50 Day Moving Average: ${result['50DayMovingAverage']}`);
+        console.log(`200 Day Moving Average: ${result['200DayMovingAverage']}`);
+      } else {
+        console.log('Error getting company overview:', result.error || 'Unknown error');
+      }
+    } else if (command === 'earnings') {
+      // Get earnings data from Alpha Vantage
+      const symbol = nonFlagArgs[1];
+
+      if (!symbol) {
+        console.error('Error: Stock symbol is required');
+        process.exit(1);
+      }
+
+      console.log(`Getting earnings data for: ${symbol}`);
+      const result = await reagent.getEarnings(symbol);
+
+      if (result && !result.error) {
+        console.log(`\nEarnings Data for ${symbol}:`);
+
+        if (result.annualEarnings) {
+          console.log('\nAnnual Earnings:');
+          result.annualEarnings.slice(0, 5).forEach((item: any) => {
+            console.log(`  ${item.fiscalDateEnding}: ${item.reportedEPS}`);
+          });
+        }
+
+        if (result.quarterlyEarnings) {
+          console.log('\nQuarterly Earnings:');
+          result.quarterlyEarnings.slice(0, 5).forEach((item: any) => {
+            console.log(`  ${item.fiscalDateEnding}: Reported EPS ${item.reportedEPS}, Estimated EPS ${item.estimatedEPS}, Surprise ${item.surprise} (${item.surprisePercentage}%)`);
+          });
+        }
+      } else {
+        console.log('Error getting earnings data:', result.error || 'Unknown error');
+      }
+    } else if (command === 'income-statement') {
+      // Get income statement from Alpha Vantage
+      const symbol = nonFlagArgs[1];
+
+      if (!symbol) {
+        console.error('Error: Stock symbol is required');
+        process.exit(1);
+      }
+
+      console.log(`Getting income statement for: ${symbol}`);
+      const result = await reagent.getIncomeStatement(symbol);
+
+      if (result && !result.error) {
+        console.log(`\nIncome Statement for ${symbol}:`);
+
+        if (result.annualReports) {
+          console.log('\nAnnual Reports:');
+          result.annualReports.slice(0, 3).forEach((report: any) => {
+            console.log(`\n  Fiscal Date Ending: ${report.fiscalDateEnding}`);
+            console.log(`  Total Revenue: ${report.totalRevenue}`);
+            console.log(`  Gross Profit: ${report.grossProfit}`);
+            console.log(`  Operating Income: ${report.operatingIncome}`);
+            console.log(`  Net Income: ${report.netIncome}`);
+            console.log(`  EPS: ${report.eps}`);
+          });
+        }
+
+        if (result.quarterlyReports) {
+          console.log('\nQuarterly Reports:');
+          result.quarterlyReports.slice(0, 3).forEach((report: any) => {
+            console.log(`\n  Fiscal Date Ending: ${report.fiscalDateEnding}`);
+            console.log(`  Total Revenue: ${report.totalRevenue}`);
+            console.log(`  Gross Profit: ${report.grossProfit}`);
+            console.log(`  Operating Income: ${report.operatingIncome}`);
+            console.log(`  Net Income: ${report.netIncome}`);
+            console.log(`  EPS: ${report.eps}`);
+          });
+        }
+      } else {
+        console.log('Error getting income statement:', result.error || 'Unknown error');
+      }
+    } else if (command === 'balance-sheet') {
+      // Get balance sheet from Alpha Vantage
+      const symbol = nonFlagArgs[1];
+
+      if (!symbol) {
+        console.error('Error: Stock symbol is required');
+        process.exit(1);
+      }
+
+      console.log(`Getting balance sheet for: ${symbol}`);
+      const result = await reagent.getBalanceSheet(symbol);
+
+      if (result && !result.error) {
+        console.log(`\nBalance Sheet for ${symbol}:`);
+
+        if (result.annualReports) {
+          console.log('\nAnnual Reports:');
+          result.annualReports.slice(0, 3).forEach((report: any) => {
+            console.log(`\n  Fiscal Date Ending: ${report.fiscalDateEnding}`);
+            console.log(`  Total Assets: ${report.totalAssets}`);
+            console.log(`  Total Current Assets: ${report.totalCurrentAssets}`);
+            console.log(`  Total Liabilities: ${report.totalLiabilities}`);
+            console.log(`  Total Current Liabilities: ${report.totalCurrentLiabilities}`);
+            console.log(`  Total Shareholder Equity: ${report.totalShareholderEquity}`);
+          });
+        }
+
+        if (result.quarterlyReports) {
+          console.log('\nQuarterly Reports:');
+          result.quarterlyReports.slice(0, 3).forEach((report: any) => {
+            console.log(`\n  Fiscal Date Ending: ${report.fiscalDateEnding}`);
+            console.log(`  Total Assets: ${report.totalAssets}`);
+            console.log(`  Total Current Assets: ${report.totalCurrentAssets}`);
+            console.log(`  Total Liabilities: ${report.totalLiabilities}`);
+            console.log(`  Total Current Liabilities: ${report.totalCurrentLiabilities}`);
+            console.log(`  Total Shareholder Equity: ${report.totalShareholderEquity}`);
+          });
+        }
+      } else {
+        console.log('Error getting balance sheet:', result.error || 'Unknown error');
+      }
+    } else if (command === 'cash-flow') {
+      // Get cash flow from Alpha Vantage
+      const symbol = nonFlagArgs[1];
+
+      if (!symbol) {
+        console.error('Error: Stock symbol is required');
+        process.exit(1);
+      }
+
+      console.log(`Getting cash flow for: ${symbol}`);
+      const result = await reagent.getCashFlow(symbol);
+
+      if (result && !result.error) {
+        console.log(`\nCash Flow for ${symbol}:`);
+
+        if (result.annualReports) {
+          console.log('\nAnnual Reports:');
+          result.annualReports.slice(0, 3).forEach((report: any) => {
+            console.log(`\n  Fiscal Date Ending: ${report.fiscalDateEnding}`);
+            console.log(`  Operating Cash Flow: ${report.operatingCashflow}`);
+            console.log(`  Capital Expenditures: ${report.capitalExpenditures}`);
+            console.log(`  Cash Flow from Investment: ${report.cashflowFromInvestment}`);
+            console.log(`  Cash Flow from Financing: ${report.cashflowFromFinancing}`);
+            console.log(`  Free Cash Flow: ${report.operatingCashflow - Math.abs(report.capitalExpenditures)}`);
+          });
+        }
+
+        if (result.quarterlyReports) {
+          console.log('\nQuarterly Reports:');
+          result.quarterlyReports.slice(0, 3).forEach((report: any) => {
+            console.log(`\n  Fiscal Date Ending: ${report.fiscalDateEnding}`);
+            console.log(`  Operating Cash Flow: ${report.operatingCashflow}`);
+            console.log(`  Capital Expenditures: ${report.capitalExpenditures}`);
+            console.log(`  Cash Flow from Investment: ${report.cashflowFromInvestment}`);
+            console.log(`  Cash Flow from Financing: ${report.cashflowFromFinancing}`);
+            console.log(`  Free Cash Flow: ${report.operatingCashflow - Math.abs(report.capitalExpenditures)}`);
+          });
+        }
+      } else {
+        console.log('Error getting cash flow:', result.error || 'Unknown error');
+      }
+    } else if (command === 'global-market-status') {
+      // Get global market status from Alpha Vantage
+      console.log('Getting global market status');
+      const result = await reagent.getGlobalMarketStatus();
+
+      if (result && !result.error) {
+        console.log('\nGlobal Market Status:');
+
+        if (result.markets) {
+          result.markets.forEach((market: any) => {
+            console.log(`\n  ${market.region} - ${market.market_type}:`);
+            console.log(`  Current Status: ${market.current_status}`);
+            console.log(`  Local Open: ${market.local_open}`);
+            console.log(`  Local Close: ${market.local_close}`);
+            console.log(`  Current Time: ${market.current_time}`);
+            console.log(`  Notes: ${market.notes}`);
+          });
+        } else {
+          console.log('No market status data found in the response');
+        }
+      } else {
+        console.log('Error getting global market status:', result.error || 'Unknown error');
+      }
     } else {
       console.error(`Error: Unknown command '${command}'`);
       console.log('\nAvailable commands:');
@@ -1087,6 +1536,19 @@ async function main() {
       console.log('  forecast-prices <symbol> [period] [interval] [--days=30] [--model=model_name] - Forecast stock prices');
       console.log('  detect-anomalies <symbol> [period] [interval] [--model=model_name] - Detect anomalies in stock prices');
       console.log('  cluster-stocks <symbol1> <symbol2> [symbol3...] [--period=1y] [--interval=1d] [--clusters=3] [--model=model_name] - Cluster stocks based on price movements');
+      console.log('\nAlpha Vantage:');
+      console.log('  alpha-time-series <symbol> [interval] [outputSize] - Get time series data from Alpha Vantage');
+      console.log('  technical-indicator <symbol> <indicator> [--interval=daily] [--period=14] [--series=close] - Get technical indicator data');
+      console.log('  sector-performance - Get sector performance data');
+      console.log('  forex-data <fromCurrency> <toCurrency> [interval] [outputSize] - Get forex data');
+      console.log('  crypto-data <symbol> [market] [interval] - Get crypto data');
+      console.log('  economic-indicator <indicator> [interval] [maturity] - Get economic indicator data');
+      console.log('  company-overview <symbol> - Get company overview');
+      console.log('  earnings <symbol> - Get earnings data');
+      console.log('  income-statement <symbol> - Get income statement');
+      console.log('  balance-sheet <symbol> - Get balance sheet');
+      console.log('  cash-flow <symbol> - Get cash flow');
+      console.log('  global-market-status - Get global market status');
       process.exit(1);
     }
   } catch (error) {

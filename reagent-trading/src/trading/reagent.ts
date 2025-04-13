@@ -1,4 +1,4 @@
-import { BacktestAgent, StrategyGeneratorAgent, StrategyEvaluatorAgent, StrategyOptimizerAgent, WebSearchAgent, YahooFinanceAgent, AcademicSearchAgent, DataAnalysisAgent, VisualizationAgent, MLAgent, DatabaseAgent } from './agents';
+import { BacktestAgent, StrategyGeneratorAgent, StrategyEvaluatorAgent, StrategyOptimizerAgent, WebSearchAgent, YahooFinanceAgent, AcademicSearchAgent, DataAnalysisAgent, VisualizationAgent, MLAgent, DatabaseAgent, AlphaVantageAgent } from './agents';
 import { ResearchAgent } from './agents/research-agent';
 import { TradingTargets } from './types';
 import { DEFAULT_TRADING_TARGETS } from './config';
@@ -21,6 +21,7 @@ export class ReAgent {
   private visualizationAgent: VisualizationAgent;
   private mlAgent: MLAgent;
   private databaseAgent: DatabaseAgent;
+  private alphaVantageAgent: AlphaVantageAgent;
   private openRouterApiKey: string;
 
   constructor(
@@ -46,6 +47,7 @@ export class ReAgent {
     this.visualizationAgent = new VisualizationAgent();
     this.mlAgent = new MLAgent();
     this.databaseAgent = new DatabaseAgent();
+    this.alphaVantageAgent = new AlphaVantageAgent(process.env.ALPHA_VANTAGE_API_KEY);
   }
 
   /**
@@ -733,6 +735,144 @@ export class ReAgent {
   public async getStrategyResults(strategyName?: string, symbol?: string): Promise<any> {
     console.log(`Getting strategy results${strategyName ? ` for: ${strategyName}` : ''}${symbol ? ` on ${symbol}` : ''}`);
     return await this.databaseAgent.getStrategyResults(strategyName, symbol);
+  }
+
+  /**
+   * Get time series data from Alpha Vantage
+   * @param symbol Stock symbol
+   * @param interval Interval (e.g., '1min', '5min', '15min', '30min', '60min', 'daily', 'weekly', 'monthly')
+   * @param outputSize Output size ('compact' or 'full')
+   */
+  public async getAlphaVantageTimeSeries(symbol: string, interval: string = 'daily', outputSize: string = 'compact'): Promise<any> {
+    console.log(`Getting Alpha Vantage time series data for: ${symbol} (${interval})`);
+    return await this.alphaVantageAgent.getTimeSeries(symbol, interval, outputSize);
+  }
+
+  /**
+   * Get technical indicator data from Alpha Vantage
+   * @param symbol Stock symbol
+   * @param indicator Technical indicator (e.g., 'SMA', 'EMA', 'MACD', 'RSI', 'BBANDS', 'ADX', 'CCI', 'STOCH')
+   * @param interval Interval (e.g., '1min', '5min', '15min', '30min', '60min', 'daily', 'weekly', 'monthly')
+   * @param timePeriod Time period
+   * @param seriesType Series type (e.g., 'close', 'open', 'high', 'low')
+   */
+  public async getTechnicalIndicator(
+    symbol: string,
+    indicator: string,
+    interval: string = 'daily',
+    timePeriod: number = 14,
+    seriesType: string = 'close'
+  ): Promise<any> {
+    console.log(`Getting ${indicator} data for: ${symbol} (${interval}, period: ${timePeriod})`);
+    return await this.alphaVantageAgent.getTechnicalIndicator(symbol, indicator, interval, timePeriod, seriesType);
+  }
+
+  /**
+   * Get sector performance data from Alpha Vantage
+   */
+  public async getSectorPerformance(): Promise<any> {
+    console.log('Getting sector performance data');
+    return await this.alphaVantageAgent.getSectorPerformance();
+  }
+
+  /**
+   * Get forex data from Alpha Vantage
+   * @param fromCurrency From currency
+   * @param toCurrency To currency
+   * @param interval Interval (e.g., '1min', '5min', '15min', '30min', '60min', 'daily', 'weekly', 'monthly')
+   * @param outputSize Output size ('compact' or 'full')
+   */
+  public async getForexData(
+    fromCurrency: string,
+    toCurrency: string,
+    interval: string = 'daily',
+    outputSize: string = 'compact'
+  ): Promise<any> {
+    console.log(`Getting forex data for: ${fromCurrency}/${toCurrency} (${interval})`);
+    return await this.alphaVantageAgent.getForexData(fromCurrency, toCurrency, interval, outputSize);
+  }
+
+  /**
+   * Get crypto data from Alpha Vantage
+   * @param symbol Crypto symbol
+   * @param market Market
+   * @param interval Interval (e.g., '1min', '5min', '15min', '30min', '60min', 'daily', 'weekly', 'monthly')
+   */
+  public async getCryptoData(
+    symbol: string,
+    market: string = 'USD',
+    interval: string = 'daily'
+  ): Promise<any> {
+    console.log(`Getting crypto data for: ${symbol}/${market} (${interval})`);
+    return await this.alphaVantageAgent.getCryptoData(symbol, market, interval);
+  }
+
+  /**
+   * Get economic indicator data from Alpha Vantage
+   * @param economicIndicator Economic indicator (e.g., 'REAL_GDP', 'REAL_GDP_PER_CAPITA', 'TREASURY_YIELD', 'FEDERAL_FUNDS_RATE', 'CPI', 'INFLATION', 'RETAIL_SALES', 'DURABLES', 'UNEMPLOYMENT', 'NONFARM_PAYROLL')
+   * @param interval Interval (e.g., 'annual', 'quarterly', 'monthly', 'daily')
+   * @param maturity Maturity (for treasury yield, e.g., '3month', '5year', '10year', '30year')
+   */
+  public async getEconomicIndicator(
+    economicIndicator: string,
+    interval: string = 'monthly',
+    maturity: string = ''
+  ): Promise<any> {
+    console.log(`Getting economic indicator data for: ${economicIndicator} (${interval})`);
+    return await this.alphaVantageAgent.getEconomicIndicator(economicIndicator, interval, maturity);
+  }
+
+  /**
+   * Get company overview from Alpha Vantage
+   * @param symbol Stock symbol
+   */
+  public async getCompanyOverview(symbol: string): Promise<any> {
+    console.log(`Getting company overview for: ${symbol}`);
+    return await this.alphaVantageAgent.getCompanyOverview(symbol);
+  }
+
+  /**
+   * Get earnings data from Alpha Vantage
+   * @param symbol Stock symbol
+   */
+  public async getEarnings(symbol: string): Promise<any> {
+    console.log(`Getting earnings data for: ${symbol}`);
+    return await this.alphaVantageAgent.getEarnings(symbol);
+  }
+
+  /**
+   * Get income statement from Alpha Vantage
+   * @param symbol Stock symbol
+   */
+  public async getIncomeStatement(symbol: string): Promise<any> {
+    console.log(`Getting income statement for: ${symbol}`);
+    return await this.alphaVantageAgent.getIncomeStatement(symbol);
+  }
+
+  /**
+   * Get balance sheet from Alpha Vantage
+   * @param symbol Stock symbol
+   */
+  public async getBalanceSheet(symbol: string): Promise<any> {
+    console.log(`Getting balance sheet for: ${symbol}`);
+    return await this.alphaVantageAgent.getBalanceSheet(symbol);
+  }
+
+  /**
+   * Get cash flow from Alpha Vantage
+   * @param symbol Stock symbol
+   */
+  public async getCashFlow(symbol: string): Promise<any> {
+    console.log(`Getting cash flow for: ${symbol}`);
+    return await this.alphaVantageAgent.getCashFlow(symbol);
+  }
+
+  /**
+   * Get global market status from Alpha Vantage
+   */
+  public async getGlobalMarketStatus(): Promise<any> {
+    console.log('Getting global market status');
+    return await this.alphaVantageAgent.getGlobalMarketStatus();
   }
 
   /**

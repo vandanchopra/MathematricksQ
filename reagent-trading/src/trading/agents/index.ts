@@ -10,6 +10,7 @@ import { DataAnalysisAgent } from './data-analysis-agent';
 import { VisualizationAgent } from './visualization-agent';
 import { MLAgent } from './ml-agent';
 import { DatabaseAgent } from './database-agent';
+import { AlphaVantageAgent } from './alpha-vantage-agent';
 import { Agent } from './agent';
 
 export {
@@ -25,5 +26,6 @@ export {
   VisualizationAgent,
   MLAgent,
   DatabaseAgent,
+  AlphaVantageAgent,
   Agent
 };

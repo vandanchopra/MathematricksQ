@@ -1,0 +1,23 @@
+version: '3'
+
+services:
+  alpha-vantage-mcp-server:
+    image: python:3.11-slim
+    container_name: alpha-vantage-mcp-server
+    working_dir: /app
+    volumes:
+      - ../data/alpha-vantage:/app/data
+    ports:
+      - "8002:8002"
+    environment:
+      - ALPHA_VANTAGE_API_KEY=${ALPHA_VANTAGE_API_KEY}
+      - ALPHA_VANTAGE_STORAGE_PATH=/app/data
+    command: >
+      bash -c "pip install alpha-vantage-mcp-server pandas && 
+               alpha-vantage-mcp-server --port 8002 --storage-path /app/data"
+    networks:
+      - reagent-network
+
+networks:
+  reagent-network:
+    driver: bridge
