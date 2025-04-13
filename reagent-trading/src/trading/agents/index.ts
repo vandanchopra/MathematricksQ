@@ -7,6 +7,7 @@ import { ResearchAgent } from './research-agent';
 import { YahooFinanceAgent } from './yahoo-finance-agent';
 import { AcademicSearchAgent } from './academic-search-agent';
 import { DataAnalysisAgent } from './data-analysis-agent';
+import { VisualizationAgent } from './visualization-agent';
 import { Agent } from './agent';
 
 export {
@@ -19,5 +20,6 @@ export {
   YahooFinanceAgent,
   AcademicSearchAgent,
   DataAnalysisAgent,
+  VisualizationAgent,
   Agent
 };

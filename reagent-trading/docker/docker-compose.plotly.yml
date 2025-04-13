@@ -1,0 +1,22 @@
+version: '3'
+
+services:
+  plotly-mcp-server:
+    image: python:3.11-slim
+    container_name: plotly-mcp-server
+    working_dir: /app
+    volumes:
+      - ../data/plotly:/app/data
+    ports:
+      - "8004:8004"
+    environment:
+      - PLOTLY_STORAGE_PATH=/app/data
+    command: >
+      bash -c "pip install plotly-mcp-server plotly pandas numpy matplotlib && 
+               plotly-mcp-server --port 8004 --storage-path /app/data"
+    networks:
+      - reagent-network
+
+networks:
+  reagent-network:
+    driver: bridge

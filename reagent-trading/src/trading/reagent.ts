@@ -1,4 +1,4 @@
-import { BacktestAgent, StrategyGeneratorAgent, StrategyEvaluatorAgent, StrategyOptimizerAgent, WebSearchAgent, YahooFinanceAgent, AcademicSearchAgent, DataAnalysisAgent } from './agents';
+import { BacktestAgent, StrategyGeneratorAgent, StrategyEvaluatorAgent, StrategyOptimizerAgent, WebSearchAgent, YahooFinanceAgent, AcademicSearchAgent, DataAnalysisAgent, VisualizationAgent } from './agents';
 import { ResearchAgent } from './agents/research-agent';
 import { TradingTargets } from './types';
 import { DEFAULT_TRADING_TARGETS } from './config';
@@ -18,6 +18,7 @@ export class ReAgent {
   private yahooFinanceAgent: YahooFinanceAgent;
   private academicSearchAgent: AcademicSearchAgent;
   private dataAnalysisAgent: DataAnalysisAgent;
+  private visualizationAgent: VisualizationAgent;
   private openRouterApiKey: string;
 
   constructor(
@@ -40,6 +41,7 @@ export class ReAgent {
     this.yahooFinanceAgent = new YahooFinanceAgent();
     this.academicSearchAgent = new AcademicSearchAgent(this.openRouterApiKey, useOllamaFallback);
     this.dataAnalysisAgent = new DataAnalysisAgent();
+    this.visualizationAgent = new VisualizationAgent();
   }
 
   /**
@@ -309,6 +311,111 @@ export class ReAgent {
   ): Promise<any> {
     console.log(`Comparing symbols: ${symbols.join(', ')}`);
     return await this.dataAnalysisAgent.compareSymbols(symbols, period, interval);
+  }
+
+  /**
+   * Create a chart for a stock
+   * @param symbol Stock symbol
+   * @param chartType Type of chart to create (e.g., 'line', 'candlestick', 'technical')
+   * @param period Period (e.g., '1y', '6mo')
+   * @param interval Interval (e.g., '1d', '1wk')
+   * @param title Custom title for the chart
+   * @param indicators Technical indicators to include (for technical charts)
+   */
+  public async createChart(
+    symbol: string,
+    chartType: string = 'line',
+    period: string = '1y',
+    interval: string = '1d',
+    title?: string,
+    indicators: any[] = []
+  ): Promise<any> {
+    console.log(`Creating ${chartType} chart for: ${symbol}`);
+    return await this.visualizationAgent.execute({
+      symbol,
+      chartType,
+      period,
+      interval,
+      title,
+      indicators
+    });
+  }
+
+  /**
+   * Create a price comparison chart for multiple stocks
+   * @param symbols Array of stock symbols
+   * @param period Period (e.g., '1y', '6mo')
+   * @param interval Interval (e.g., '1d', '1wk')
+   * @param title Custom title for the chart
+   */
+  public async createComparisonChart(
+    symbols: string[],
+    period: string = '1y',
+    interval: string = '1d',
+    title?: string
+  ): Promise<any> {
+    console.log(`Creating comparison chart for: ${symbols.join(', ')}`);
+    return await this.visualizationAgent.createComparisonChart(symbols, period, interval, title);
+  }
+
+  /**
+   * Create a correlation heatmap for multiple stocks
+   * @param symbols Array of stock symbols
+   * @param period Period (e.g., '1y', '6mo')
+   * @param interval Interval (e.g., '1d', '1wk')
+   * @param title Custom title for the chart
+   */
+  public async createCorrelationHeatmap(
+    symbols: string[],
+    period: string = '1y',
+    interval: string = '1d',
+    title?: string
+  ): Promise<any> {
+    console.log(`Creating correlation heatmap for: ${symbols.join(', ')}`);
+    return await this.visualizationAgent.createCorrelationHeatmap(symbols, period, interval, title);
+  }
+
+  /**
+   * Create a returns distribution histogram
+   * @param symbol Stock symbol
+   * @param period Period (e.g., '1y', '6mo')
+   * @param interval Interval (e.g., '1d', '1wk')
+   * @param title Custom title for the chart
+   */
+  public async createReturnsHistogram(
+    symbol: string,
+    period: string = '1y',
+    interval: string = '1d',
+    title?: string
+  ): Promise<any> {
+    console.log(`Creating returns histogram for: ${symbol}`);
+    return await this.visualizationAgent.createReturnsHistogram(symbol, period, interval, title);
+  }
+
+  /**
+   * Create a backtest results visualization
+   * @param backtestResults Backtest results data
+   * @param title Custom title for the chart
+   */
+  public async createBacktestVisualization(
+    backtestResults: any,
+    title?: string
+  ): Promise<any> {
+    console.log('Creating backtest visualization');
+    return await this.visualizationAgent.createBacktestVisualization(backtestResults, title);
+  }
+
+  /**
+   * Create a dashboard with multiple charts
+   * @param charts Array of charts to include in the dashboard
+   * @param title Custom title for the dashboard
+   */
+  public async createDashboard(
+    charts: any[],
+    title?: string
+  ): Promise<any> {
+    console.log('Creating dashboard');
+    return await this.visualizationAgent.createDashboard(charts, title);
   }
 
   /**

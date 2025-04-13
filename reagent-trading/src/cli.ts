@@ -613,6 +613,101 @@ async function main() {
       } else {
         console.log('Error comparing symbols:', results.error || 'Unknown error');
       }
+    } else if (command === 'create-chart') {
+      // Create a chart for a stock
+      const symbol = nonFlagArgs[1];
+      const chartType = nonFlagArgs[2] || 'line';
+      const period = nonFlagArgs[3] || '1y';
+      const interval = nonFlagArgs[4] || '1d';
+      const title = flagsObj['title'];
+
+      if (!symbol) {
+        console.error('Error: Stock symbol is required');
+        process.exit(1);
+      }
+
+      console.log(`Creating ${chartType} chart for: ${symbol}`);
+      const result = await reagent.createChart(symbol, chartType, period, interval, title);
+
+      if (result && !result.error) {
+        console.log(`\nChart created for ${symbol}:`);
+        console.log(`Chart URL: ${result.chartUrl}`);
+        console.log('\nOpen the URL in your browser to view the chart');
+      } else {
+        console.log('Error creating chart:', result.error || 'Unknown error');
+      }
+    } else if (command === 'create-comparison-chart') {
+      // Create a price comparison chart for multiple stocks
+      const symbols = nonFlagArgs.slice(1);
+      const period = flagsObj['period'] || '1y';
+      const interval = flagsObj['interval'] || '1d';
+      const title = flagsObj['title'];
+
+      if (symbols.length < 2) {
+        console.error('Error: At least two stock symbols are required');
+        process.exit(1);
+      }
+
+      console.log(`Creating comparison chart for: ${symbols.join(', ')}`);
+      const result = await reagent.createComparisonChart(symbols, period, interval, title);
+
+      if (result && typeof result === 'string') {
+        console.log(`\nComparison chart created:`);
+        console.log(`Chart URL: ${result}`);
+        console.log('\nOpen the URL in your browser to view the chart');
+      } else if (result && result.error) {
+        console.log('Error creating comparison chart:', result.error);
+      } else {
+        console.log('Error creating comparison chart: Unknown error');
+      }
+    } else if (command === 'create-correlation-heatmap') {
+      // Create a correlation heatmap for multiple stocks
+      const symbols = nonFlagArgs.slice(1);
+      const period = flagsObj['period'] || '1y';
+      const interval = flagsObj['interval'] || '1d';
+      const title = flagsObj['title'];
+
+      if (symbols.length < 2) {
+        console.error('Error: At least two stock symbols are required');
+        process.exit(1);
+      }
+
+      console.log(`Creating correlation heatmap for: ${symbols.join(', ')}`);
+      const result = await reagent.createCorrelationHeatmap(symbols, period, interval, title);
+
+      if (result && typeof result === 'string') {
+        console.log(`\nCorrelation heatmap created:`);
+        console.log(`Chart URL: ${result}`);
+        console.log('\nOpen the URL in your browser to view the chart');
+      } else if (result && result.error) {
+        console.log('Error creating correlation heatmap:', result.error);
+      } else {
+        console.log('Error creating correlation heatmap: Unknown error');
+      }
+    } else if (command === 'create-returns-histogram') {
+      // Create a returns distribution histogram
+      const symbol = nonFlagArgs[1];
+      const period = nonFlagArgs[2] || '1y';
+      const interval = nonFlagArgs[3] || '1d';
+      const title = flagsObj['title'];
+
+      if (!symbol) {
+        console.error('Error: Stock symbol is required');
+        process.exit(1);
+      }
+
+      console.log(`Creating returns histogram for: ${symbol}`);
+      const result = await reagent.createReturnsHistogram(symbol, period, interval, title);
+
+      if (result && typeof result === 'string') {
+        console.log(`\nReturns histogram created:`);
+        console.log(`Chart URL: ${result}`);
+        console.log('\nOpen the URL in your browser to view the chart');
+      } else if (result && result.error) {
+        console.log('Error creating returns histogram:', result.error);
+      } else {
+        console.log('Error creating returns histogram: Unknown error');
+      }
     } else {
       console.error(`Error: Unknown command '${command}'`);
       console.log('\nAvailable commands:');
@@ -638,6 +733,11 @@ async function main() {
       console.log('  run-query <symbol> <query> - Run a custom analysis query');
       console.log('  generate-data-strategy <symbol> [strategy_type] [period] [interval] - Generate a data-driven trading strategy');
       console.log('  compare-symbols <symbol1> <symbol2> [symbol3...] [--period=1y] [--interval=1d] - Compare multiple symbols');
+      console.log('\nVisualization:');
+      console.log('  create-chart <symbol> [chart_type] [period] [interval] [--title=title] - Create a chart for a stock');
+      console.log('  create-comparison-chart <symbol1> <symbol2> [symbol3...] [--period=1y] [--interval=1d] [--title=title] - Create a price comparison chart');
+      console.log('  create-correlation-heatmap <symbol1> <symbol2> [symbol3...] [--period=1y] [--interval=1d] [--title=title] - Create a correlation heatmap');
+      console.log('  create-returns-histogram <symbol> [period] [interval] [--title=title] - Create a returns distribution histogram');
       process.exit(1);
     }
   } catch (error) {
