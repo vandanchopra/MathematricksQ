@@ -9,6 +9,7 @@ import { AcademicSearchAgent } from './academic-search-agent';
 import { DataAnalysisAgent } from './data-analysis-agent';
 import { VisualizationAgent } from './visualization-agent';
 import { MLAgent } from './ml-agent';
+import { DatabaseAgent } from './database-agent';
 import { Agent } from './agent';
 
 export {
@@ -23,5 +24,6 @@ export {
   DataAnalysisAgent,
   VisualizationAgent,
   MLAgent,
+  DatabaseAgent,
   Agent
 };

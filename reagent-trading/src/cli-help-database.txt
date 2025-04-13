@@ -1,0 +1,11 @@
+      console.log('  cluster-stocks <symbol1> <symbol2> [symbol3...] [--period=1y] [--interval=1d] [--clusters=3] [--model=model_name] - Cluster stocks based on price movements');
+      console.log('\nDatabase:');
+      console.log('  execute-query <query> [--params=\'["param1", "param2"]\'] - Execute a SQL query');
+      console.log('  list-tables - List tables in the database');
+      console.log('  get-table-schema <table_name> - Get table schema');
+      console.log('  create-table <table_name> <columns_json> - Create a table');
+      console.log('  store-historical-data <symbol> [period] [interval] - Store historical data for a symbol');
+      console.log('  get-historical-data-db <symbol> [--start=YYYY-MM-DD] [--end=YYYY-MM-DD] - Get historical data from database');
+      console.log('  store-strategy-results <strategy_name> <symbol> <results_json> - Store strategy results');
+      console.log('  get-strategy-results [strategy_name] [symbol] - Get strategy results');
+      process.exit(1);

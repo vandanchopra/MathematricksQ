@@ -1,4 +1,4 @@
-import { BacktestAgent, StrategyGeneratorAgent, StrategyEvaluatorAgent, StrategyOptimizerAgent, WebSearchAgent, YahooFinanceAgent, AcademicSearchAgent, DataAnalysisAgent, VisualizationAgent, MLAgent } from './agents';
+import { BacktestAgent, StrategyGeneratorAgent, StrategyEvaluatorAgent, StrategyOptimizerAgent, WebSearchAgent, YahooFinanceAgent, AcademicSearchAgent, DataAnalysisAgent, VisualizationAgent, MLAgent, DatabaseAgent } from './agents';
 import { ResearchAgent } from './agents/research-agent';
 import { TradingTargets } from './types';
 import { DEFAULT_TRADING_TARGETS } from './config';
@@ -20,6 +20,7 @@ export class ReAgent {
   private dataAnalysisAgent: DataAnalysisAgent;
   private visualizationAgent: VisualizationAgent;
   private mlAgent: MLAgent;
+  private databaseAgent: DatabaseAgent;
   private openRouterApiKey: string;
 
   constructor(
@@ -44,6 +45,7 @@ export class ReAgent {
     this.dataAnalysisAgent = new DataAnalysisAgent();
     this.visualizationAgent = new VisualizationAgent();
     this.mlAgent = new MLAgent();
+    this.databaseAgent = new DatabaseAgent();
   }
 
   /**
@@ -580,6 +582,157 @@ export class ReAgent {
   ): Promise<any> {
     console.log(`Clustering stocks: ${symbols.join(', ')}`);
     return await this.mlAgent.clusterStocks(symbols, period, interval, numClusters, model);
+  }
+
+  /**
+   * Execute a SQL query
+   * @param query SQL query to execute
+   * @param params Parameters for the query
+   */
+  public async executeQuery(query: string, params: any[] = []): Promise<any> {
+    console.log(`Executing SQL query: ${query.substring(0, 100)}...`);
+    return await this.databaseAgent.executeQuery(query, params);
+  }
+
+  /**
+   * Create a table
+   * @param tableName Name of the table to create
+   * @param columns Columns for the table
+   */
+  public async createTable(tableName: string, columns: any[]): Promise<any> {
+    console.log(`Creating table: ${tableName}`);
+    return await this.databaseAgent.createTable(tableName, columns);
+  }
+
+  /**
+   * Insert data into a table
+   * @param tableName Name of the table to insert into
+   * @param data Data to insert
+   */
+  public async insertData(tableName: string, data: any[]): Promise<any> {
+    console.log(`Inserting data into table: ${tableName}`);
+    return await this.databaseAgent.insertData(tableName, data);
+  }
+
+  /**
+   * Update data in a table
+   * @param tableName Name of the table to update
+   * @param data Data to update
+   * @param condition Condition for the update
+   */
+  public async updateData(tableName: string, data: any, condition: string): Promise<any> {
+    console.log(`Updating data in table: ${tableName}`);
+    return await this.databaseAgent.updateData(tableName, data, condition);
+  }
+
+  /**
+   * Delete data from a table
+   * @param tableName Name of the table to delete from
+   * @param condition Condition for the delete
+   */
+  public async deleteData(tableName: string, condition: string): Promise<any> {
+    console.log(`Deleting data from table: ${tableName}`);
+    return await this.databaseAgent.deleteData(tableName, condition);
+  }
+
+  /**
+   * Get table schema
+   * @param tableName Name of the table to get schema for
+   */
+  public async getTableSchema(tableName: string): Promise<any> {
+    console.log(`Getting schema for table: ${tableName}`);
+    return await this.databaseAgent.getTableSchema(tableName);
+  }
+
+  /**
+   * List tables in the database
+   */
+  public async listTables(): Promise<any> {
+    console.log('Listing tables in the database');
+    return await this.databaseAgent.listTables();
+  }
+
+  /**
+   * Import data from a CSV file
+   * @param tableName Name of the table to import into
+   * @param filePath Path to the CSV file
+   * @param options Options for the import
+   */
+  public async importFromCSV(tableName: string, filePath: string, options: any = {}): Promise<any> {
+    console.log(`Importing data from CSV file: ${filePath} into table: ${tableName}`);
+    return await this.databaseAgent.importFromCSV(tableName, filePath, options);
+  }
+
+  /**
+   * Export data to a CSV file
+   * @param tableName Name of the table to export from
+   * @param filePath Path to the CSV file
+   * @param condition Condition for the export
+   */
+  public async exportToCSV(tableName: string, filePath: string, condition: string = ''): Promise<any> {
+    console.log(`Exporting data from table: ${tableName} to CSV file: ${filePath}`);
+    return await this.databaseAgent.exportToCSV(tableName, filePath, condition);
+  }
+
+  /**
+   * Create a database backup
+   * @param backupPath Path to the backup file
+   */
+  public async createBackup(backupPath: string): Promise<any> {
+    console.log(`Creating database backup: ${backupPath}`);
+    return await this.databaseAgent.createBackup(backupPath);
+  }
+
+  /**
+   * Restore a database from a backup
+   * @param backupPath Path to the backup file
+   */
+  public async restoreBackup(backupPath: string): Promise<any> {
+    console.log(`Restoring database from backup: ${backupPath}`);
+    return await this.databaseAgent.restoreBackup(backupPath);
+  }
+
+  /**
+   * Store historical data for a symbol
+   * @param symbol Stock symbol
+   * @param period Period (e.g., '1y', '6mo')
+   * @param interval Interval (e.g., '1d', '1wk')
+   */
+  public async storeHistoricalData(symbol: string, period: string = '1y', interval: string = '1d'): Promise<any> {
+    console.log(`Storing historical data for: ${symbol}`);
+    return await this.databaseAgent.storeHistoricalData(symbol, period, interval);
+  }
+
+  /**
+   * Get historical data for a symbol from the database
+   * @param symbol Stock symbol
+   * @param startDate Start date (YYYY-MM-DD)
+   * @param endDate End date (YYYY-MM-DD)
+   */
+  public async getHistoricalDataFromDB(symbol: string, startDate?: string, endDate?: string): Promise<any> {
+    console.log(`Getting historical data for: ${symbol} from database`);
+    return await this.databaseAgent.getHistoricalData(symbol, startDate, endDate);
+  }
+
+  /**
+   * Store strategy results
+   * @param strategyName Name of the strategy
+   * @param symbol Stock symbol
+   * @param results Strategy results
+   */
+  public async storeStrategyResults(strategyName: string, symbol: string, results: any): Promise<any> {
+    console.log(`Storing strategy results for: ${strategyName} on ${symbol}`);
+    return await this.databaseAgent.storeStrategyResults(strategyName, symbol, results);
+  }
+
+  /**
+   * Get strategy results
+   * @param strategyName Name of the strategy (optional)
+   * @param symbol Stock symbol (optional)
+   */
+  public async getStrategyResults(strategyName?: string, symbol?: string): Promise<any> {
+    console.log(`Getting strategy results${strategyName ? ` for: ${strategyName}` : ''}${symbol ? ` on ${symbol}` : ''}`);
+    return await this.databaseAgent.getStrategyResults(strategyName, symbol);
   }
 
   /**

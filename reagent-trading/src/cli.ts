@@ -854,6 +854,203 @@ async function main() {
       } else {
         console.log('Error clustering stocks:', result.error || 'Unknown error');
       }
+    } else if (command === 'execute-query') {
+      // Execute a SQL query
+      const query = nonFlagArgs.slice(1).join(' ');
+      const params = flagsObj['params'] ? JSON.parse(flagsObj['params']) : [];
+
+      if (!query) {
+        console.error('Error: SQL query is required');
+        process.exit(1);
+      }
+
+      console.log(`Executing SQL query: ${query}`);
+      const result = await reagent.executeQuery(query, params);
+
+      if (result && !result.error) {
+        console.log(`\nQuery Results:`);
+        console.log(result);
+      } else {
+        console.log('Error executing query:', result.error || 'Unknown error');
+      }
+    } else if (command === 'list-tables') {
+      // List tables in the database
+      console.log('Listing tables in the database');
+      const result = await reagent.listTables();
+
+      if (result && !result.error) {
+        console.log(`\nTables in the database:`);
+        result.forEach((table: any, index: number) => {
+          console.log(`  ${index + 1}. ${table.table_name}`);
+        });
+      } else {
+        console.log('Error listing tables:', result.error || 'Unknown error');
+      }
+    } else if (command === 'get-table-schema') {
+      // Get table schema
+      const tableName = nonFlagArgs[1];
+
+      if (!tableName) {
+        console.error('Error: Table name is required');
+        process.exit(1);
+      }
+
+      console.log(`Getting schema for table: ${tableName}`);
+      const result = await reagent.getTableSchema(tableName);
+
+      if (result && !result.error) {
+        console.log(`\nSchema for table ${tableName}:`);
+        result.forEach((column: any, index: number) => {
+          console.log(`  ${index + 1}. ${column.column_name} (${column.data_type})${column.is_nullable === 'NO' ? ' NOT NULL' : ''}${column.column_default ? ` DEFAULT ${column.column_default}` : ''}`);
+        });
+      } else {
+        console.log('Error getting table schema:', result.error || 'Unknown error');
+      }
+    } else if (command === 'create-table') {
+      // Create a table
+      const tableName = nonFlagArgs[1];
+      const columnsStr = nonFlagArgs.slice(2).join(' ');
+
+      if (!tableName) {
+        console.error('Error: Table name is required');
+        process.exit(1);
+      }
+
+      if (!columnsStr) {
+        console.error('Error: Columns definition is required');
+        process.exit(1);
+      }
+
+      try {
+        const columns = JSON.parse(columnsStr);
+        console.log(`Creating table: ${tableName}`);
+        const result = await reagent.createTable(tableName, columns);
+
+        if (result && !result.error) {
+          console.log(`\nTable ${tableName} created successfully`);
+        } else {
+          console.log('Error creating table:', result.error || 'Unknown error');
+        }
+      } catch (error) {
+        console.error('Error parsing columns JSON:', error);
+        process.exit(1);
+      }
+    } else if (command === 'store-historical-data') {
+      // Store historical data for a symbol
+      const symbol = nonFlagArgs[1];
+      const period = nonFlagArgs[2] || '1y';
+      const interval = nonFlagArgs[3] || '1d';
+
+      if (!symbol) {
+        console.error('Error: Stock symbol is required');
+        process.exit(1);
+      }
+
+      console.log(`Storing historical data for: ${symbol}`);
+      const result = await reagent.storeHistoricalData(symbol, period, interval);
+
+      if (result && !result.error) {
+        console.log(`\nHistorical data for ${symbol} stored successfully`);
+        console.log(`  Total points: ${result.totalPoints}`);
+        console.log(`  Inserted: ${result.insertedCount}`);
+      } else {
+        console.log('Error storing historical data:', result.error || 'Unknown error');
+      }
+    } else if (command === 'get-historical-data-db') {
+      // Get historical data for a symbol from the database
+      const symbol = nonFlagArgs[1];
+      const startDate = flagsObj['start'];
+      const endDate = flagsObj['end'];
+
+      if (!symbol) {
+        console.error('Error: Stock symbol is required');
+        process.exit(1);
+      }
+
+      console.log(`Getting historical data for: ${symbol} from database`);
+      const result = await reagent.getHistoricalDataFromDB(symbol, startDate, endDate);
+
+      if (result && !result.error) {
+        console.log(`\nHistorical data for ${symbol}:`);
+        console.log(`  Total points: ${result.length}`);
+
+        if (result.length > 0) {
+          console.log(`  First date: ${result[0].date}`);
+          console.log(`  Last date: ${result[result.length - 1].date}`);
+          console.log(`\nSample data:`);
+          result.slice(0, 5).forEach((item: any, index: number) => {
+            console.log(`  ${index + 1}. ${item.date}: Open ${item.open}, High ${item.high}, Low ${item.low}, Close ${item.close}, Volume ${item.volume}`);
+          });
+        }
+      } else {
+        console.log('Error getting historical data:', result.error || 'Unknown error');
+      }
+    } else if (command === 'store-strategy-results') {
+      // Store strategy results
+      const strategyName = nonFlagArgs[1];
+      const symbol = nonFlagArgs[2];
+      const resultsStr = nonFlagArgs.slice(3).join(' ');
+
+      if (!strategyName) {
+        console.error('Error: Strategy name is required');
+        process.exit(1);
+      }
+
+      if (!symbol) {
+        console.error('Error: Stock symbol is required');
+        process.exit(1);
+      }
+
+      if (!resultsStr) {
+        console.error('Error: Strategy results are required');
+        process.exit(1);
+      }
+
+      try {
+        const results = JSON.parse(resultsStr);
+        console.log(`Storing strategy results for: ${strategyName} on ${symbol}`);
+        const result = await reagent.storeStrategyResults(strategyName, symbol, results);
+
+        if (result && !result.error) {
+          console.log(`\nStrategy results stored successfully`);
+          console.log(`  Strategy: ${result.strategyName}`);
+          console.log(`  Symbol: ${result.symbol}`);
+          console.log(`  ID: ${result.strategyResultId}`);
+          console.log(`  Trades: ${result.tradeCount}`);
+        } else {
+          console.log('Error storing strategy results:', result.error || 'Unknown error');
+        }
+      } catch (error) {
+        console.error('Error parsing results JSON:', error);
+        process.exit(1);
+      }
+    } else if (command === 'get-strategy-results') {
+      // Get strategy results
+      const strategyName = nonFlagArgs[1];
+      const symbol = nonFlagArgs[2];
+
+      console.log(`Getting strategy results${strategyName ? ` for: ${strategyName}` : ''}${symbol ? ` on ${symbol}` : ''}`);
+      const result = await reagent.getStrategyResults(strategyName, symbol);
+
+      if (result && !result.error) {
+        console.log(`\nStrategy Results:`);
+        console.log(`  Total results: ${result.length}`);
+
+        if (result.length > 0) {
+          result.forEach((item: any, index: number) => {
+            console.log(`\n[${index + 1}] ${item.strategy_name} on ${item.symbol}`);
+            console.log(`  Period: ${item.start_date} to ${item.end_date}`);
+            console.log(`  Total Return: ${item.total_return}%`);
+            console.log(`  Annual Return: ${item.annual_return}%`);
+            console.log(`  Sharpe Ratio: ${item.sharpe_ratio}`);
+            console.log(`  Max Drawdown: ${item.max_drawdown}%`);
+            console.log(`  Win Rate: ${item.win_rate}%`);
+            console.log(`  Trades: ${item.trade_count}`);
+          });
+        }
+      } else {
+        console.log('Error getting strategy results:', result.error || 'Unknown error');
+      }
     } else {
       console.error(`Error: Unknown command '${command}'`);
       console.log('\nAvailable commands:');
@@ -902,3 +1099,14 @@ main().catch(error => {
   console.error('Unhandled error:', error);
   process.exit(1);
 });
+      console.log('  cluster-stocks <symbol1> <symbol2> [symbol3...] [--period=1y] [--interval=1d] [--clusters=3] [--model=model_name] - Cluster stocks based on price movements');
+      console.log('\nDatabase:');
+      console.log('  execute-query <query> [--params=\'["param1", "param2"]\'] - Execute a SQL query');
+      console.log('  list-tables - List tables in the database');
+      console.log('  get-table-schema <table_name> - Get table schema');
+      console.log('  create-table <table_name> <columns_json> - Create a table');
+      console.log('  store-historical-data <symbol> [period] [interval] - Store historical data for a symbol');
+      console.log('  get-historical-data-db <symbol> [--start=YYYY-MM-DD] [--end=YYYY-MM-DD] - Get historical data from database');
+      console.log('  store-strategy-results <strategy_name> <symbol> <results_json> - Store strategy results');
+      console.log('  get-strategy-results [strategy_name] [symbol] - Get strategy results');
+      process.exit(1);

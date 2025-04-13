@@ -1,0 +1,41 @@
+version: '3'
+
+services:
+  postgresql-mcp-server:
+    image: python:3.11-slim
+    container_name: postgresql-mcp-server
+    working_dir: /app
+    volumes:
+      - ../data/postgresql:/app/data
+    ports:
+      - "8006:8006"
+    environment:
+      - POSTGRESQL_STORAGE_PATH=/app/data
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=reagent
+    command: >
+      bash -c "pip install postgresql-mcp-server psycopg2-binary pandas && 
+               postgresql-mcp-server --port 8006 --storage-path /app/data"
+    networks:
+      - reagent-network
+    depends_on:
+      - postgres
+
+  postgres:
+    image: postgres:14
+    container_name: postgres
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=reagent
+    volumes:
+      - ../data/postgresql/db:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - reagent-network
+
+networks:
+  reagent-network:
+    driver: bridge
