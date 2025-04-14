@@ -4,8 +4,12 @@ import glob
 from datetime import datetime
 from typing import Dict, List, Any, Optional
 from .base import BaseAgent
+from AgenticDeveloper.logger import get_logger
 
 class BacktestAnalyzerAgent(BaseAgent):
+    def __init__(self, config_path: str = "../config/system_config.yaml", config: Optional[Dict] = None):
+        super().__init__(config_path=config_path, config=config)
+        self.logger = get_logger("BacktestAnalyzerAgent")
     """Agent responsible for analyzing backtest results and providing improvement suggestions"""
     
     def __init__(self, config_path: str = "../config/system_config.yaml", config: Optional[Dict] = None):

@@ -159,3 +159,23 @@ flowchart TD
     Backtest -->|Backtest Results| Analyze
     Analyze -->|Analysis| AlphaSeekerExist
 ```
+
+
+## Here is a sample scenarios: if the user asks for a new strategy -- 
+it calls the researcher agent and gives it an 'intelligent start point' for developing a strategy (or takes the users input and tells the researcher to do research)
+once the researcher comes back, if creates an 'intelligent prompt based on the research' and tells the strategy writer to write the strategy
+now that the strategy is written, what should it do next? it should backtest the strategy.————- (Feature update for @backtester.py: when a backtest is complete, it needs to update the backtest results to 
+version_history.json (in a field called ‘test_results’:[test results added to the list]
+Update research_ideas.json with test_results: ‘test_results’:[test results added to the list]
+once the backtest is complete, it should do what? - analyse the results, so it calls the backtest analyser agent --- now that it's got the analysis back
+it looks at the version history of the work it's done uptil now, and then decides an ‘intelligent prompt to improve the performance of this strategy’…and gives that prompt to ‘researcher’ who does research and comes back with ideas.
+Now alpha seeker can go back to step 2 again.
+
+if the user asks improving an existing strategy -- 
+it looks at the version history of the work it's done uptil now, and then decides an ‘intelligent prompt to improve the performance of this strategy’…and gives that prompt to ‘researcher’ who does research and comes back with ideas.
+once the researcher comes back, if creates an 'intelligent prompt based on the research' and tells the strategy writer to write the strategy
+now that the strategy is written, what should it do next? it should backtest the strategy.————- (Feature update for @backtester.py: when a backtest is complete, it needs to update the backtest results to 
+version_history.json (in a field called ‘test_results’:[test results added to the list]
+Update research_ideas.json with test_results: ‘test_results’:[test results added to the list]
+once the backtest is complete, it should do what? - analyse the results, so it calls the backtest analyser agent --- now that it's got the analysis back
+Now alpha seeker can go back to step 1 of ‘existing strategy’

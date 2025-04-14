@@ -4,8 +4,12 @@ from datetime import datetime
 from typing import Optional, Dict, Any
 
 from .base import BaseAgent
+from AgenticDeveloper.logger import get_logger
 
 class StrategyDeveloperAgent(BaseAgent):
+    def __init__(self, config_path: Optional[str] = None, config: Optional[Dict] = None):
+        super().__init__(config_path, config)
+        self.logger = get_logger("StrategyDeveloperAgent")
     """
     Agent responsible for generating or modifying QuantConnect Lean strategy code
     based on instructions (ideas, pseudocode, errors, etc.) using an LLM.
@@ -52,30 +56,30 @@ class StrategyDeveloperAgent(BaseAgent):
                 prompt = instructions
                 if previous_code:
                     prompt += f"\n\nHere is the previous strategy code:\n{previous_code}"
-
+            
             # Generate strategy code
             extracted_code, full_response = self.generate_strategy_code(prompt)
-
+            
             # Save strategy version (overwrite or new version)
             final_path = self.save_strategy_version(extracted_code, strategy_dir, llm_full_response=full_response)
-            print(f"[StrategyDeveloperAgent] Saved strategy version at: {final_path}")
-
+            self.logger.info(f"Saved strategy version at: {final_path}")
+            
             # Run backtest
             result = self.test_generated_code(final_path)
-            print({'result':result})
-
+            self.logger.info(f"Backtest result: {result}")
+            
             if result.get("backtest_successful"):
-                print("[StrategyDeveloperAgent] Backtest successful.")
+                self.logger.info("Backtest successful.")
                 break
             else:
-                print("[StrategyDeveloperAgent] Backtest failed. Errors:")
+                self.logger.info("Backtest failed. Errors:")
                 errors = result.get("errors", [])
                 previous_code = extracted_code  # Use the latest code for next attempt
-
+            
         if attempt == max_retries and errors:
-            print("[StrategyDeveloperAgent] Max retries reached. Last errors:")
+            self.logger.info("Max retries reached. Last errors:")
             for err in errors:
-                print(f" - {err}")
+                self.logger.info(f" - {err}")
 
         return final_path
 
@@ -105,7 +109,8 @@ class StrategyDeveloperAgent(BaseAgent):
         while attempt < max_attempts:
             attempt += 1
             prompt = self._create_strategy_prompt(instructions)
-            response = self.llm.invoke(prompt)
+            # self.logger.info(f"LLM prompt:\n{prompt}")
+            response = self.strategy_writer_llm.invoke(prompt)
 
             # Extract python code block
             code_blocks = re.findall(r"```python(.*?)```", response, re.DOTALL | re.IGNORECASE)

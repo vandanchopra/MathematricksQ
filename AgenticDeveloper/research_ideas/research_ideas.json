@@ -1,62 +1,992 @@
 {
-  "Momentum universe shrinkage effect in price momentum Mid-Cap Momentum": {
-    "description": "Select KOSPI 100-50 mid-cap stocks. Rank by 6-month past returns. Go long top 20%, short bottom 20%. Hold for 3 months. Rebalance monthly. Avoid KOSPI 50 large caps to improve alpha.",
-    "pseudo_code": "def midcap_momentum():\n    universe = get_kospi_200()\n    midcaps = filter_market_cap(universe, rank_range=(50,100))\n    ranked = rank_by_past_return(midcaps, lookback=126)\n    longs = top_percentile(ranked, 20)\n    shorts = bottom_percentile(ranked, 20)\n    portfolio = long_short(longs, shorts)\n    hold(portfolio, 63)\n    rebalance_monthly()",
-    "source": {
-      "title": "Momentum universe shrinkage effect in price momentum",
+  "d2c90dd2-7cce-4adf-9fac-4af6ff931de2": {
+    "description": "** \n* This strategy combines time-series and cross-sectional momentum features to generate trading signals for a portfolio of assets.\n* It uses a neural network with a single hidden layer to learn the relationships between the time-series and cross-sectional momentum features of different assets.\n* The model is trained using a multitask learning approach, where all tasks (assets in the portfolio) are treated equally.\n* The goal is to generate trading signals that are based on both the time-series and cross-sectional momentum features of each asset.\n\n**",
+    "edge": "** \n* This strategy provides an edge by incorporating both time-series and cross-sectional momentum features, which can help to identify more profitable trading opportunities.\n* The use of a neural network allows for the learning of complex relationships between the features of different assets.\n\n**",
+    "pseudo_code": "**\n```\n// Input: spatio-temporal tensor ut \u2208 RNt\u00d7\u03c4\u00d7d\n// Output: trading signals Xt \u2208 [\u22121, 1]Nt\n\nXt = f(ut; \u03b8) = g(W\u22a4ut + b)\nwhere W \u2208 Rm\u00d7Nt, ut \u2208 Rm with m = Nt \u00b7 \u03c4 \u00b7 d, b \u2208 RNt and g = tanh is the activation function\n```\n\n**SIGNAL GENERATION LOGIC:** \n* The trading signals are generated based on the output of the neural network.\n* The output of the neural network is a vector of trading signals for all assets in the portfolio.\n\n**ENTRY/EXIT RULES:** \n* Long entry: when the trading signal for an asset is above a certain threshold (e.g. 0.5)\n* Short entry: when the trading signal for an asset is below a certain threshold (e.g. -0.5)\n* Exit: when the trading signal for an asset crosses the opposite threshold (e.g. long exit when signal falls below 0)\n\n**",
+    "source_info": {
+      "paper": "** \"Spatio-Temporal Momentum: Jointly Learning Time-Series and Cross-Sectional Strategies\"\n**",
       "authors": [
-        "Jaehyung Choi",
-        "Sungsoo Choi",
-        "Wonseok Kang"
-      ],
-      "url": "http://arxiv.org/pdf/1211.6517v1",
-      "local_pdf_path": "AgenticDeveloper/research_papers/1211.6517v1.pdf"
+        "** Wee Ling Tan",
+        "Stephen Roberts",
+        "and Stefan Zohren\n\n**"
+      ]
     },
-    "learnings_from_testing": []
+    "idea_name": "** Spatio-Temporal Momentum"
   },
-  "Momentum universe shrinkage effect in price momentum Liquidity Strategy": {
-    "description": "In KOSPI 200 excluding KOSPI 50, rank stocks by average daily turnover. Go long lowest 20% liquidity, short highest 20%. Hold 3 months, rebalance monthly. Low liquidity stocks tend to outperform.",
-    "pseudo_code": "def liquidity_strategy():\n    universe = get_kospi_200()\n    ex_largecaps = exclude_kospi_50(universe)\n    ranked = rank_by_liquidity(ex_largecaps, lookback=126)\n    longs = bottom_percentile(ranked, 20)\n    shorts = top_percentile(ranked, 20)\n    portfolio = long_short(longs, shorts)\n    hold(portfolio, 63)\n    rebalance_monthly()",
-    "source": {
-      "title": "Momentum universe shrinkage effect in price momentum",
+  "1ea918e8-c8bb-4708-92fa-3904d58fd2ba": {
+    "description": "** \n* This strategy uses a deep neural network to generate trading signals for individual assets.\n* The model is trained using a time-series momentum approach, where the goal is to predict the future returns of each asset based on its past returns.\n\n**",
+    "edge": "** \n* This strategy provides an edge by using a deep neural network to learn complex relationships between the past returns of each asset and its future returns.\n\n**",
+    "pseudo_code": "**\n```\n// Input: time-series momentum features u(i)t\n// Output: trading signals X(i)t\n\nX(i)t = f(u(i)t; \u03b8)\nwhere f is a deep neural network and \u03b8 are the model parameters\n```\n\n**SIGNAL GENERATION LOGIC:** \n* The trading signals are generated based on the output of the neural network.\n* The output of the neural network is a vector of trading signals for each asset.\n\n**ENTRY/EXIT RULES:** \n* Long entry: when the trading signal for an asset is above a certain threshold (e.g. 0.5)\n* Short entry: when the trading signal for an asset is below a certain threshold (e.g. -0.5)\n* Exit: when the trading signal for an asset crosses the opposite threshold (e.g. long exit when signal falls below 0)\n\n**",
+    "source_info": {
+      "paper": "** \"Enhancing Time-Series Momentum Strategies Using Deep Neural Networks\"\n**",
       "authors": [
-        "Jaehyung Choi",
-        "Sungsoo Choi",
-        "Wonseok Kang"
-      ],
-      "url": "http://arxiv.org/pdf/1211.6517v1",
-      "local_pdf_path": "AgenticDeveloper/research_papers/1211.6517v1.pdf"
+        "** Bryan Lim",
+        "Stefan Zohren",
+        "and Stephen Roberts\n\n**"
+      ]
     },
-    "learnings_from_testing": []
+    "idea_name": "** Deep Momentum Networks (DMN)"
   },
-  "Rise of the Machines? Intraday High-Frequency Trading Patterns of Cryptocurrencies Mid-Cap Momentum": {
-    "description": "Select KOSPI 100-50 mid-cap stocks. Rank by 6-month past returns. Go long top 20%, short bottom 20%. Hold for 3 months. Rebalance monthly. Avoid KOSPI 50 large caps to improve alpha.",
-    "pseudo_code": "def midcap_momentum():\n    universe = get_kospi_200()\n    midcaps = filter_market_cap(universe, rank_range=(50,100))\n    ranked = rank_by_past_return(midcaps, lookback=126)\n    longs = top_percentile(ranked, 20)\n    shorts = bottom_percentile(ranked, 20)\n    portfolio = long_short(longs, shorts)\n    hold(portfolio, 63)\n    rebalance_monthly()",
-    "source": {
-      "title": "Rise of the Machines? Intraday High-Frequency Trading Patterns of Cryptocurrencies",
+  "23619ea8-b17d-4a02-8749-ea37411fd746": {
+    "description": "** \n* This strategy uses a volatility-normalized MACD indicator to generate trading signals.\n* The MACD indicator is calculated as the difference between two moving averages of the asset's price.\n\n**",
+    "edge": "** \n* This strategy provides an edge by using a volatility-normalized MACD indicator, which can help to reduce false signals.\n\n**",
+    "pseudo_code": "**\n```\n// Input: asset prices\n// Output: trading signals\n\nMACD(i, t, S, L) = m(i, t, S) - m(i, t, L)\nMACDnorm(i, t, S, L) = MACD(i, t, S, L) / std(pt-63:t)\nY(i)t = MACDnorm(i, t, S, L) / std(MACDnorm(i, t-252:t, S, L))\nX(i)t = Y(i)t\n```\n\n**SIGNAL GENERATION LOGIC:** \n* The trading signals are generated based on the output of the MACD indicator.\n* The output of the MACD indicator is a vector of trading signals for each asset.\n\n**ENTRY/EXIT RULES:** \n* Long entry: when the MACD indicator crosses above a certain threshold (e.g. 0)\n* Short entry: when the MACD indicator crosses below a certain threshold (e.g. 0)\n* Exit: when the MACD indicator crosses the opposite threshold\n\n**",
+    "source_info": {
+      "paper": "** \"Dissecting Investment Strategies in the Cross Section and Time Series\"\n**",
       "authors": [
-        "Alla A. Petukhina",
-        "Raphael C. G. Reule",
-        "Wolfgang Karl H\u00e4rdle"
-      ],
-      "url": "http://arxiv.org/pdf/2009.04200v1",
-      "local_pdf_path": "AgenticDeveloper/research_papers/2009.04200v1.pdf"
+        "** Jamil Baz",
+        "Nicolas Granger",
+        "Campbell R Harvey",
+        "Nicolas Le Roux",
+        "and Sandy Rattray"
+      ]
     },
-    "learnings_from_testing": []
+    "idea_name": "** Volatility Normalized MACD"
   },
-  "Rise of the Machines? Intraday High-Frequency Trading Patterns of Cryptocurrencies Liquidity Strategy": {
-    "description": "In KOSPI 200 excluding KOSPI 50, rank stocks by average daily turnover. Go long lowest 20% liquidity, short highest 20%. Hold 3 months, rebalance monthly. Low liquidity stocks tend to outperform.",
-    "pseudo_code": "def liquidity_strategy():\n    universe = get_kospi_200()\n    ex_largecaps = exclude_kospi_50(universe)\n    ranked = rank_by_liquidity(ex_largecaps, lookback=126)\n    longs = bottom_percentile(ranked, 20)\n    shorts = top_percentile(ranked, 20)\n    portfolio = long_short(longs, shorts)\n    hold(portfolio, 63)\n    rebalance_monthly()",
-    "source": {
-      "title": "Rise of the Machines? Intraday High-Frequency Trading Patterns of Cryptocurrencies",
+  "8fd25fc8-e185-4f0c-b609-3cdee8158a2e": {
+    "description": "**\n* The MACD is a trend momentum indicator that consists of MACD line, signal line, and histogram.\n* The MACD line is the difference between fast EMA and slow EMA.\n* The signal line is the EMA of the MACD line.\n* The histogram is the difference between MACD line and signal line.\n* The default parameters are (12, 26, 9) for fast period, slow period, and signal period respectively.\n* Trading signals can be generated using signal line crossover, zero crossover, histogram, and signal line crossover above zero.\n**",
+    "edge": "** The MACD provides an edge by identifying trends and momentum in the market. It can be used to generate buy and sell signals.\n**",
+    "pseudo_code": "**\n* Calculate MACD line: `MACD = EMA(close, 12) - EMA(close, 26)`\n* Calculate signal line: `Signal = EMA(MACD, 9)`\n* Calculate histogram: `Histogram = MACD - Signal`\n* Generate buy signal: `if MACD > Signal and MACD > 0`\n* Generate sell signal: `if MACD < Signal and MACD < 0`\n**",
+    "source_info": {
+      "paper": "** \"Moving Average Convergence \u2013 Divergence (MACD)\" by Gerald Appel\n**",
       "authors": [
-        "Alla A. Petukhina",
-        "Raphael C. G. Reule",
-        "Wolfgang Karl H\u00e4rdle"
-      ],
-      "url": "http://arxiv.org/pdf/2009.04200v1",
-      "local_pdf_path": "AgenticDeveloper/research_papers/2009.04200v1.pdf"
+        "** Gerald Appel\n\n**"
+      ]
     },
-    "learnings_from_testing": []
+    "idea_name": "** MACD (Moving Average Convergence Divergence)"
+  },
+  "42ba6967-c211-4f04-8d61-9ddec4e07e80": {
+    "description": "**\n* Bollinger Bands consist of lower band, middle band, and upper band.\n* The middle band is the 20-period simple moving average (SMA) of the closing price.\n* The lower band is the difference between SMA and standard deviation.\n* The upper band is the summation of SMA and standard deviation.\n* The default standard deviation is 2.\n* Trading signals can be generated using the SMA of Bollinger Band Width (BBW).\n**",
+    "edge": "** Bollinger Bands provide an edge by identifying volatility and potential breakouts in the market.\n**",
+    "pseudo_code": "**\n* Calculate middle band: `Middle Band = SMA(close, 20)`\n* Calculate lower band: `Lower Band = Middle Band - 2 * Std(close, 20)`\n* Calculate upper band: `Upper Band = Middle Band + 2 * Std(close, 20)`\n* Calculate BBW: `BBW = (Upper Band - Lower Band) / Middle Band`\n* Generate buy signal: `if SMA(BBW, 10) > SMA(BBW, 50)`\n* Generate sell signal: `if SMA(BBW, 10) < SMA(BBW, 50)`\n**",
+    "source_info": {
+      "paper": "** \"Bollinger Bands\" by John Bollinger\n**",
+      "authors": [
+        "** John Bollinger\n\n**"
+      ]
+    },
+    "idea_name": "** Bollinger Bands (BB)"
+  },
+  "9b434ae8-ac68-4608-954f-d26f3263ccc7": {
+    "description": "**\n* The RSI is an oscillator that measures the price change in a certain period to evaluate overbought or oversold status.\n* The default period is 14.\n* The RSI value below 30 indicates oversold and above 70 indicates overbought.\n* Trading signals can be generated using the RSI value.\n**",
+    "edge": "** The RSI provides an edge by identifying overbought and oversold conditions in the market.\n**",
+    "pseudo_code": "**\n* Calculate RSI: `RSI = 100 - 100 / (1 + RS)`\n* Calculate RS: `RS = Average Gain / Average Loss`\n* Generate buy signal: `if RSI <= 30`\n* Generate sell signal: `if RSI >= 70`\n**",
+    "source_info": {
+      "paper": "** \"Relative Strength Index\" by J. Welles Wilder\n**",
+      "authors": [
+        "** J. Welles Wilder\n\n**"
+      ]
+    },
+    "idea_name": "** Relative Strength Index (RSI)"
+  },
+  "2b1f37ec-0b0d-42f5-b2e2-1a1abf246c08": {
+    "description": "**\n* The MFI is an oscillator that uses stock price and transaction volume to identify buy and sell signals.\n* The default period is 14.\n* The MFI value below 25 indicates oversold and above 75 indicates overbought.\n* Trading signals can be generated using the MFI value.\n**",
+    "edge": "** The MFI provides an edge by identifying overbought and oversold conditions in the market, taking into account transaction volume.\n**",
+    "pseudo_code": "**\n* Calculate MFI: `MFI = 100 - 100 / (1 + Money Flow Ratio)`\n* Calculate Money Flow Ratio: `Money Flow Ratio = Positive Money Flow / Negative Money Flow`\n* Generate buy signal: `if MFI <= 25`\n* Generate sell signal: `if MFI >= 75`\n**",
+    "source_info": {
+      "paper": "** \"Money Flow Index\" by Gene Quong and Avrum Soudack\n**",
+      "authors": [
+        "** Gene Quong and Avrum Soudack\n\n**"
+      ]
+    },
+    "idea_name": "** Money Flow Index (MFI)"
+  },
+  "a8c0fa45-2241-4e39-a880-b40f3bcaebe6": {
+    "description": "**\n* The SAR indicator is used to trail the price as trend and determine the direction and potential time of trend reverse.\n* The default acceleration factor is 0.02 and maximum value is 0.2.\n* Trading signals can be generated using the SAR value.\n**",
+    "edge": "** The SAR provides an edge by identifying trend reversals and potential trading opportunities.\n**",
+    "pseudo_code": "**\n* Calculate SAR: `SAR = SAR_prev + Alpha * (EP - SAR_prev)`\n* Generate buy signal: `if SAR_prev > Price_prev and SAR < Price`\n* Generate sell signal: `if SAR_prev < Price_prev and SAR > Price`\n**",
+    "source_info": {
+      "paper": "** \"Parabolic Stop and Reverse\" by J. Welles Wilder Jr.\n**",
+      "authors": [
+        "** J. Welles Wilder Jr.\n\n**"
+      ]
+    },
+    "idea_name": "** Parabolic Stop and Reverse (SAR)"
+  },
+  "8695800f-8b8f-4cea-96d9-12b1c9074fe7": {
+    "description": "**\n* The VPVMA is a derivation of MACD that takes into account volume, typical price, and daily volatility.\n* The VPVMA includes two moving average series: VPVMA and VPVMAS.\n* The VPVMA uses the typical price instead of the close price to calculate the volume-weighted price.\n* The VPVMA applies the exponential moving average to smooth the product of volume-weighted price moving average and daily price volatility.\n**",
+    "edge": "** The VPVMA provides an edge by capturing the sensitive moment of price and time trend, taking into account volume and volatility.\n**",
+    "pseudo_code": "**\n* Calculate typical price: `Typical Price = (High + Low + Close) / 3`\n* Calculate SVWMA: `SVWMA = SUM(Typical Price * Volume) / SUM(Volume)`\n* Calculate LVWMA: `LVWMA = SUM(Typical Price * Volume) / SUM(Volume)`\n* Calculate daily volatility: `Daily Volatility = Std(High, Low, Close, Open)`\n* Calculate VPVMA: `VPVMA = EMA(SVWMA * Daily Volatility) - EMA(LVWMA * Daily Volatility)`\n* Generate buy signal: `if VPVMA > (1 + bandwidth) * VPVMAS`\n* Generate sell signal: `if VPVMA < (1 - bandwidth * 2) * VPVMAS`\n**",
+    "source_info": {
+      "paper": "** \"Volume Price Volume Moving Average\"\n**",
+      "authors": [
+        "** Not specified"
+      ]
+    },
+    "idea_name": "** Volume Price Volume Moving Average (VPVMA)"
+  },
+  "0e9bc995-e591-43f6-93cc-f284c18f8498": {
+    "description": "** \n* The MACD Crossover Signal is a trading indicator that generates buy and sell signals based on the crossover of the MACD line and its signal line.\n* The MACD line is calculated as the difference between the fast EMA and slow EMA.\n* The signal line is the EMA of the MACD line.\n* A buy signal is generated when the MACD line crosses above its signal line.\n* A sell signal is generated when the MACD line crosses below its signal line.\n* The traditional parameters for the MACD are (12, 26, 9) for the fast period, slow period, and signal period respectively.\n\n**",
+    "edge": "** The MACD Crossover Signal provides an edge by identifying the trend reversals and generating buy and sell signals accordingly.\n\n**",
+    "pseudo_code": "**\n```python\ndef macd_crossover_signal(close, fast_period=12, slow_period=26, signal_period=9):\n    ema_fast = ema(close, fast_period)\n    ema_slow = ema(close, slow_period)\n    macd = ema_fast - ema_slow\n    signal = ema(macd, signal_period)\n    buy_signal = macd > signal and macd[1] <= signal[1]\n    sell_signal = macd < signal and macd[1] >= signal[1]\n    return buy_signal, sell_signal\n```\n\n**",
+    "source_info": {
+      "paper": "** \"A comparative study of the MACD-base trading strategies: evidence from the US stock market\" by Pat Tong Chio\n**",
+      "authors": [
+        "** Pat Tong Chio\n\n**"
+      ]
+    },
+    "idea_name": "** MACD Crossover Signal"
+  },
+  "e5e27c26-da21-4e95-a017-3601081d1ae5": {
+    "description": "** \n* The MACD Zero Crossover is a trading indicator that generates buy and sell signals based on the crossover of the MACD line and zero.\n* A buy signal is generated when the MACD line crosses above zero.\n* A sell signal is generated when the MACD line crosses below zero.\n\n**",
+    "edge": "** The MACD Zero Crossover provides an edge by identifying the trend reversals and generating buy and sell signals accordingly.\n\n**",
+    "pseudo_code": "**\n```python\ndef macd_zero_crossover(close, fast_period=12, slow_period=26):\n    ema_fast = ema(close, fast_period)\n    ema_slow = ema(close, slow_period)\n    macd = ema_fast - ema_slow\n    buy_signal = macd > 0 and macd[1] <= 0\n    sell_signal = macd < 0 and macd[1] >= 0\n    return buy_signal, sell_signal\n```\n\n**",
+    "source_info": {
+      "paper": "** \"A comparative study of the MACD-base trading strategies: evidence from the US stock market\" by Pat Tong Chio\n**",
+      "authors": [
+        "** Pat Tong Chio\n\n**"
+      ]
+    },
+    "idea_name": "** MACD Zero Crossover"
+  },
+  "a2e69034-2a50-4c98-89e2-c1444365fcdf": {
+    "description": "** \n* The MACD Histogram is a trading indicator that generates buy and sell signals based on the histogram of the MACD.\n* A buy signal is generated when the histogram is below zero but the middle day is the lowest point within three days.\n* A sell signal is generated when the histogram is above zero but the middle day is the highest point within three days.\n\n**",
+    "edge": "** The MACD Histogram provides an edge by identifying the trend reversals and generating buy and sell signals accordingly.\n\n**",
+    "pseudo_code": "**\n```python\ndef macd_histogram(close, fast_period=12, slow_period=26, signal_period=9):\n    ema_fast = ema(close, fast_period)\n    ema_slow = ema(close, slow_period)\n    macd = ema_fast - ema_slow\n    signal = ema(macd, signal_period)\n    histogram = macd - signal\n    buy_signal = histogram < 0 and histogram[1] == min(histogram[-3:])\n    sell_signal = histogram > 0 and histogram[1] == max(histogram[-3:])\n    return buy_signal, sell_signal\n```\n\n**",
+    "source_info": {
+      "paper": "** \"A comparative study of the MACD-base trading strategies: evidence from the US stock market\" by Pat Tong Chio\n**",
+      "authors": [
+        "** Pat Tong Chio\n\n**"
+      ]
+    },
+    "idea_name": "** MACD Histogram"
+  },
+  "502e8e9f-1e34-4ea1-9996-a69a4f60a62f": {
+    "description": "** \n* The VPVMA is a trading indicator that takes into account the volume, typical price, and daily volatility.\n* The VPVMA includes two moving average series: the VPVMA and the VPVMAS.\n* The VPVMA is calculated as the exponential moving average of the product of the volume weighted price moving average and the daily price volatility.\n\n**",
+    "edge": "** The VPVMA provides an edge by capturing the price moment and trend correctly.\n\n**",
+    "pseudo_code": "**\n```python\ndef vpma(close, volume, fast_period=12, slow_period=26, signal_period=9):\n    typical_price = (high + low + close) / 3\n    svwma = sum(typical_price * volume) / sum(volume)\n    lvwma = sum(typical_price * volume) / sum(volume)\n    daily_volatility = std(high, low, close)\n    esvmap = ema(svwma * daily_volatility, fast_period)\n    elvmap = ema(lvwma * daily_volatility, slow_period)\n    vpma = esvmap - elvmap\n    vpmas = ema(vpma, signal_period)\n    buy_signal = vpma > (1 + bandwidth) * vpmas and vpma[1] <= vpmas[1]\n    sell_signal = vpma < (1 - bandwidth * 2) * vpmas and vpma[1] <= vpmas[1]\n    return buy_signal, sell_signal\n```\n\n**",
+    "source_info": {
+      "paper": "** \"A comparative study of the MACD-base trading strategies: evidence from the US stock market\" by Pat Tong Chio\n**",
+      "authors": [
+        "** Pat Tong Chio\n\n**"
+      ]
+    },
+    "idea_name": "** Volume Price Volume Moving Average (VPVMA)"
+  },
+  "742ea94b-3029-4c36-91e4-c4f8d72320a6": {
+    "description": "** \n* The RSI is a trading indicator that measures the price change in a certain period to evaluate the overbought or oversold status of the stock.\n* The RSI value is calculated by the past 14 days.\n* The RSI value below 30 indicates the stock is oversold and above 70 indicates the stock is overbought.\n\n**",
+    "edge": "** The RSI provides an edge by identifying the overbought and oversold conditions.\n\n**",
+    "pseudo_code": "**\n```python\ndef rsi(close, period=14):\n    gain = close > close.shift(1)\n    loss = close < close.shift(1)\n    avg_gain = gain.rolling(window=period).mean()\n    avg_loss = loss.rolling(window=period).mean()\n    rs = avg_gain / avg_loss\n    rsi = 100 - (100 / (1 + rs))\n    buy_signal = rsi <= 30\n    sell_signal = rsi >= 70\n    return buy_signal, sell_signal\n```\n\n**",
+    "source_info": {
+      "paper": "** \"Technical Indicators\" by J. Welles Wilder\n**",
+      "authors": [
+        "** J. Welles Wilder\n\n**"
+      ]
+    },
+    "idea_name": "** Relative Strength Index (RSI)"
+  },
+  "0be4044e-c81a-4a49-bfa5-a1d344937e42": {
+    "description": "** \n* The MFI is a trading indicator that uses stock price and transaction volume to identify the buy and sell signals.\n* The MFI value below 25 represents the stock is oversold and a buy signal is generated.\n* The MFI value over 75 represents the stock is overbought and a sell signal is generated.\n\n**",
+    "edge": "** The MFI provides an edge by identifying the overbought and oversold conditions.\n\n**",
+    "pseudo_code": "**\n```python\ndef mfi(high, low, close, volume, period=14):\n    typical_price = (high + low + close) / 3\n    money_flow = typical_price * volume\n    positive_money_flow = money_flow > money_flow.shift(1)\n    negative_money_flow = money_flow < money_flow.shift(1)\n    mfi = 100 * (positive_money_flow / (positive_money_flow + negative_money_flow))\n    buy_signal = mfi <= 25\n    sell_signal = mfi >= 75\n    return buy_signal, sell_signal\n```\n\n**",
+    "source_info": {
+      "paper": "** \"Technical Indicators\" by Gene Quong and Avrum Soudack\n**",
+      "authors": [
+        "** Gene Quong and Avrum Soudack\n\n**"
+      ]
+    },
+    "idea_name": "** Money Flow Index (MFI)"
+  },
+  "ea394711-7ad4-42bf-b37b-c91f1259e9cb": {
+    "description": "** \n* The Bollinger Bands is a trading indicator that consists of three bands: the lower band, middle band, and upper band.\n* The middle band is the 14-day simple moving average of the closing price.\n* The lower band is the difference between the middle band and the standard deviation.\n* The upper band is the sum of the middle band and the standard deviation.\n\n**",
+    "edge": "** The Bollinger Bands provide an edge by identifying the volatility.\n\n**",
+    "pseudo_code": "**\n```python\ndef bollinger_bands(close, period=14, std_dev=2):\n    middle_band = close.rolling(window=period).mean()\n    lower_band = middle_band - (std_dev * close.rolling(window=period).std())\n    upper_band = middle_band + (std_dev * close.rolling(window=period).std())\n    buy_signal = close < lower_band\n    sell_signal = close > upper_band\n    return buy_signal, sell_signal\n```\n\n**",
+    "source_info": {
+      "paper": "** \"Technical Indicators\" by John Bollinger\n**",
+      "authors": [
+        "** John Bollinger\n\n**"
+      ]
+    },
+    "idea_name": "** Bollinger Bands"
+  },
+  "4f0653da-fef8-4632-a16a-92af219f960c": {
+    "description": "** \n* The SAR is a trading indicator that trails the price as a trend and determines the direction and potential time of trend reversal.\n* The SAR value follows the given acceleration value increased when the stock price is increasing.\n* The SAR value follows the given acceleration value decreased when the stock price is decreasing.\n\n**",
+    "edge": "** The SAR provides an edge by identifying the trend reversal.\n\n**",
+    "pseudo_code": "**\n```python\ndef sar(high, low, close, acceleration=0.02, max_acceleration=0.2):\n    sar = []\n    for i in range(len(close)):\n        if i == 0:\n            sar.append(low[i])\n        else:\n            if close[i] > close[i-1]:\n                sar.append(sar[i-1] + acceleration * (high[i-1] - sar[i-1]))\n            else:\n                sar.append(sar[i-1] - acceleration * (sar[i-1] - low[i-1]))\n    buy_signal = sar < close\n    sell_signal = sar > close\n    return buy_signal, sell_signal\n```\n\n**",
+    "source_info": {
+      "paper": "** \"Technical Indicators\" by J. Welles Wilder Jr.\n**",
+      "authors": [
+        "** J. Welles Wilder Jr."
+      ]
+    },
+    "idea_name": "** Parabolic Stop and Reverse (SAR)"
+  },
+  "2b101db7-f354-4319-90fe-87da8159a559": {
+    "description": "**\n* The VolTS system uses a combination of statistical analysis and machine learning techniques to forecast stock market trends.\n* The system consists of several steps:\n\t+ Data exploration and cleaning\n\t+ Correlation and autocorrelation analysis\n\t+ Technical indicator use (e.g. Historical Volatility estimators)\n\t+ Application of hypothesis tests and statistical models (e.g. Granger Causality Test)\n\t+ Use of variable selection algorithms (e.g. K-means++ clustering)\n* The system uses the k-means++ clustering algorithm to group the mean volatility of nine major stocks in the NYSE and NasdaqGS markets.\n* The resulting clusters are used to identify relationships between stocks based on their volatility behavior.\n* The Granger Causality Test is used to determine the predictive power of one stock over another.\n* The system establishes a trading strategy in which the stock acting as a reliable predictor becomes a trend indicator to determine buy, sell, and hold of target stock trades.\n\n**",
+    "edge": "**\n* The VolTS system provides an edge in trading by leveraging the predictive power of volatility clusters and Granger causality relationships between stocks.\n* The system can capture profitable trading opportunities by identifying stocks with strong predictive relationships.\n\n**",
+    "pseudo_code": "**\n```python\ndef VolTS(x_ct_TS):\n    # Step 1: Iteration from 2 to 30\n    lag_days = 2\n    while lag_days != 31:\n        # Step 2: F-statistic comparison\n        granger_results = []\n        threshold = 0.025\n        for stock1 in x_ct_TS.columns:\n            for stock2 in x_ct_TS.columns:\n                if stock1 == stock2:\n                    continue\n                data = concat([x_ct_TS[stock1], x_ct_TS[stock2]])\n                data.columns = [stock1, stock2]\n                result = GCT(data, maxlag=lag_days)\n                p_value = result[lag_days][0]['ssr_ftest'][1]\n                if p_value < threshold:\n                    granger_results.append((stock1, stock2, p_value))\n        lag_days += 1\n\n    # Step 3: Direction of causality\n    selected_stocks = set()\n    for (stock1, stock2, ) in granger_results:\n        selected_stocks.add(stock1)\n        selected_stocks.add(stock2)\n    return selected_stocks\n```\n\n*",
+    "source_info": {
+      "paper": "atility-Based Trading System (VolTS)\n**DESCRIPTION:**\n* The VolTS system uses a combination of statistical analysis and machine learning techniques to forecast stock market trends.\n* The system consists of several steps:\n\t+ Data exploration and cleaning\n\t+ Correlation and autocorrelation analysis\n\t+ Technical indicator use (e.g. Historical Volatility estimators)\n\t+ Application of hypothesis tests and statistical models (e.g. Granger Causality Test)\n\t+ Use of variable selection algorithms (e.g. K-means++ clustering)\n* The system uses the k-means++ clustering algorithm to group the mean volatility of nine major stocks in the NYSE and NasdaqGS markets.\n* The resulting clusters are used to identify relationships between stocks based on their volatility behavior.\n* The Granger Causality Test is used to determine the predictive power of one stock over another.\n* The system establishes a trading strategy in which the stock acting as a reliable predictor becomes a trend indicator to determine buy, sell, and hold of target stock trades.\n\n**EDGE:**\n* The VolTS system provides an edge in trading by leveraging the predictive power of volatility clusters and Granger causality relationships between stocks.\n* The system can capture profitable trading opportunities by identifying stocks with strong predictive relationships.\n\n**PSEUDOCODE:**\n```python\ndef VolTS(x_ct_TS):\n    # Step 1: Iteration from 2 to 30\n    lag_days = 2\n    while lag_days != 31:\n        # Step 2: F-statistic comparison\n        granger_results = []\n        threshold = 0.025\n        for stock1 in x_ct_TS.columns:\n            for stock2 in x_ct_TS.columns:\n                if stock1 == stock2:\n                    continue\n                data = concat([x_ct_TS[stock1], x_ct_TS[stock2]])\n                data.columns = [stock1, stock2]\n                result = GCT(data, maxlag=lag_days)\n                p_value = result[lag_days][0]['ssr_ftest'][1]\n                if p_value < threshold:\n                    granger_results.append((stock1, stock2, p_value))\n        lag_days += 1\n\n    # Step 3: Direction of causality\n    selected_stocks = set()\n    for (stock1, stock2, ) in granger_results:\n        selected_stocks.add(stock1)\n        selected_stocks.add(stock2)\n    return selected_stocks\n```\n\n*",
+      "authors": [
+        "tility-Based Trading System (VolTS)\n**DESCRIPTION:**\n* The VolTS system uses a combination of statistical analysis and machine learning techniques to forecast stock market trends.\n* The system consists of several steps:\n\t+ Data exploration and cleaning\n\t+ Correlation and autocorrelation analysis\n\t+ Technical indicator use (e.g. Historical Volatility estimators)\n\t+ Application of hypothesis tests and statistical models (e.g. Granger Causality Test)\n\t+ Use of variable selection algorithms (e.g. K-means++ clustering)\n* The system uses the k-means++ clustering algorithm to group the mean volatility of nine major stocks in the NYSE and NasdaqGS markets.\n* The resulting clusters are used to identify relationships between stocks based on their volatility behavior.\n* The Granger Causality Test is used to determine the predictive power of one stock over another.\n* The system establishes a trading strategy in which the stock acting as a reliable predictor becomes a trend indicator to determine buy",
+        "sell",
+        "and hold of target stock trades.\n\n**EDGE:**\n* The VolTS system provides an edge in trading by leveraging the predictive power of volatility clusters and Granger causality relationships between stocks.\n* The system can capture profitable trading opportunities by identifying stocks with strong predictive relationships.\n\n**PSEUDOCODE:**\n```python\ndef VolTS(x_ct_TS):\n    # Step 1: Iteration from 2 to 30\n    lag_days = 2\n    while lag_days != 31:\n        # Step 2: F-statistic comparison\n        granger_results = []\n        threshold = 0.025\n        for stock1 in x_ct_TS.columns:\n            for stock2 in x_ct_TS.columns:\n                if stock1 == stock2:\n                    continue\n                data = concat([x_ct_TS[stock1]",
+        "x_ct_TS[stock2]])\n                data.columns = [stock1",
+        "stock2]\n                result = GCT(data",
+        "maxlag=lag_days)\n                p_value = result[lag_days][0]['ssr_ftest'][1]\n                if p_value < threshold:\n                    granger_results.append((stock1",
+        "stock2",
+        "p_value))\n        lag_days += 1\n\n    # Step 3: Direction of causality\n    selected_stocks = set()\n    for (stock1",
+        "stock2",
+        ") in granger_results:\n        selected_stocks.add(stock1)\n        selected_stocks.add(stock2)\n    return selected_stocks\n```\n\n**"
+      ]
+    },
+    "idea_name": "** Volatility-Based Trading System (VolTS)"
+  },
+  "230f7a8e-dda5-4b6c-9036-c17612575164": {
+    "description": "**\n* The K-Means++ clustering algorithm is used to group the mean volatility of nine major stocks in the NYSE and NasdaqGS markets.\n* The algorithm selects the centroids using the maximum DTW distance with respect to the previous centroid.\n\n**",
+    "edge": "**\n* The K-Means++ clustering algorithm provides an edge in trading by identifying clusters of stocks with similar volatility behavior.\n\n**",
+    "pseudo_code": "**\n```python\ndef KMeansPlusPlus(X, k):\n    # Select the first centroid randomly\n    centroids = [X[np.random.choice(range(X.shape[0]))]]\n\n    for i in range(1, k):\n        # Calculate the distance between each point and the closest centroid\n        distances = np.array([min([np.linalg.norm(x - c) for c in centroids]) for x in X])\n\n        # Select the next centroid with probability proportional to the distance\n        probs = distances / distances.sum()\n        cumulative_probs = probs.cumsum()\n        r = np.random.rand()\n        for j, p in enumerate(cumulative_probs):\n            if r < p:\n                centroids.append(X[j])\n                break\n\n    return centroids\n```\n\n*",
+    "source_info": {
+      "paper": "eans++ Clustering\n**DESCRIPTION:**\n* The K-Means++ clustering algorithm is used to group the mean volatility of nine major stocks in the NYSE and NasdaqGS markets.\n* The algorithm selects the centroids using the maximum DTW distance with respect to the previous centroid.\n\n**EDGE:**\n* The K-Means++ clustering algorithm provides an edge in trading by identifying clusters of stocks with similar volatility behavior.\n\n**PSEUDOCODE:**\n```python\ndef KMeansPlusPlus(X, k):\n    # Select the first centroid randomly\n    centroids = [X[np.random.choice(range(X.shape[0]))]]\n\n    for i in range(1, k):\n        # Calculate the distance between each point and the closest centroid\n        distances = np.array([min([np.linalg.norm(x - c) for c in centroids]) for x in X])\n\n        # Select the next centroid with probability proportional to the distance\n        probs = distances / distances.sum()\n        cumulative_probs = probs.cumsum()\n        r = np.random.rand()\n        for j, p in enumerate(cumulative_probs):\n            if r < p:\n                centroids.append(X[j])\n                break\n\n    return centroids\n```\n\n*",
+      "authors": [
+        "ans++ Clustering\n**DESCRIPTION:**\n* The K-Means++ clustering algorithm is used to group the mean volatility of nine major stocks in the NYSE and NasdaqGS markets.\n* The algorithm selects the centroids using the maximum DTW distance with respect to the previous centroid.\n\n**EDGE:**\n* The K-Means++ clustering algorithm provides an edge in trading by identifying clusters of stocks with similar volatility behavior.\n\n**PSEUDOCODE:**\n```python\ndef KMeansPlusPlus(X",
+        "k):\n    # Select the first centroid randomly\n    centroids = [X[np.random.choice(range(X.shape[0]))]]\n\n    for i in range(1",
+        "k):\n        # Calculate the distance between each point and the closest centroid\n        distances = np.array([min([np.linalg.norm(x - c) for c in centroids]) for x in X])\n\n        # Select the next centroid with probability proportional to the distance\n        probs = distances / distances.sum()\n        cumulative_probs = probs.cumsum()\n        r = np.random.rand()\n        for j",
+        "p in enumerate(cumulative_probs):\n            if r < p:\n                centroids.append(X[j])\n                break\n\n    return centroids\n```\n\n**"
+      ]
+    },
+    "idea_name": "** K-Means++ Clustering"
+  },
+  "0020b96a-a7ab-4c00-a382-2baebf8e0c91": {
+    "description": "**\n* The GCT is used to determine the predictive power of one stock over another.\n* The test is performed by comparing the F-statistic with the critical value from the F-distribution.\n\n**",
+    "edge": "**\n* The GCT provides an edge in trading by identifying stocks with strong predictive relationships.\n\n**",
+    "pseudo_code": "**\n```python\ndef GCT(data, maxlag):\n    # Perform the Granger Causality Test\n    result = statsmodels.tsa.stattools.grangercausalitytests(data, maxlag=maxlag)\n    return result\n```\n\n*",
+    "source_info": {
+      "paper": "nger Causality Test (GCT)\n**DESCRIPTION:**\n* The GCT is used to determine the predictive power of one stock over another.\n* The test is performed by comparing the F-statistic with the critical value from the F-distribution.\n\n**EDGE:**\n* The GCT provides an edge in trading by identifying stocks with strong predictive relationships.\n\n**PSEUDOCODE:**\n```python\ndef GCT(data, maxlag):\n    # Perform the Granger Causality Test\n    result = statsmodels.tsa.stattools.grangercausalitytests(data, maxlag=maxlag)\n    return result\n```\n\n*",
+      "authors": [
+        "ger Causality Test (GCT)\n**DESCRIPTION:**\n* The GCT is used to determine the predictive power of one stock over another.\n* The test is performed by comparing the F-statistic with the critical value from the F-distribution.\n\n**EDGE:**\n* The GCT provides an edge in trading by identifying stocks with strong predictive relationships.\n\n**PSEUDOCODE:**\n```python\ndef GCT(data",
+        "maxlag):\n    # Perform the Granger Causality Test\n    result = statsmodels.tsa.stattools.grangercausalitytests(data",
+        "maxlag=maxlag)\n    return result\n```\n\n**"
+      ]
+    },
+    "idea_name": "** Granger Causality Test (GCT)"
+  },
+  "a6de289f-6ac2-4b5c-bfbb-b07e7bd1aa77": {
+    "description": "**\n* Historical Volatility estimators (e.g. Parkinson, Garman-Klass, Rogers-Satchell, Yang-Zhang) are used to estimate the volatility of a stock.\n\n**",
+    "edge": "**\n* Historical Volatility estimators provide an edge in trading by estimating the uncertainty and risk associated with a stock.\n\n**",
+    "pseudo_code": "**\n```python\ndef HistoricalVolatility(X):\n    # Calculate the Historical Volatility using one of the estimators\n    # e.g. Parkinson\n    return np.sqrt(np.sum([np.log(X['high'] / X['low']) ** 2 for X in data]))\n```\n\n**",
+    "source_info": {
+      "paper": "** \n* Ivan Letteri, \"VolTS: A Volatility-based Trading System to forecast Stock Markets Trend using Statistics and Machine Learning\"\n\n**",
+      "authors": [
+        "** \n* Ivan Letteri"
+      ]
+    },
+    "idea_name": "** Historical Volatility Estimators"
+  },
+  "af3c642b-d43d-45c9-bf28-5cd92e04146d": {
+    "description": "** \n* This idea uses a Random Forest Classifier to predict Bitcoin price movements based on historical data and technical indicators.\n* The classifier is trained on a dataset of Bitcoin prices and technical indicators such as Accumulation/Distribution Index, Money Flow Index, Bollinger Bands, and Keltner Channel Width.\n* The model is evaluated using metrics such as Profit and Loss (PNL) percentage, Sharpe Ratio, and Root Mean Squared Error (RMSE).\n* The classifier can be used to generate buy and sell signals for Bitcoin trading.\n**",
+    "edge": "** \n* The Random Forest Classifier provides a high degree of accuracy in predicting Bitcoin price movements, with a PNL percentage of up to 121.73% in backtesting.\n* The classifier is robust to overfitting and can adapt to changing market conditions.\n**",
+    "pseudo_code": "**\n```python\nimport pandas as pd\nfrom sklearn.ensemble import RandomForestClassifier\nfrom sklearn.metrics import accuracy_score\n\n# Load historical Bitcoin price data\ndata = pd.read_csv('bitcoin_prices.csv')\n\n# Calculate technical indicators\ndata['ADI'] = calculate_accumulation_distribution_index(data['Close'])\ndata['MFI'] = calculate_money_flow_index(data['Close'])\ndata['Bollinger_Bands'] = calculate_bollinger_bands(data['Close'])\ndata['Keltner_Channel_Width'] = calculate_keltner_channel_width(data['Close'])\n\n# Split data into training and testing sets\ntrain_data, test_data = split_data(data)\n\n# Train Random Forest Classifier\nrfc = RandomForestClassifier(n_estimators=100)\nrfc.fit(train_data.drop('target', axis=1), train_data['target'])\n\n# Generate buy and sell signals\nsignals = rfc.predict(test_data.drop('target', axis=1))\n\n# Evaluate performance\npnl = calculate_pnl(signals, test_data['Close'])\nsharpe_ratio = calculate_sharpe_ratio(pnl)\nprint(f'PNL: {pnl:.2f}, Sharpe Ratio: {sharpe_ratio:.2f}')\n```\n**",
+    "source_info": {
+      "paper": "** \"A Comprehensive Analysis of Machine Learning Models for Algorithmic Trading of Bitcoin\" by Abdul Jabbar and Syed Qaisar Jalil\n**",
+      "authors": [
+        "** Abdul Jabbar and Syed Qaisar Jalil\n\n**"
+      ]
+    },
+    "idea_name": "** Random Forest Classifier for Bitcoin Trading"
+  },
+  "ab9cb5b1-f166-465d-bb56-1521318159ce": {
+    "description": "** \n* This idea uses a Stochastic Gradient Descent Regressor to predict Bitcoin price movements based on historical data and technical indicators.\n* The regressor is trained on a dataset of Bitcoin prices and technical indicators such as Accumulation/Distribution Index, Money Flow Index, Bollinger Bands, and Keltner Channel Width.\n* The model is evaluated using metrics such as Profit and Loss (PNL) percentage, Sharpe Ratio, and Root Mean Squared Error (RMSE).\n* The regressor can be used to generate buy and sell signals for Bitcoin trading.\n**",
+    "edge": "** \n* The Stochastic Gradient Descent Regressor provides a high degree of accuracy in predicting Bitcoin price movements, with a PNL percentage of up to 104.29% in backtesting.\n* The regressor is robust to overfitting and can adapt to changing market conditions.\n**",
+    "pseudo_code": "**\n```python\nimport pandas as pd\nfrom sklearn.linear_model import SGDRegressor\nfrom sklearn.metrics import mean_squared_error\n\n# Load historical Bitcoin price data\ndata = pd.read_csv('bitcoin_prices.csv')\n\n# Calculate technical indicators\ndata['ADI'] = calculate_accumulation_distribution_index(data['Close'])\ndata['MFI'] = calculate_money_flow_index(data['Close'])\ndata['Bollinger_Bands'] = calculate_bollinger_bands(data['Close'])\ndata['Keltner_Channel_Width'] = calculate_keltner_channel_width(data['Close'])\n\n# Split data into training and testing sets\ntrain_data, test_data = split_data(data)\n\n# Train Stochastic Gradient Descent Regressor\nsgd = SGDRegressor(max_iter=1000)\nsgd.fit(train_data.drop('target', axis=1), train_data['target'])\n\n# Generate buy and sell signals\nsignals = sgd.predict(test_data.drop('target', axis=1))\n\n# Evaluate performance\npnl = calculate_pnl(signals, test_data['Close'])\nsharpe_ratio = calculate_sharpe_ratio(pnl)\nprint(f'PNL: {pnl:.2f}, Sharpe Ratio: {sharpe_ratio:.2f}')\n```\n**",
+    "source_info": {
+      "paper": "** \"A Comprehensive Analysis of Machine Learning Models for Algorithmic Trading of Bitcoin\" by Abdul Jabbar and Syed Qaisar Jalil\n**",
+      "authors": [
+        "** Abdul Jabbar and Syed Qaisar Jalil\n\n**"
+      ]
+    },
+    "idea_name": "** Stochastic Gradient Descent Regressor for Bitcoin Trading"
+  },
+  "589ea139-86cd-46ff-b614-e2309bd7a3fa": {
+    "description": "** \n* This idea uses an ensemble method to combine the predictions of multiple machine learning models for Bitcoin trading.\n* The ensemble method can be used to combine the predictions of classifiers and regressors.\n* The model is evaluated using metrics such as Profit and Loss (PNL) percentage, Sharpe Ratio, and Root Mean Squared Error (RMSE).\n* The ensemble method can be used to generate buy and sell signals for Bitcoin trading.\n**",
+    "edge": "** \n* The ensemble method provides a high degree of accuracy in predicting Bitcoin price movements, with a PNL percentage of up to 121.73% in backtesting.\n* The ensemble method is robust to overfitting and can adapt to changing market conditions.\n**",
+    "pseudo_code": "**\n```python\nimport pandas as pd\nfrom sklearn.ensemble import BaggingClassifier\nfrom sklearn.metrics import accuracy_score\n\n# Load historical Bitcoin price data\ndata = pd.read_csv('bitcoin_prices.csv')\n\n# Calculate technical indicators\ndata['ADI'] = calculate_accumulation_distribution_index(data['Close'])\ndata['MFI'] = calculate_money_flow_index(data['Close'])\ndata['Bollinger_Bands'] = calculate_bollinger_bands(data['Close'])\ndata['Keltner_Channel_Width'] = calculate_keltner_channel_width(data['Close'])\n\n# Split data into training and testing sets\ntrain_data, test_data = split_data(data)\n\n# Train ensemble method\nensemble = BaggingClassifier(n_estimators=100)\nensemble.fit(train_data.drop('target', axis=1), train_data['target'])\n\n# Generate buy and sell signals\nsignals = ensemble.predict(test_data.drop('target', axis=1))\n\n# Evaluate performance\npnl = calculate_pnl(signals, test_data['Close'])\nsharpe_ratio = calculate_sharpe_ratio(pnl)\nprint(f'PNL: {pnl:.2f}, Sharpe Ratio: {sharpe_ratio:.2f}')\n```\n**",
+    "source_info": {
+      "paper": "** \"A Comprehensive Analysis of Machine Learning Models for Algorithmic Trading of Bitcoin\" by Abdul Jabbar and Syed Qaisar Jalil\n**",
+      "authors": [
+        "** Abdul Jabbar and Syed Qaisar Jalil"
+      ]
+    },
+    "idea_name": "** Ensemble Method for Bitcoin Trading"
+  },
+  "a8efab65-a642-4a45-86b5-4af63acebc38": {
+    "description": "**\n* The MACD Crossover Signal is a trading indicator that generates buy and sell signals based on the crossover of the MACD line and its signal line.\n* The MACD line is calculated as the difference between the fast EMA and slow EMA.\n* The signal line is the EMA of the MACD line.\n* A buy signal is generated when the MACD line crosses above its signal line.\n* A sell signal is generated when the MACD line crosses below its signal line.\n* The default parameters for the MACD are 12, 26, and 9 days for the fast EMA, slow EMA, and signal line, respectively.\n**",
+    "edge": "** The MACD Crossover Signal provides an edge by identifying potential trend reversals and continuations.\n**",
+    "pseudo_code": "**\n```\nMACD = EMA(close, 12) - EMA(close, 26)\nSignal = EMA(MACD, 9)\nBuy = MACD > Signal and MACD[1] < Signal[1]\nSell = MACD < Signal and MACD[1] > Signal[1]\n```\n**",
+    "source_info": {
+      "paper": "** \"Moving Average Convergence \u2013 Divergence (MACD)\" by Gerald Appel\n**",
+      "authors": [
+        "** Gerald Appel\n\n**"
+      ]
+    },
+    "idea_name": "** MACD Crossover Signal"
+  },
+  "e745032e-6dee-4840-8f67-810a68854f43": {
+    "description": "**\n* The MACD Zero Crossover is a trading indicator that generates buy and sell signals based on the crossover of the MACD line and zero.\n* A buy signal is generated when the MACD line crosses above zero.\n* A sell signal is generated when the MACD line crosses below zero.\n* The default parameters for the MACD are 12, 26, and 9 days for the fast EMA, slow EMA, and signal line, respectively.\n**",
+    "edge": "** The MACD Zero Crossover provides an edge by identifying potential trend reversals and continuations.\n**",
+    "pseudo_code": "**\n```\nMACD = EMA(close, 12) - EMA(close, 26)\nBuy = MACD > 0 and MACD[1] < 0\nSell = MACD < 0 and MACD[1] > 0\n```\n**",
+    "source_info": {
+      "paper": "** \"Moving Average Convergence \u2013 Divergence (MACD)\" by Gerald Appel\n**",
+      "authors": [
+        "** Gerald Appel\n\n**"
+      ]
+    },
+    "idea_name": "** MACD Zero Crossover"
+  },
+  "2b2215c7-e772-4c9e-9c6b-23a428bf1be1": {
+    "description": "**\n* The MACD Histogram is a trading indicator that generates buy and sell signals based on the histogram of the MACD line.\n* A buy signal is generated when the histogram is above zero and the previous histogram is below zero.\n* A sell signal is generated when the histogram is below zero and the previous histogram is above zero.\n* The default parameters for the MACD are 12, 26, and 9 days for the fast EMA, slow EMA, and signal line, respectively.\n**",
+    "edge": "** The MACD Histogram provides an edge by identifying potential trend reversals and continuations.\n**",
+    "pseudo_code": "**\n```\nMACD = EMA(close, 12) - EMA(close, 26)\nHistogram = MACD - EMA(MACD, 9)\nBuy = Histogram > 0 and Histogram[1] < 0\nSell = Histogram < 0 and Histogram[1] > 0\n```\n**",
+    "source_info": {
+      "paper": "** \"Moving Average Convergence \u2013 Divergence (MACD)\" by Gerald Appel\n**",
+      "authors": [
+        "** Gerald Appel\n\n**"
+      ]
+    },
+    "idea_name": "** MACD Histogram"
+  },
+  "7a56ec4c-9967-40c4-9397-abb15a541e19": {
+    "description": "**\n* The MACD Signal Line Crossover Above Zero is a trading indicator that generates buy and sell signals based on the crossover of the MACD line and its signal line above zero.\n* A buy signal is generated when the MACD line crosses above its signal line and the MACD line is above zero.\n* A sell signal is generated when the MACD line crosses below its signal line and the MACD line is below zero.\n* The default parameters for the MACD are 12, 26, and 9 days for the fast EMA, slow EMA, and signal line, respectively.\n**",
+    "edge": "** The MACD Signal Line Crossover Above Zero provides an edge by identifying potential trend reversals and continuations.\n**",
+    "pseudo_code": "**\n```\nMACD = EMA(close, 12) - EMA(close, 26)\nSignal = EMA(MACD, 9)\nBuy = MACD > Signal and MACD > 0\nSell = MACD < Signal and MACD < 0\n```\n**",
+    "source_info": {
+      "paper": "** \"Moving Average Convergence \u2013 Divergence (MACD)\" by Gerald Appel\n**",
+      "authors": [
+        "** Gerald Appel\n\n**"
+      ]
+    },
+    "idea_name": "** MACD Signal Line Crossover Above Zero"
+  },
+  "0ea44755-a09f-43e8-9abf-c644383947e9": {
+    "description": "**\n* The Bollinger Bands Width is a trading indicator that generates buy and sell signals based on the width of the Bollinger Bands.\n* The Bollinger Bands consist of a moving average and two standard deviations plotted above and below it.\n* A buy signal is generated when the width of the Bollinger Bands is above its moving average.\n* A sell signal is generated when the width of the Bollinger Bands is below its moving average.\n* The default parameters for the Bollinger Bands are 20 days for the moving average and 2 standard deviations for the width.\n**",
+    "edge": "** The Bollinger Bands Width provides an edge by identifying potential volatility and trend reversals.\n**",
+    "pseudo_code": "**\n```\nMiddleBand = SMA(close, 20)\nUpperBand = MiddleBand + 2 * StdDev(close, 20)\nLowerBand = MiddleBand - 2 * StdDev(close, 20)\nBBW = (UpperBand - LowerBand) / MiddleBand\nBuy = BBW > SMA(BBW, 10)\nSell = BBW < SMA(BBW, 10)\n```\n**",
+    "source_info": {
+      "paper": "** \"Bollinger Bands\" by John Bollinger\n**",
+      "authors": [
+        "** John Bollinger\n\n**"
+      ]
+    },
+    "idea_name": "** Bollinger Bands Width"
+  },
+  "1960c25e-4403-4d87-85cd-a3f92e2fc6d0": {
+    "description": "**\n* The Relative Strength Index (RSI) is a trading indicator that generates buy and sell signals based on the relative strength of the price.\n* The RSI is calculated as the ratio of the average gain to the average loss over a certain period.\n* A buy signal is generated when the RSI is below 30.\n* A sell signal is generated when the RSI is above 70.\n* The default parameter for the RSI is 14 days.\n**",
+    "edge": "** The RSI provides an edge by identifying potential overbought and oversold conditions.\n**",
+    "pseudo_code": "**\n```\nRSI = 100 - (100 / (1 + (AvgGain / AvgLoss)))\nBuy = RSI < 30\nSell = RSI > 70\n```\n**",
+    "source_info": {
+      "paper": "** \"Relative Strength Index (RSI)\" by J. Welles Wilder\n**",
+      "authors": [
+        "** J. Welles Wilder\n\n**"
+      ]
+    },
+    "idea_name": "** Relative Strength Index (RSI)",
+    "learnings_from_testing": [
+      {
+        "timestamp": "2025-04-13T22:27:34.283461",
+        "backtest_results": "Backtest result: {'folder_path': 'Strategies/AgenticDev/HappyGoldenEagle/backtests/2025-04-13_22-27-25', 'backtest_successful': False, 'errors': ['STATISTICS:: Tracking Error 0.083']}",
+        "strategy_path": "Strategies/AgenticDev/HappyGoldenEagle/strategy_v1_0_2.py"
+      }
+    ]
+  },
+  "86c0a56f-43a7-4839-8191-f31d10c3d8b8": {
+    "description": "**\n* The Money Flow Index (MFI) is a trading indicator that generates buy and sell signals based on the money flow of the price.\n* The MFI is calculated as the ratio of the positive money flow to the negative money flow over a certain period.\n* A buy signal is generated when the MFI is below 25.\n* A sell signal is generated when the MFI is above 75.\n* The default parameter for the MFI is 14 days.\n**",
+    "edge": "** The MFI provides an edge by identifying potential overbought and oversold conditions.\n**",
+    "pseudo_code": "**\n```\nMFI = 100 - (100 / (1 + (MoneyFlowRatio)))\nBuy = MFI < 25\nSell = MFI > 75\n```\n**",
+    "source_info": {
+      "paper": "** \"Money Flow Index (MFI)\" by Gene Quong and Avrum Soudack\n**",
+      "authors": [
+        "** Gene Quong and Avrum Soudack\n\n**"
+      ]
+    },
+    "idea_name": "** Money Flow Index (MFI)"
+  },
+  "30bbcd60-0b8f-4ea8-9311-f3afa876b5c8": {
+    "description": "**\n* The Volume Price Volume Moving Average (VPVMA) is a trading indicator that generates buy and sell signals based on the volume-weighted price moving average.\n* The VPVMA is calculated as the difference between the short-term and long-term volume-weighted price moving averages.\n* A buy signal is generated when the VPVMA is above its signal line.\n* A sell signal is generated when the VPVMA is below its signal line.\n* The default parameters for the VPVMA are 12, 26, and 9 days for the short-term, long-term, and signal line, respectively.\n**",
+    "edge": "** The VPVMA provides an edge by identifying potential trend reversals and continuations.\n**",
+    "pseudo_code": "**\n```\nVPVMA = (TypicalPrice * Volume) / Volume\nBuy = VPVMA > SignalLine\nSell = VPVMA < SignalLine\n```\n**",
+    "source_info": {
+      "paper": "** \"Volume Price Volume Moving Average (VPVMA)\"\n**",
+      "authors": [
+        "** \n\nNote that the pseudocode is a simplified representation of the indicator and may need to be adjusted based on the specific implementation and requirements. Additionally",
+        "the sources and authors listed are based on the provided text and may not be the original sources or authors of the indicators."
+      ]
+    },
+    "idea_name": "** Volume Price Volume Moving Average (VPVMA)"
+  },
+  "2aa63519-7269-47c2-ba42-606c461317ea": {
+    "description": "**\n* The VolTS system uses a combination of statistical analysis and machine learning techniques to forecast stock market trends.\n* It involves several steps, including data exploration, correlation and autocorrelation analysis, technical indicator use, application of hypothesis tests and statistical models, and use of variable selection algorithms.\n* The system uses the k-means++ clustering algorithm to group the mean volatility of nine major stocks in the NYSE and NasdaqGS markets.\n* The resulting clusters are used to identify relationships between stocks based on their volatility behavior.\n* The Granger Causality Test (GCT) is used to determine the predictive power of one stock over another.\n* The system establishes a trading strategy in which the stock acting as a reliable predictor becomes a trend indicator to determine buy, sell, and hold trades.\n\n**",
+    "edge": "**\n* The VolTS system provides an edge by leveraging the predictive power of volatility clusters and Granger causality relationships between stocks.\n* The use of machine learning and statistical techniques allows for a more accurate identification of relationships between stocks.\n\n**",
+    "pseudo_code": "**\n```python\ndef VolTS(data):\n    # Step 1: Clustering\n    kmeans = KMeans(n_clusters=3)\n    clusters = kmeans.fit_predict(data)\n\n    # Step 2: Granger Causality Test\n    granger_results = []\n    for i in range(len(data.columns)):\n        for j in range(len(data.columns)):\n            if i != j:\n                result = GCT(data.iloc[:, i], data.iloc[:, j])\n                if result < 0.05:\n                    granger_results.append((data.columns[i], data.columns[j]))\n\n    # Step 3: Trading Strategy\n    selected_stocks = set()\n    for pair in granger_results:\n        selected_stocks.add(pair[0])\n        selected_stocks.add(pair[1])\n\n    return selected_stocks\n```\n**",
+    "source_info": {
+      "paper": "** \"VolTS: A Volatility-based Trading System to forecast Stock Markets Trend using Statistics and Machine Learning\" by Ivan Letteri\n**",
+      "authors": [
+        "** Ivan Letteri\n\n**"
+      ]
+    },
+    "idea_name": "** Volatility-Based Trading System (VolTS)"
+  },
+  "44522058-2e24-4c8b-9c14-4209d38b55b7": {
+    "description": "**\n* The system uses four different historical volatility estimators: Parkinson (PK), Garman-Klass (GK), Rogers-Satchell (RS), and Yang-Zhang (YZ).\n* Each estimator uses different inputs, such as high, low, open, and close prices, to estimate volatility.\n\n**",
+    "edge": "**\n* The use of multiple estimators provides a more comprehensive view of volatility.\n\n**",
+    "pseudo_code": "**\n```python\ndef HistoricalVolatilityEstimators(data):\n    pk = Parkinson(data)\n    gk = GarmanKlass(data)\n    rs = RogersSatchell(data)\n    yz = YangZhang(data)\n\n    return [pk, gk, rs, yz]\n\ndef Parkinson(data):\n    return np.sqrt(1 / (4 * np.log(2)) * np.sum((np.log(data['high'] / data['low'])) ** 2))\n\ndef GarmanKlass(data):\n    return np.sqrt(1 / len(data) * (np.sum((0.5 * (np.log(data['high'] / data['low'])) ** 2) - (2 * np.log(2) - 1) * (np.log(data['close'] / data['open'])) ** 2)))\n\ndef RogersSatchell(data):\n    return np.sqrt(1 / len(data) * np.sum((np.log(data['high'] / data['close']) * np.log(data['high'] / data['open']) + np.log(data['low'] / data['close']) * np.log(data['low'] / data['open'])))\n\ndef YangZhang(data):\n    k = 0.34 / (1.34 + len(data) + 1) / (len(data) - 1)\n    sigma_open_close = np.sqrt(1 / (len(data) - 1) * np.sum((np.log(data['close'] / data['open'])) ** 2))\n    sigma_overnight = np.sqrt(1 / (len(data) - 1) * np.sum((np.log(data['open'] / data['close'].shift(1))) ** 2))\n    return np.sqrt(k * sigma_open_close ** 2 + (1 - k) * sigma_overnight ** 2)\n```\n**",
+    "source_info": {
+      "paper": "** \"VolTS: A Volatility-based Trading System to forecast Stock Markets Trend using Statistics and Machine Learning\" by Ivan Letteri\n**",
+      "authors": [
+        "** Ivan Letteri\n\n**"
+      ]
+    },
+    "idea_name": "** Historical Volatility Estimators"
+  },
+  "4799294d-820a-4f58-a15e-375726e64b92": {
+    "description": "**\n* The system uses the k-means++ clustering algorithm to group stocks based on their volatility behavior.\n\n**",
+    "edge": "**\n* The k-means++ algorithm provides a more efficient and effective way to cluster stocks.\n\n**",
+    "pseudo_code": "**\n```python\ndef KMeansPlusPlus(data, k):\n    # Step 1: Initialize centroids\n    centroids = np.random.choice(data, size=k, replace=False)\n\n    # Step 2: Assign clusters\n    clusters = np.argmin(np.linalg.norm(data[:, np.newaxis] - centroids, axis=2), axis=1)\n\n    # Step 3: Update centroids\n    for i in range(k):\n        centroids[i] = np.mean(data[clusters == i], axis=0)\n\n    return clusters\n```\n**",
+    "source_info": {
+      "paper": "** \"VolTS: A Volatility-based Trading System to forecast Stock Markets Trend using Statistics and Machine Learning\" by Ivan Letteri\n**",
+      "authors": [
+        "** Ivan Letteri\n\n**"
+      ]
+    },
+    "idea_name": "** K-Means++ Clustering"
+  },
+  "869930e5-b51f-4ffd-ab57-ce8b00cde617": {
+    "description": "**\n* The system uses the Granger causality test to determine the predictive power of one stock over another.\n\n**",
+    "edge": "**\n* The Granger causality test provides a statistical way to identify relationships between stocks.\n\n**",
+    "pseudo_code": "**\n```python\ndef GrangerCausalityTest(data, maxlag):\n    # Step 1: Estimate AR models\n    ar_models = []\n    for i in range(maxlag):\n        ar_models.append(np.linalg.lstsq(np.array(data[i:-1]), np.array(data[i+1:]), rcond=None)[0])\n\n    # Step 2: Compute F-statistic\n    f_statistic = np.array([np.sum((data[i+1:] - np.dot(data[i:-1], ar_models[i])) ** 2) / np.sum((data[i+1:] - np.mean(data[i+1:])) ** 2) for i in range(maxlag)])\n\n    # Step 3: Determine significance\n    p_values = np.array([scipy.stats.f.cdf(f_statistic[i], 1, len(data) - 2) for i in range(maxlag)])\n\n    return p_values\n```\n**",
+    "source_info": {
+      "paper": "** \"VolTS: A Volatility-based Trading System to forecast Stock Markets Trend using Statistics and Machine Learning\" by Ivan Letteri\n**",
+      "authors": [
+        "** Ivan Letteri"
+      ]
+    },
+    "idea_name": "** Granger Causality Test"
+  },
+  "2faf6159-bdd2-480a-a0a7-61dd3a4ced20": {
+    "description": "**\n\n* This idea uses a graph learning approach to construct a financial network that captures the interconnections among assets.\n* The graph is learned from historical pricing data and is optimized directly for portfolio performance.\n* The model uses a neural network architecture with a forward propagation step that unrolls the iterative optimization steps of a proximal gradient descent algorithm.\n* The model takes in a feature matrix of node observations and outputs a graph adjacency matrix that represents the interconnections among assets.\n* The graph is then used to construct network momentum features, which are used as input to a linear layer to estimate the momentum trend of each asset.\n\n**",
+    "edge": "**\n\n* The L2GMOM idea provides an edge by using a graph learning approach to construct a financial network that captures the interconnections among assets.\n* The graph is learned from historical pricing data and is optimized directly for portfolio performance, which can lead to better portfolio returns and risk management.\n* The model can handle large numbers of assets and can be trained on a variety of different data sources.\n\n**",
+    "pseudo_code": "**\n\n* Input: feature matrix V \u2208 R^N\u00d7F, number of unrolling times L\n* Output: graph estimate A such that w_L = vech(A)\n* Initialize primal w0 = 0 \u2208 R^N(N-1)/2 and dual v0 = 0 \u2208 R^N\n* For l = 0, 1, ..., L:\n\t+ r1,l = w_l - \u03b3_l(2\u03b2_lw_l + 2h + D^Tv_l)\n\t+ r2,l = v_l + \u03b3_lDw_l\n\t+ p1,l = max{0, r1,l}\n\t+ p2,l = -r2,l - \u221a(r2^2,l + 4\u03b1_l\u03b3_l)/2\n\t+ q1,l = p1,l - \u03b3_l(2\u03b2_lp1,l + 2h + D^Tp2,l)\n\t+ q2,l = p2,l + \u03b3_lDp1,l\n\t+ w_l+1 = w_l - r1,l + q1,l\n\t+ v_l+1 = v_l - r2,l + q2,l\n* Return graph estimate A such that w_L = vech(A)\n\n**SIGNAL GENERATION LOGIC:**\n\n* Use the learned graph adjacency matrix A to construct network momentum features.\n* Use a linear layer to estimate the momentum trend of each asset.\n* Take the sign of the estimated momentum trend as the trading signal.\n\n**ENTRY/EXIT RULES:**\n\n* Long assets with positive trading signals and short assets with negative trading signals.\n\n**",
+    "source_info": {
+      "paper": "** \n* Paper: \"Learning to Learn Financial Networks for Optimising Momentum Strategies\" by Xingyue (Stacy) Pu, Stefan Zohren, Stephen Roberts, and Xiaowen Dong.\n\n**",
+      "authors": [
+        "** \n* Xingyue (Stacy) Pu\n* Stefan Zohren\n* Stephen Roberts\n* Xiaowen Dong\n\n**"
+      ]
+    },
+    "idea_name": "** L2GMOM (Learning to Learn Financial Networks for Optimising Momentum Strategies)"
+  },
+  "10045113-0ddf-43e3-a1c7-05780fb821c9": {
+    "description": "**\n\n* This idea is similar to L2GMOM, but uses a Sharpe Ratio optimization objective instead of a Mean Squared Error objective.\n* The model uses a neural network architecture with a forward propagation step that unrolls the iterative optimization steps of a proximal gradient descent algorithm.\n* The model takes in a feature matrix of node observations and outputs a graph adjacency matrix that represents the interconnections among assets.\n* The graph is then used to construct network momentum features, which are used as input to a linear layer to estimate the momentum trend of each asset.\n\n**",
+    "edge": "**\n\n* The L2GMOM_SR idea provides an edge by using a Sharpe Ratio optimization objective, which can lead to better risk-adjusted returns.\n* The model can handle large numbers of assets and can be trained on a variety of different data sources.\n\n**",
+    "pseudo_code": "**\n\n* Similar to L2GMOM, but with a Sharpe Ratio optimization objective.\n\n**SIGNAL GENERATION LOGIC:**\n\n* Use the learned graph adjacency matrix A to construct network momentum features.\n* Use a linear layer to estimate the momentum trend of each asset.\n* Take the sign of the estimated momentum trend as the trading signal.\n\n**ENTRY/EXIT RULES:**\n\n* Long assets with positive trading signals and short assets with negative trading signals.\n\n**",
+    "source_info": {
+      "paper": "** \n* Paper: \"Learning to Learn Financial Networks for Optimising Momentum Strategies\" by Xingyue (Stacy) Pu, Stefan Zohren, Stephen Roberts, and Xiaowen Dong.\n\n**",
+      "authors": [
+        "** \n* Xingyue (Stacy) Pu\n* Stefan Zohren\n* Stephen Roberts\n* Xiaowen Dong\n\nHere are some additional indicators that can be implemented as part of a bigger strategy:\n\n**"
+      ]
+    },
+    "idea_name": "** L2GMOM_SR (Learning to Learn Financial Networks for Optimising Momentum Strategies with Sharpe Ratio optimization)"
+  },
+  "104e7034-3723-4a98-8db4-e44bcdb7a148": {
+    "description": "**\n\n* This idea uses a graph to represent the interconnections among assets.\n* The graph is constructed using a variety of different methods, such as industry linkage, supply-demand relations, geographic location, patent similarity, analyst co-coverage.\n* The network momentum of an asset is calculated as the average of the trend estimation of its connected assets.\n\n**",
+    "edge": "**\n\n* The Network Momentum idea provides an edge by taking into account the interconnections among assets.\n* The model can handle large numbers of assets and can be trained on a variety of different data sources.\n\n**",
+    "pseudo_code": "**\n\n* Calculate the network momentum of an asset using the graph adjacency matrix A.\n* Use a linear layer to estimate the momentum trend of each asset.\n\n**SIGNAL GENERATION LOGIC:**\n\n* Use the network momentum features as input to a trading strategy.\n\n**ENTRY/EXIT RULES:**\n\n* Long assets with positive network momentum and short assets with negative network momentum.\n\n**",
+    "source_info": {
+      "paper": "** \n* Paper: \"Learning to Learn Financial Networks for Optimising Momentum Strategies\" by Xingyue (Stacy) Pu, Stefan Zohren, Stephen Roberts, and Xiaowen Dong.\n\n**",
+      "authors": [
+        "** \n* Xingyue (Stacy) Pu\n* Stefan Zohren\n* Stephen Roberts\n* Xiaowen Dong\n\n**"
+      ]
+    },
+    "idea_name": "** Network Momentum"
+  },
+  "a5eb96c9-32f5-41ed-9723-08a5d889d31a": {
+    "description": "**\n\n* This idea uses a time series momentum strategy to generate trading signals.\n* The strategy uses a variety of different methods, such as individual asset momentum, MACD, to estimate the trend of each asset.\n\n**",
+    "edge": "**\n\n* The Time Series Momentum idea provides an edge by using a variety of different methods to estimate the trend of each asset.\n* The model can handle large numbers of assets and can be trained on a variety of different data sources.\n\n**",
+    "pseudo_code": "**\n\n* Calculate the time series momentum of an asset using a variety of different methods.\n* Use a linear layer to estimate the momentum trend of each asset.\n\n**SIGNAL GENERATION LOGIC:**\n\n* Use the time series momentum features as input to a trading strategy.\n\n**ENTRY/EXIT RULES:**\n\n* Long assets with positive time series momentum and short assets with negative time series momentum.\n\n**",
+    "source_info": {
+      "paper": "** \n* Paper: \"Learning to Learn Financial Networks for Optimising Momentum Strategies\" by Xingyue (Stacy) Pu, Stefan Zohren, Stephen Roberts, and Xiaowen Dong.\n\n**",
+      "authors": [
+        "** \n* Xingyue (Stacy) Pu\n* Stefan Zohren\n* Stephen Roberts\n* Xiaowen Dong"
+      ]
+    },
+    "idea_name": "** Time Series Momentum"
+  },
+  "2749da6f-c9e0-4c40-bbc7-7ee9d8361f2b": {
+    "description": "** This signal is based on the risk-neutral probability distribution derived from options written on LQD. It reflects the market's forward-looking expectation for the IG bond market and provides information on future movements.\n**",
+    "edge": "** The credit risk signal provides an edge by capturing the non-linearity of IG bond spreads during market drawdowns, allowing for effective hedging.\n**",
+    "pseudo_code": "**\n```\n// Calculate risk-neutral probability distribution\n\u03c0t(X) = ert\u03c4 [c(t, X + \u2206X, \u03c4) - 2c(t, X, \u03c4) + c(t, X - \u2206X, \u03c4)] / \u2206X^2\n\n// Calculate cumulative distribution function\n\u03a0t(X) = 1 + ert\u03c4 [c(t, X + \u2206X, \u03c4) - c(t, X - \u2206X, \u03c4)] / 2\u2206X\n\n// Determine credit risk\ncredit_risk = \u03a0t(X) - 1\n```\n**",
+    "source_info": {
+      "paper": "** \"On the Efficacy of Shorting Corporate Bonds as a Tail Risk Hedging Solution\" by Travis Cable, Amir Mani, Wei Qi, Georgios Sotiropoulos, and Yiyuan Xiong\n**",
+      "authors": [
+        "** Travis Cable",
+        "Amir Mani",
+        "Wei Qi",
+        "Georgios Sotiropoulos",
+        "and Yiyuan Xiong\n\n**"
+      ]
+    },
+    "idea_name": "** Credit Risk Signal"
+  },
+  "37d30fc8-60ae-40eb-b9f3-3fa28ee3ffba": {
+    "description": "** This signal is based on the liquidity factor derived from IG CDX constituent corporate bond data from TRACE. It captures the day-to-day trading activity in the bond market, adjusted for the inherent risk of each bond.\n**",
+    "edge": "** The liquidity signal provides an edge by identifying periods of high liquidity demand, allowing for strategic sizing of hedges.\n**",
+    "pseudo_code": "**\n```\n// Calculate liquidity signal\nFLiquidity = \u03a3(MktV ali,t \u00d7 Durationi,t \u00d7 Spreadi,t) / \u03a3 MktV ali,t\n\n// Determine liquidity demand\nliquidity_demand = FLiquidity > threshold\n```\n**",
+    "source_info": {
+      "paper": "** \"On the Efficacy of Shorting Corporate Bonds as a Tail Risk Hedging Solution\" by Travis Cable, Amir Mani, Wei Qi, Georgios Sotiropoulos, and Yiyuan Xiong\n**",
+      "authors": [
+        "** Travis Cable",
+        "Amir Mani",
+        "Wei Qi",
+        "Georgios Sotiropoulos",
+        "and Yiyuan Xiong\n\n**"
+      ]
+    },
+    "idea_name": "** Liquidity Signal"
+  },
+  "f4062a6a-d449-4a95-825d-21bf2f340ccb": {
+    "description": "** This signal is based on the time-series momentum of LQD and HYG duration-neutral returns. It captures fast information that can help distinguish between normal markets and onsetting drawdowns.\n**",
+    "edge": "** The momentum signal provides an edge by identifying trends in the market, allowing for effective hedging.\n**",
+    "pseudo_code": "**\n```\n// Calculate momentum signal\nCn,t = \u220f(Rt-22 / Rt-n-22) - 1\n\n// Calculate z-score\nzn,t = (Cn,t - \u00b5 Cn,t) / \u03c3 Cn,t\n\n// Determine momentum\nmomentum = zn,t > threshold\n```\n**",
+    "source_info": {
+      "paper": "** \"On the Efficacy of Shorting Corporate Bonds as a Tail Risk Hedging Solution\" by Travis Cable, Amir Mani, Wei Qi, Georgios Sotiropoulos, and Yiyuan Xiong\n**",
+      "authors": [
+        "** Travis Cable",
+        "Amir Mani",
+        "Wei Qi",
+        "Georgios Sotiropoulos",
+        "and Yiyuan Xiong\n\n**"
+      ]
+    },
+    "idea_name": "** Momentum Signal"
+  },
+  "32a76dd6-95df-4e93-ac80-109552e7d545": {
+    "description": "** This strategy uses Canonical Correlation Analysis (CCA) to combine the credit risk, liquidity, and momentum signals to determine when to enter and exit a short position in LQD or other hedge instruments.\n**",
+    "edge": "** The dynamic hedge provides an edge by effectively hedging a bond portfolio against drawdowns, while minimizing hedging costs.\n**",
+    "pseudo_code": "**\n```\n// Calculate CCA weights\na\u2217, b\u2217 = max corr(Xa, Y b)\n\n// Determine hedge weight\nWhedgei,t+1 = -\u03b2hedgei \\* 1hedgei,CCA,t+1\n\n// Determine hedge activation\n1hedgei,CCA,t+1 = 1 if W \\* hedgei,t < 0 and \u02c6zCCA,t+1 > \u03b3CCAupper\n```\n**",
+    "source_info": {
+      "paper": "** \"On the Efficacy of Shorting Corporate Bonds as a Tail Risk Hedging Solution\" by Travis Cable, Amir Mani, Wei Qi, Georgios Sotiropoulos, and Yiyuan Xiong\n**",
+      "authors": [
+        "** Travis Cable",
+        "Amir Mani",
+        "Wei Qi",
+        "Georgios Sotiropoulos",
+        "and Yiyuan Xiong"
+      ]
+    },
+    "idea_name": "** Dynamic Hedge using CCA"
+  },
+  "ed417d56-d438-48f2-8e17-9c9fb21d9422": {
+    "description": "** A mathematical model of momentum risk-taking, which is essentially real-time risk management focused on short-term volatility of stock markets.\n**",
+    "edge": "** The MRT indicator provides an edge by modeling the impact of news on share prices, allowing for short-term predictions of its evolution.\n**",
+    "pseudo_code": "**\n```\n// Calculate the news impact function N(t)\nN(t) = A * t^c\n\n// Calculate the price function p(t)\np(t) = C1 * t^r1 + C2 * t^r2\n\n// Determine the top 2-bid\nbi(m) = Floor(100 * |pt - pt-mt\u2022i| / (g(mt\u2022i, i) * pt-mt\u2022i))\n\n// Generate trading signals\nif (bi(m) > threshold) and (p(t) > 0) then\n  buy signal\nelse if (bi(m) < -threshold) and (p(t) < 0) then\n  sell signal\n```\n**",
+    "source_info": {
+      "paper": "** arXiv:1911.08448v4 [q-fin.RM] 17 Mar 2020\n**",
+      "authors": [
+        "** Ivan Cherednik\n\n**"
+      ]
+    },
+    "idea_name": "** Momentum Risk-Taking (MRT) Indicator"
+  },
+  "6ac7fd3c-dbd5-4cdb-af0d-60537a374af2": {
+    "description": "** A model of news impact on share prices, based on systems of differential equations resulting in Bessel functions, hypergeometric functions, and their degenerations.\n**",
+    "edge": "** The News Impact Curve indicator provides an edge by describing the power-law growth of the envelope of the price-function for 0 < r \u22641.\n**",
+    "pseudo_code": "**\n```\n// Calculate the news impact curve\nu(t) = (\u03b2 + B * t^r - \u03b2) / (r + B * t^r - \u03b2)\n\n// Calculate the share-price response\np(t) = \u03c3 * (a * u(t) / t + b * du(t) / dt)\n```\n**",
+    "source_info": {
+      "paper": "** arXiv:1911.08448v4 [q-fin.RM] 17 Mar 2020\n**",
+      "authors": [
+        "** Ivan Cherednik\n\n**"
+      ]
+    },
+    "idea_name": "** News Impact Curve Indicator"
+  },
+  "317bfb2c-996e-42c0-8b22-19d01c3f1402": {
+    "description": "** A discretization of stock market bids based on ranked collections of sample time-forecasts for different time-horizons.\n**",
+    "edge": "** The 2-Bid Table indicator provides an edge by determining optimal horizons, expected durations of investments, and short-term forecasts for share-prices.\n**",
+    "pseudo_code": "**\n```\n// Calculate the 2-bid tables\nbi(m) = Floor(100 * |pt - pt-mt\u2022i| / (g(mt\u2022i, i) * pt-mt\u2022i))\n\n// Rank the 2-bids lexicographically\nrank(b, c) = (b, c)\n\n// Determine the top 2-bid\nbi\u25e6(m\u25e6) = max(rank(b, c))\n```\n**",
+    "source_info": {
+      "paper": "** arXiv:1911.08448v4 [q-fin.RM] 17 Mar 2020\n**",
+      "authors": [
+        "** Ivan Cherednik\n\n**"
+      ]
+    },
+    "idea_name": "** 2-Bid Table Indicator"
+  },
+  "f741afab-30a9-405a-8b03-4ccc6287bc63": {
+    "description": "** A contract card game combining bridge and poker, modeling momentum risk-taking.\n**",
+    "edge": "** The Pont Card Game indicator provides an edge by reflecting real-time actions and risk-taking preferences of investors.\n**",
+    "pseudo_code": "**\n```\n// Simulate the pont card game\nbid = fraction N/D with denominator D from 6 to 8 and numerator N no larger than D\n\n// Determine the declarer's award\naward = value of contract depending on whether or not it was made\n```\n**",
+    "source_info": {
+      "paper": "** arXiv:1911.08448v4 [q-fin.RM] 17 Mar 2020\n**",
+      "authors": [
+        "** Ivan Cherednik\n\n**"
+      ]
+    },
+    "idea_name": "** Pont Card Game Indicator"
+  },
+  "e2f79f0b-c841-4284-85fa-788c5f20f4dc": {
+    "description": "** A set of basic functions used for forecasting curves, automatically produced time-predictions for share-prices.\n**",
+    "edge": "** The g-Functions indicator provides an edge by describing the power-law growth of the envelope of the price-function for 0 < r \u22641.\n**",
+    "pseudo_code": "**\n```\n// Calculate the g-functions\ng(t, 1) = 0.5 * Floor[1548 * (0.26t + 0.74)^x - 1548] / 100 + 1\n\n// Determine the termination curves\ntermination curve = shift of g-function up or down with some coefficients of proportionality\n```\n**",
+    "source_info": {
+      "paper": "** arXiv:1911.08448v4 [q-fin.RM] 17 Mar 2020\n**",
+      "authors": [
+        "** Ivan Cherednik"
+      ]
+    },
+    "idea_name": "** g-Functions Indicator"
+  },
+  "97beb80b-f056-4339-b785-bb2dbf358e38": {
+    "description": "** This strategy uses graph clustering algorithms to identify clusters of correlated stocks and then opens long and short positions on assets with returns that are lower or higher than the calculated cluster means.\n**",
+    "edge": "** The edge of this strategy comes from its ability to identify clusters of correlated stocks and capitalize on short-term deviations from established relationships between asset prices.\n**",
+    "pseudo_code": "**\n```python\nimport pandas as pd\nfrom sklearn.cluster import KMeans\n\ndef graph_based_strategy(prices, cluster_algo='kmeans', num_clusters=30):\n    # Calculate correlation matrix\n    corr_matrix = prices.corr()\n    \n    # Apply graph clustering algorithm\n    if cluster_algo == 'kmeans':\n        clusters = KMeans(n_clusters=num_clusters).fit_predict(corr_matrix)\n    else:\n        # Implement other clustering algorithms\n        pass\n    \n    # Calculate cluster means\n    cluster_means = []\n    for cluster in clusters:\n        cluster_stocks = prices[clusters == cluster]\n        cluster_mean = cluster_stocks.mean(axis=0)\n        cluster_means.append(cluster_mean)\n    \n    # Open long and short positions\n    positions = []\n    for i, stock in enumerate(prices.columns):\n        if prices[stock][-1] < cluster_means[clusters[i]][-1]:\n            positions.append(-1)  # Short position\n        elif prices[stock][-1] > cluster_means[clusters[i]][-1]:\n            positions.append(1)   # Long position\n        else:\n            positions.append(0)   # No position\n    \n    return positions\n```\n**",
+    "source_info": {
+      "paper": "** Cartea et al. (2023)\n**",
+      "authors": [
+        "** \u00c1lvaro Cartea",
+        "Mihai Cucuringu",
+        "and Qi Jin\n\n**"
+      ]
+    },
+    "idea_name": "** Graph-Based Statistical Arbitrage Strategy"
+  },
+  "5c826047-e00b-49cb-b491-58ad83cd3dd8": {
+    "description": "** This idea uses machine learning classifiers to filter potentially profitable signals generated by a graph-based strategy.\n**",
+    "edge": "** The edge of this idea comes from its ability to improve the quality of signals and reduce the number of unprofitable trades.\n**",
+    "pseudo_code": "**\n```python\nimport pandas as pd\nfrom sklearn.ensemble import RandomForestClassifier\n\ndef signal_quality_classifiers(signals, features):\n    # Train classifier\n    clf = RandomForestClassifier(n_estimators=100)\n    clf.fit(features, signals)\n    \n    # Predict signal quality\n    predicted_probabilities = clf.predict_proba(features)\n    \n    # Select threshold\n    threshold = 0.6\n    \n    # Filter signals\n    filtered_signals = []\n    for i, signal in enumerate(signals):\n        if predicted_probabilities[i, 1] > threshold:\n            filtered_signals.append(signal)\n    \n    return filtered_signals\n```\n**",
+    "source_info": {
+      "paper": "** Korniejczuk et al. (2024)\n**",
+      "authors": [
+        "** Adam Korniejczuk and Robert \u015alepaczuk\n\n**"
+      ]
+    },
+    "idea_name": "** Signal Quality Classifiers"
+  },
+  "52c91590-60d2-4a90-a038-f81f9dff52d9": {
+    "description": "** This idea uses a time-variant take profit function to hedge against signal misclassification.\n**",
+    "edge": "** The edge of this idea comes from its ability to reduce the risk of signal misclassification and improve trading performance.\n**",
+    "pseudo_code": "**\n```python\nimport pandas as pd\n\ndef time_variant_take_profit(days_since_opening):\n    threshold = 8 * (10 - days_since_opening) / 10\n    return threshold\n```\n**",
+    "source_info": {
+      "paper": "** Korniejczuk et al. (2024)\n**",
+      "authors": [
+        "** Adam Korniejczuk and Robert \u015alepaczuk\n\n**"
+      ]
+    },
+    "idea_name": "** Time-Variant Take Profit Function"
+  },
+  "4629bd5c-29ff-4136-aa1a-a134a7c1d3f0": {
+    "description": "** This idea uses the Kelly criterion to optimize position sizing and maximize expected returns.\n**",
+    "edge": "** The edge of this idea comes from its ability to optimize position sizing and reduce risk.\n**",
+    "pseudo_code": "**\n```python\nimport pandas as pd\n\ndef kelly_criterion_weighted_positions(probability, lambda_):\n    f = (2 * probability - 1) / lambda_\n    return f\n```\n**",
+    "source_info": {
+      "paper": "** Korniejczuk et al. (2024)\n**",
+      "authors": [
+        "** Adam Korniejczuk and Robert \u015alepaczuk\n\n**"
+      ]
+    },
+    "idea_name": "** Kelly Criterion Weighted Positions"
+  },
+  "4a2f3672-592d-4c63-b29e-8bdf38cc8d60": {
+    "description": "** This idea uses risk-weighted stop functions to mitigate downside risk.\n**",
+    "edge": "** The edge of this idea comes from its ability to reduce downside risk and improve trading performance.\n**",
+    "pseudo_code": "**\n```python\nimport pandas as pd\n\ndef risk_weighted_stop_functions(threshold, probability):\n    threshold_rw = threshold * probability\n    return threshold_rw\n```\n**",
+    "source_info": {
+      "paper": "** Korniejczuk et al. (2024)\n**",
+      "authors": [
+        "** Adam Korniejczuk and Robert \u015alepaczuk"
+      ]
+    },
+    "idea_name": "** Risk-Weighted Stop Functions"
+  },
+  "afc7d4dd-73bc-412f-8291-4b97625761f1": {
+    "description": "** \n* The MaxPrice strategy is a trading strategy that involves starting arbitrage from the token with the highest CEX price in an arbitrage loop.\n* This strategy is based on the assumption that the token with the highest CEX price will generate the maximum monetized arbitrage profit.\n* The strategy involves calculating the monetized arbitrage profit for each token in the arbitrage loop and selecting the token with the highest CEX price as the starting token.\n* The strategy is simple to implement and can be used in conjunction with other trading strategies.\n* However, the strategy may not always generate the maximum monetized arbitrage profit, as the optimal starting token may not be the one with the highest CEX price.\n* The strategy requires access to real-time data on token prices and liquidity pools.\n* The strategy can be used in a variety of market conditions, including high-volatility and low-liquidity environments.\n* The strategy can be implemented using a variety of programming languages and trading platforms.\n* The strategy can be used in conjunction with other indicators and strategies to maximize trading performance.\n* The strategy requires careful risk management and position sizing to minimize potential losses.\n\n**",
+    "edge": "** The MaxPrice strategy provides an edge in trading by allowing traders to quickly and easily identify the token with the highest CEX price in an arbitrage loop, which can be used as a starting point for arbitrage trades.\n\n**",
+    "pseudo_code": "**\n```\n// Input: token prices, liquidity pools\n// Output: starting token for arbitrage trade\nfunction maxPriceStrategy(tokenPrices, liquidityPools) {\n  maxPriceToken = null;\n  maxPrice = 0;\n  for each token in liquidityPools {\n    if token.price > maxPrice {\n      maxPrice = token.price;\n      maxPriceToken = token;\n    }\n  }\n  return maxPriceToken;\n}\n```\n**",
+    "source_info": {
+      "paper": "** \"Profit Maximization In Arbitrage Loops\" by Yu Zhang et al.\n**",
+      "authors": [
+        "** Yu Zhang",
+        "Zichen Li",
+        "Tao Yan",
+        "Qianyu Liu",
+        "Nicolo Vallarano",
+        "Claudio J. Tessone\n\n**"
+      ]
+    },
+    "idea_name": "** MaxPrice Strategy"
+  },
+  "752486e1-11d3-471b-8a56-e877b793869b": {
+    "description": "** \n* The MaxMax strategy is a trading strategy that involves calculating the monetized arbitrage profit for each token in an arbitrage loop and selecting the maximum profit.\n* This strategy is based on the assumption that the maximum monetized arbitrage profit can be obtained by considering each token in the arbitrage loop as a starting point.\n* The strategy involves calculating the monetized arbitrage profit for each token in the arbitrage loop and selecting the maximum profit.\n* The strategy is more complex to implement than the MaxPrice strategy but can generate higher profits.\n* The strategy requires access to real-time data on token prices and liquidity pools.\n* The strategy can be used in a variety of market conditions, including high-volatility and low-liquidity environments.\n* The strategy can be implemented using a variety of programming languages and trading platforms.\n* The strategy can be used in conjunction with other indicators and strategies to maximize trading performance.\n* The strategy requires careful risk management and position sizing to minimize potential losses.\n\n**",
+    "edge": "** The MaxMax strategy provides an edge in trading by allowing traders to identify the maximum monetized arbitrage profit in an arbitrage loop, which can be used to maximize trading performance.\n\n**",
+    "pseudo_code": "**\n```\n// Input: token prices, liquidity pools\n// Output: maximum monetized arbitrage profit\nfunction maxMaxStrategy(tokenPrices, liquidityPools) {\n  maxProfit = 0;\n  for each token in liquidityPools {\n    profit = calculateMonetizedArbitrageProfit(token, liquidityPools);\n    if profit > maxProfit {\n      maxProfit = profit;\n    }\n  }\n  return maxProfit;\n}\n```\n**",
+    "source_info": {
+      "paper": "** \"Profit Maximization In Arbitrage Loops\" by Yu Zhang et al.\n**",
+      "authors": [
+        "** Yu Zhang",
+        "Zichen Li",
+        "Tao Yan",
+        "Qianyu Liu",
+        "Nicolo Vallarano",
+        "Claudio J. Tessone\n\n**"
+      ]
+    },
+    "idea_name": "** MaxMax Strategy"
+  },
+  "949097e5-599d-4357-a019-f48b26e61481": {
+    "description": "** \n* The Convex Optimization strategy is a trading strategy that involves using convex optimization techniques to maximize the monetized arbitrage profit in an arbitrage loop.\n* This strategy is based on the assumption that the monetized arbitrage profit can be maximized using convex optimization techniques.\n* The strategy involves formulating the monetized arbitrage profit as a convex optimization problem and solving it using optimization algorithms.\n* The strategy is more complex to implement than the MaxMax strategy but can generate higher profits.\n* The strategy requires access to real-time data on token prices and liquidity pools.\n* The strategy can be used in a variety of market conditions, including high-volatility and low-liquidity environments.\n* The strategy can be implemented using a variety of programming languages and trading platforms.\n* The strategy can be used in conjunction with other indicators and strategies to maximize trading performance.\n* The strategy requires careful risk management and position sizing to minimize potential losses.\n\n**",
+    "edge": "** The Convex Optimization strategy provides an edge in trading by allowing traders to maximize the monetized arbitrage profit in an arbitrage loop using convex optimization techniques.\n\n**",
+    "pseudo_code": "**\n```\n// Input: token prices, liquidity pools\n// Output: maximum monetized arbitrage profit\nfunction convexOptimizationStrategy(tokenPrices, liquidityPools) {\n  // Formulate the convex optimization problem\n  problem = formulateConvexOptimizationProblem(tokenPrices, liquidityPools);\n  // Solve the convex optimization problem\n  solution = solveConvexOptimizationProblem(problem);\n  // Calculate the maximum monetized arbitrage profit\n  maxProfit = calculateMonetizedArbitrageProfit(solution);\n  return maxProfit;\n}\n```\n**",
+    "source_info": {
+      "paper": "** \"Profit Maximization In Arbitrage Loops\" by Yu Zhang et al.\n**",
+      "authors": [
+        "** Yu Zhang",
+        "Zichen Li",
+        "Tao Yan",
+        "Qianyu Liu",
+        "Nicolo Vallarano",
+        "Claudio J. Tessone"
+      ]
+    },
+    "idea_name": "** Convex Optimization Strategy"
+  },
+  "6e246c8b-8621-408b-b428-38a4722543b4": {
+    "description": "**\n\n* The model considers chartists (trend followers), fundamentalists (value investors), and a risk-neutral market maker.\n* Agents switch between strategies based on past profitability.\n* The model uses a genetic algorithm and a Nelder-Mead with threshold accepting algorithm for calibration.\n\n**",
+    "edge": "** The adaptive model can replicate stylized facts of financial markets, such as fat tails and volatility clustering, better than the standard model.\n\n**",
+    "pseudo_code": "**\n\n```\n// Define the agent classes\nclass Chartist:\n  function update_position(p, p_prev)\n    // Trend following strategy\n    return sign(p - p_prev)\n  \nclass Fundamentalist:\n  function update_position(p, p_prev)\n    // Value investing strategy\n    return sign(p_prev - p)\n\n// Define the market maker class\nclass MarketMaker:\n  function update_price(orders)\n    // Risk-neutral market maker\n    return exp(sum(orders) / lambda)\n\n// Define the adaptive model\nclass AdaptiveModel:\n  function update_agent_strategies(profits)\n    // Switch agents between strategies based on past profitability\n    for each agent:\n      if agent.profit > threshold:\n        agent.strategy = best_strategy(profits)\n  \n  function simulate(days)\n    for each day:\n      // Update agent positions\n      for each agent:\n        agent.position = agent.strategy.update_position(p, p_prev)\n      \n      // Update market maker price\n      p = MarketMaker.update_price(orders)\n      \n      // Update agent profits\n      for each agent:\n        agent.profit = agent.position * (p - p_prev)\n      \n      // Switch agents between strategies\n      AdaptiveModel.update_agent_strategies(profits)\n```\n\n**SIGNAL GENERATION LOGIC:**\n\n* The model generates a signal when an agent switches between strategies.\n* The signal is based on the agent's updated position.\n\n**ENTRY/EXIT RULES:**\n\n* Enter long when an agent switches to a chartist strategy and the market maker price is above the previous price.\n* Exit long when an agent switches to a fundamentalist strategy and the market maker price is below the previous price.\n\n**",
+    "source_info": {
+      "paper": "** \"Calibrating an adaptive Farmer-Joshi agent-based model for financial markets\" by Ivan Jericevich, Murray McKechnie, and Tim Gebbie\n\n**",
+      "authors": [
+        "** Ivan Jericevich",
+        "Murray McKechnie",
+        "and Tim Gebbie\n\n**"
+      ]
+    },
+    "idea_name": "** Adaptive Farmer-Joshi Agent-Based Model"
+  },
+  "bd507471-0c11-4a18-b7a9-88bc2f2ed65e": {
+    "description": "**\n\n* Agents switch between strategies based on past profitability.\n* The model uses a probabilistic strategy selection rule.\n\n**",
+    "edge": "** The model can generate profitable trades by switching between strategies based on past profitability.\n\n**",
+    "pseudo_code": "**\n\n```\n// Define the strategy classes\nclass Strategy1:\n  function update_position(p, p_prev)\n    // Strategy 1\n    return sign(p - p_prev)\n  \nclass Strategy2:\n  function update_position(p, p_prev)\n    // Strategy 2\n    return sign(p_prev - p)\n\n// Define the agent class\nclass Agent:\n  function update_strategy(profits)\n    // Probabilistic strategy selection rule\n    if profit > threshold:\n      strategy = best_strategy(profits)\n  \n  function simulate(days)\n    for each day:\n      // Update agent position\n      agent.position = agent.strategy.update_position(p, p_prev)\n      \n      // Update agent profit\n      agent.profit = agent.position * (p - p_prev)\n      \n      // Switch strategy\n      Agent.update_strategy(profits)\n```\n\n**SIGNAL GENERATION LOGIC:**\n\n* The model generates a signal when an agent switches between strategies.\n* The signal is based on the agent's updated position.\n\n**ENTRY/EXIT RULES:**\n\n* Enter long when an agent switches to a strategy with a higher profit.\n* Exit long when an agent switches to a strategy with a lower profit.\n\n**",
+    "source_info": {
+      "paper": "** \"Heterogeneous beliefs and routes to chaos in a simple asset pricing model\" by W.A. Brock and C.H. Hommes\n\n**",
+      "authors": [
+        "** W.A. Brock and C.H. Hommes\n\nLet me know if you'd like me to extract more ideas or provide further clarification on any of these points!"
+      ]
+    },
+    "idea_name": "** Strategy Switching based on Profitability"
+  },
+  "1b6bf09a-f05b-4c27-b92e-fa46993350d0": {
+    "description": "**\n* The VolTS system uses a combination of statistical analysis and machine learning techniques to forecast stock market trends.\n* It calculates the historical volatility of a set of stocks using various estimators (Parkinson, Garman-Klass, Rogers-Satchell, and Yang-Zhang).\n* The system clusters the stocks into three categories: high, middle, and low volatility using the k-means++ algorithm.\n* It applies the Granger Causality Test (GCT) to identify stocks that act as significant predictors of other stocks.\n* The system uses the GCT results to determine the buy, sell, and hold signals for target stock trades.\n\n**",
+    "edge": "**\n* The VolTS system provides an edge by using a combination of statistical analysis and machine learning techniques to identify profitable trading opportunities.\n* It takes into account the volatility behavior of stocks and their relationships with each other.\n* The system can adapt to changing market conditions by using multiple estimators and clustering techniques.\n\n**",
+    "pseudo_code": "**\n* Signal generation logic:\n\t+ Calculate historical volatility of stocks using various estimators.\n\t+ Cluster stocks into three categories: high, middle, and low volatility.\n\t+ Apply GCT to identify predictor stocks.\n\t+ Generate buy, sell, and hold signals based on GCT results.\n* Entry/exit rules:\n\t+ Long entry: when a stock's volatility is in the middle cluster and it is predicted by another stock.\n\t+ Short entry: when a stock's volatility is in the high cluster and it predicts another stock.\n\t+ Exit: when the GCT relationship changes or when the stock's volatility moves to a different cluster.\n\n**",
+    "source_info": {
+      "paper": "** \"VolTS: A Volatility-based Trading System to forecast Stock Markets Trend using Statistics and Machine Learning\" by Ivan Letteri\n**",
+      "authors": [
+        "** Ivan Letteri\n\n**"
+      ]
+    },
+    "idea_name": "** Volatility-Based Trading System (VolTS)"
+  },
+  "75a55978-e8e4-41bf-bf0a-8f89a8a0ee08": {
+    "description": "**\n* The k-means++ algorithm is used to cluster stocks into three categories: high, middle, and low volatility.\n* The algorithm selects the initial centroids using the maximum distance between them.\n* It assigns each stock to the closest centroid based on the dynamic time warping (DTW) metric.\n\n**",
+    "edge": "**\n* The k-means++ algorithm provides an edge by effectively clustering stocks into different volatility regimes.\n* It takes into account the non-linear relationships between stocks and their volatility behavior.\n\n**",
+    "pseudo_code": "**\n* Signal generation logic:\n\t+ Calculate distance between stocks using DTW metric.\n\t+ Select initial centroids using maximum distance.\n\t+ Assign stocks to closest centroid.\n* Entry/exit rules:\n\t+ None\n\n**",
+    "source_info": {
+      "paper": "** \"VolTS: A Volatility-based Trading System to forecast Stock Markets Trend using Statistics and Machine Learning\" by Ivan Letteri\n**",
+      "authors": [
+        "** Ivan Letteri\n\n**"
+      ]
+    },
+    "idea_name": "** K-Means++ Clustering"
+  },
+  "6088c0d8-b79d-4657-a62e-fef7b4a3bed5": {
+    "description": "**\n* The GCT is used to identify stocks that act as significant predictors of other stocks.\n* It tests the null hypothesis that one stock does not Granger cause another stock.\n* The test uses an F-statistic to determine the significance of the relationship.\n\n**",
+    "edge": "**\n* The GCT provides an edge by identifying stocks that have a significant predictive relationship with other stocks.\n* It takes into account the lead-lag relationships between stocks.\n\n**",
+    "pseudo_code": "**\n* Signal generation logic:\n\t+ Calculate F-statistic for each pair of stocks.\n\t+ Determine significance of relationship based on threshold.\n\t+ Identify predictor stocks.\n* Entry/exit rules:\n\t+ Long entry: when a stock is predicted by another stock.\n\t+ Short entry: when a stock predicts another stock.\n\n**",
+    "source_info": {
+      "paper": "** \"VolTS: A Volatility-based Trading System to forecast Stock Markets Trend using Statistics and Machine Learning\" by Ivan Letteri\n**",
+      "authors": [
+        "** Ivan Letteri\n\n**"
+      ]
+    },
+    "idea_name": "** Granger Causality Test (GCT)"
+  },
+  "1dd1a9a2-874c-4b98-b245-ae541635a659": {
+    "description": "**\n* Various estimators are used to calculate the historical volatility of stocks, including:\n\t+ Parkinson estimator\n\t+ Garman-Klass estimator\n\t+ Rogers-Satchell estimator\n\t+ Yang-Zhang estimator\n\n**",
+    "edge": "**\n* The use of multiple estimators provides an edge by allowing for a more comprehensive understanding of volatility behavior.\n* It takes into account the different assumptions and limitations of each estimator.\n\n**",
+    "pseudo_code": "**\n* Signal generation logic:\n\t+ Calculate historical volatility using multiple estimators.\n\t+ Compare results to determine most accurate estimate.\n* Entry/exit rules:\n\t+ None\n\n**",
+    "source_info": {
+      "paper": "** \"VolTS: A Volatility-based Trading System to forecast Stock Markets Trend using Statistics and Machine Learning\" by Ivan Letteri\n**",
+      "authors": [
+        "** Ivan Letteri"
+      ]
+    },
+    "idea_name": "** Historical Volatility Estimators"
+  },
+  "e085a692-0fba-46e8-97d8-3ad9913fe40b": {
+    "description": "** \n* The MACD Histogram trading strategy is based on the MACD indicator, which consists of two moving averages (fast and slow) and a histogram.\n* The fast EMA line is calculated as 2 / (12 + 1) * closing price + (1 - 2 / (12 + 1)) * previous fast EMA line.\n* The slow EMA line is calculated as 2 / (26 + 1) * closing price + (1 - 2 / (26 + 1)) * previous slow EMA line.\n* The MACD line is the difference between the fast EMA line and the slow EMA line.\n* The signal line is the EMA line of the MACD line.\n* The histogram is the difference between the MACD line and the signal line.\n* A buy signal is generated when the histogram is above zero and the MACD line crosses above the signal line.\n* A sell signal is generated when the histogram is below zero and the MACD line crosses below the signal line.\n* The strategy can be used with different signal identification rules, such as signal line crossover, zero crossover, histogram, and signal line crossover above zero.\n\n**",
+    "edge": "** The MACD Histogram trading strategy provides an edge by identifying the momentum of the market and generating buy and sell signals based on the crossover of the MACD line and the signal line.\n\n**",
+    "pseudo_code": "**\n```\nMACD_fast = EMA(close, 12)\nMACD_slow = EMA(close, 26)\nMACD = MACD_fast - MACD_slow\nSignal = EMA(MACD, 9)\nHistogram = MACD - Signal\n\nif Histogram > 0 and MACD > Signal:\n    buy\nif Histogram < 0 and MACD < Signal:\n    sell\n```\n**",
+    "source_info": {
+      "paper": "** \"A comparative study of the MACD-base trading strategies: evidence from the US stock market\" by Pat Tong Chio\n**",
+      "authors": [
+        "** Pat Tong Chio\n\n**"
+      ]
+    },
+    "idea_name": "** MACD Histogram Trading Strategy"
+  },
+  "da5f5f6a-78bb-486c-9824-b6390a8215d7": {
+    "description": "** \n* The VPVMA indicator takes into account the volume, typical price, and daily volatility.\n* The typical price is calculated as (high + low + close) / 3.\n* The volume weighted moving average is calculated as the sum of the typical price multiplied by the volume, divided by the sum of the volume.\n* The daily volatility is calculated as the standard deviation of the high, low, close, and open prices.\n* The VPVMA indicator uses a double EMA technique to smooth the product of the volume weighted moving average and the daily volatility.\n* A buy signal is generated when the VPVMA is greater than the VPVMS (Volume Price Volume Moving Average Signal) for a certain percentage.\n* A sell signal is generated when the VPVMA is less than the VPVMS for a certain percentage.\n\n**",
+    "edge": "** The VPVMA indicator provides an edge by capturing the price momentum and volume information, and generating buy and sell signals based on the crossover of the VPVMA and VPVMS.\n\n**",
+    "pseudo_code": "**\n```\nTP = (high + low + close) / 3\nSVWMA = sum(TP * volume) / sum(volume)\nLVWMA = sum(TP * volume) / sum(volume)\nDV = std(high, low, close, open)\nESVMap = EMA(SVWMA * DV, short_term_period)\nElVMap = EMA(LVWMA * DV, long_term_period)\nVPVMA = ESVMap - ElVMap\nVPVMS = EMA(VPVMA, signal_period)\n\nif VPVMA > (1 + bandwidth) * VPVMS:\n    buy\nif VPVMA < (1 - bandwidth * 2) * VPVMS:\n    sell\n```\n**",
+    "source_info": {
+      "paper": "** \"A comparative study of the MACD-base trading strategies: evidence from the US stock market\" by Pat Tong Chio\n**",
+      "authors": [
+        "** Pat Tong Chio\n\n**"
+      ]
+    },
+    "idea_name": "** Volume Price Volume Moving Average (VPVMA)"
+  },
+  "8bfd973e-0db7-4127-8976-fc5ead853f7a": {
+    "description": "** \n* The MACD & RSI combination strategy combines the MACD indicator with the RSI indicator.\n* A buy signal is generated when the MACD line crosses above the signal line and the RSI is below 30.\n* A sell signal is generated when the MACD line crosses below the signal line and the RSI is above 70.\n\n**",
+    "edge": "** The MACD & RSI combination strategy provides an edge by identifying the momentum of the market and generating buy and sell signals based on the crossover of the MACD line and the signal line, and the RSI level.\n\n**",
+    "pseudo_code": "**\n```\nMACD_fast = EMA(close, 12)\nMACD_slow = EMA(close, 26)\nMACD = MACD_fast - MACD_slow\nSignal = EMA(MACD, 9)\nRSI = RSI(close, 14)\n\nif MACD > Signal and RSI < 30:\n    buy\nif MACD < Signal and RSI > 70:\n    sell\n```\n**",
+    "source_info": {
+      "paper": "** \"A comparative study of the MACD-base trading strategies: evidence from the US stock market\" by Pat Tong Chio\n**",
+      "authors": [
+        "** Pat Tong Chio\n\n**"
+      ]
+    },
+    "idea_name": "** MACD & RSI Combination Strategy"
+  },
+  "2681de72-71b5-4f09-9be9-cd1f8d788147": {
+    "description": "** \n* The MACD & MFI combination strategy combines the MACD indicator with the MFI indicator.\n* A buy signal is generated when the MACD line crosses above the signal line and the MFI is below 25.\n* A sell signal is generated when the MACD line crosses below the signal line and the MFI is above 75.\n\n**",
+    "edge": "** The MACD & MFI combination strategy provides an edge by identifying the momentum of the market and generating buy and sell signals based on the crossover of the MACD line and the signal line, and the MFI level.\n\n**",
+    "pseudo_code": "**\n```\nMACD_fast = EMA(close, 12)\nMACD_slow = EMA(close, 26)\nMACD = MACD_fast - MACD_slow\nSignal = EMA(MACD, 9)\nMFI = MFI(close, 14)\n\nif MACD > Signal and MFI < 25:\n    buy\nif MACD < Signal and MFI > 75:\n    sell\n```\n**",
+    "source_info": {
+      "paper": "** \"A comparative study of the MACD-base trading strategies: evidence from the US stock market\" by Pat Tong Chio\n**",
+      "authors": [
+        "** Pat Tong Chio\n\n**"
+      ]
+    },
+    "idea_name": "** MACD & MFI Combination Strategy"
+  },
+  "5ba29058-b789-43b5-8293-a79d75ea33b6": {
+    "description": "** \n* The BBW strategy uses the Bollinger Bands indicator to generate buy and sell signals.\n* A buy signal is generated when the SMA of BBW crosses above the SMA of BBW (50).\n* A sell signal is generated when the SMA of BBW crosses below the SMA of BBW (50).\n\n**",
+    "edge": "** The BBW strategy provides an edge by identifying the volatility of the market and generating buy and sell signals based on the crossover of the SMA of BBW.\n\n**",
+    "pseudo_code": "**\n```\nBBW = (upper_band - lower_band) / middle_band\nSMA_BBW_10 = SMA(BBW, 10)\nSMA_BBW_50 = SMA(BBW, 50)\n\nif SMA_BBW_10 > SMA_BBW_50:\n    buy\nif SMA_BBW_10 < SMA_BBW_50:\n    sell\n```\n**",
+    "source_info": {
+      "paper": "** \"A comparative study of the MACD-base trading strategies: evidence from the US stock market\" by Pat Tong Chio\n**",
+      "authors": [
+        "** Pat Tong Chio\n\n**"
+      ]
+    },
+    "idea_name": "** Bollinger Bands Width (BBW) Strategy"
+  },
+  "a9683556-3eba-413e-a1fd-e18b5e4276c1": {
+    "description": "** \n* The SAR strategy uses the Parabolic SAR indicator to generate buy and sell signals.\n* A buy signal is generated when the SAR is below the price and the SAR is rising.\n* A sell signal is generated when the SAR is above the price and the SAR is falling.\n\n**",
+    "edge": "** The SAR strategy provides an edge by identifying the trend of the market and generating buy and sell signals based on the crossover of the SAR.\n\n**",
+    "pseudo_code": "**\n```\nSAR = SAR(price, acceleration, maximum)\n\nif SAR < price and SAR > previous_SAR:\n    buy\nif SAR > price and SAR < previous_SAR:\n    sell\n```\n**",
+    "source_info": {
+      "paper": "** \"A comparative study of the MACD-base trading strategies: evidence from the US stock market\" by Pat Tong Chio\n**",
+      "authors": [
+        "** Pat Tong Chio"
+      ]
+    },
+    "idea_name": "** Parabolic Stop and Reverse (SAR) Strategy"
+  },
+  "667e9fbb-daaf-46ce-9b72-799d67e453f2": {
+    "description": "**\n\n* The PPO+AXT model uses a Proximal Policy Optimization (PPO) algorithm with an auxiliary task to improve the performance of a deep reinforcement learning agent in the forex market.\n* The auxiliary task uses an Autoencoder (AE) and K-Means algorithm to cluster the input data and provide a suitable label for each input instance.\n* The PPO algorithm uses an Actor-Critic structure to monitor the trading environment and make optimal trades.\n* The Actor network predicts the input data label and compares it with the output of the auxiliary task to adapt to environmental conditions and improve its trading strategy.\n\n**",
+    "edge": "**\n\n* The use of an auxiliary task provides additional information to the agent, allowing it to learn more efficiently and make more informed decisions.\n* The clustering of input data using AE and K-Means algorithm helps to identify patterns and relationships in the data that may not be apparent through other methods.\n\n**",
+    "pseudo_code": "**\n\n* Input: OHLC (Open, High, Low, Close) data for a currency pair\n* Output: Trading actions (buy, sell, or hold)\n* Auxiliary task:\n\t+ Use AE to extract 12 golden features from 80 features (5 features x 16 time steps)\n\t+ Use K-Means algorithm to cluster the golden features into 12 separate clusters\n\t+ Assign a label to each input instance based on its cluster\n* PPO algorithm:\n\t+ Use Actor-Critic structure to monitor the trading environment and make optimal trades\n\t+ Actor network predicts the input data label and compares it with the output of the auxiliary task\n\t+ Critic network evaluates the performance of the Actor network and provides feedback\n\n**SIGNAL GENERATION LOGIC:**\n\n* The Actor network generates a trading action (buy, sell, or hold) based on the predicted input data label and the output of the auxiliary task.\n* The Critic network evaluates the performance of the Actor network and provides feedback to improve its predictions.\n\n**ENTRY/EXIT RULES:**\n\n* The trading agent enters a long position when the Actor network predicts a buy signal and the auxiliary task confirms the signal.\n* The trading agent exits a long position when the Actor network predicts a sell signal or the auxiliary task indicates a change in market conditions.\n\n**",
+    "source_info": {
+      "paper": "** \n* Authors: Sahar Arabha, Davoud Sarani, and Parviz Rashidi-Khazaee\n* Paper: \"Improving Deep Reinforcement Learning Agent Trading Performance in Forex using Auxiliary Task\"\n\n*",
+      "authors": [
+        "AXT (Proximal Policy Optimization with Auxiliary Task)\n\n**DESCRIPTION:**\n\n* The PPO+AXT model uses a Proximal Policy Optimization (PPO) algorithm with an auxiliary task to improve the performance of a deep reinforcement learning agent in the forex market.\n* The auxiliary task uses an Autoencoder (AE) and K-Means algorithm to cluster the input data and provide a suitable label for each input instance.\n* The PPO algorithm uses an Actor-Critic structure to monitor the trading environment and make optimal trades.\n* The Actor network predicts the input data label and compares it with the output of the auxiliary task to adapt to environmental conditions and improve its trading strategy.\n\n**EDGE:**\n\n* The use of an auxiliary task provides additional information to the agent",
+        "allowing it to learn more efficiently and make more informed decisions.\n* The clustering of input data using AE and K-Means algorithm helps to identify patterns and relationships in the data that may not be apparent through other methods.\n\n**PSEUDOCODE:**\n\n* Input: OHLC (Open",
+        "High",
+        "Low",
+        "Close) data for a currency pair\n* Output: Trading actions (buy",
+        "sell",
+        "or hold)\n* Auxiliary task:\n\t+ Use AE to extract 12 golden features from 80 features (5 features x 16 time steps)\n\t+ Use K-Means algorithm to cluster the golden features into 12 separate clusters\n\t+ Assign a label to each input instance based on its cluster\n* PPO algorithm:\n\t+ Use Actor-Critic structure to monitor the trading environment and make optimal trades\n\t+ Actor network predicts the input data label and compares it with the output of the auxiliary task\n\t+ Critic network evaluates the performance of the Actor network and provides feedback\n\n**SIGNAL GENERATION LOGIC:**\n\n* The Actor network generates a trading action (buy",
+        "sell",
+        "or hold) based on the predicted input data label and the output of the auxiliary task.\n* The Critic network evaluates the performance of the Actor network and provides feedback to improve its predictions.\n\n**ENTRY/EXIT RULES:**\n\n* The trading agent enters a long position when the Actor network predicts a buy signal and the auxiliary task confirms the signal.\n* The trading agent exits a long position when the Actor network predicts a sell signal or the auxiliary task indicates a change in market conditions.\n\n**SOURCE:** \n* Authors: Sahar Arabha",
+        "Davoud Sarani",
+        "and Parviz Rashidi-Khazaee\n* Paper: \"Improving Deep Reinforcement Learning Agent Trading Performance in Forex using Auxiliary Task\"\n\n**"
+      ]
+    },
+    "idea_name": "** PPO+AXT (Proximal Policy Optimization with Auxiliary Task)"
+  },
+  "166b194f-4844-440b-9d32-58256c967195": {
+    "description": "**\n\n* The auxiliary task labeling mechanism uses an Autoencoder (AE) and K-Means algorithm to cluster the input data and provide a suitable label for each input instance.\n* The AE extracts 12 golden features from 80 features (5 features x 16 time steps).\n* The K-Means algorithm clusters the golden features into 12 separate clusters.\n\n**",
+    "edge": "**\n\n* The use of AE and K-Means algorithm helps to identify patterns and relationships in the data that may not be apparent through other methods.\n* The clustering of input data provides a way to label each input instance and provide additional information to the agent.\n\n**",
+    "pseudo_code": "**\n\n* Input: 80 features (5 features x 16 time steps)\n* Output: 12 golden features and cluster labels\n* AE:\n\t+ Extract 12 golden features from 80 features\n* K-Means algorithm:\n\t+ Cluster the golden features into 12 separate clusters\n\t+ Assign a label to each input instance based on its cluster\n\n**SIGNAL GENERATION LOGIC:**\n\n* The auxiliary task labeling mechanism generates a label for each input instance based on its cluster.\n\n**ENTRY/EXIT RULES:**\n\n* None\n\n**",
+    "source_info": {
+      "paper": "** \n* Authors: Sahar Arabha, Davoud Sarani, and Parviz Rashidi-Khazaee\n* Paper: \"Improving Deep Reinforcement Learning Agent Trading Performance in Forex using Auxiliary Task\"\n\n*",
+      "authors": [
+        "liary Task Labeling Mechanism\n\n**DESCRIPTION:**\n\n* The auxiliary task labeling mechanism uses an Autoencoder (AE) and K-Means algorithm to cluster the input data and provide a suitable label for each input instance.\n* The AE extracts 12 golden features from 80 features (5 features x 16 time steps).\n* The K-Means algorithm clusters the golden features into 12 separate clusters.\n\n**EDGE:**\n\n* The use of AE and K-Means algorithm helps to identify patterns and relationships in the data that may not be apparent through other methods.\n* The clustering of input data provides a way to label each input instance and provide additional information to the agent.\n\n**PSEUDOCODE:**\n\n* Input: 80 features (5 features x 16 time steps)\n* Output: 12 golden features and cluster labels\n* AE:\n\t+ Extract 12 golden features from 80 features\n* K-Means algorithm:\n\t+ Cluster the golden features into 12 separate clusters\n\t+ Assign a label to each input instance based on its cluster\n\n**SIGNAL GENERATION LOGIC:**\n\n* The auxiliary task labeling mechanism generates a label for each input instance based on its cluster.\n\n**ENTRY/EXIT RULES:**\n\n* None\n\n**SOURCE:** \n* Authors: Sahar Arabha",
+        "Davoud Sarani",
+        "and Parviz Rashidi-Khazaee\n* Paper: \"Improving Deep Reinforcement Learning Agent Trading Performance in Forex using Auxiliary Task\"\n\n**"
+      ]
+    },
+    "idea_name": "** Auxiliary Task Labeling Mechanism"
+  },
+  "e5f59ca1-21cd-41ea-a1e5-fb3998711445": {
+    "description": "**\n\n* The PPO with additional reward model uses a Proximal Policy Optimization (PPO) algorithm with an additional reward function to improve the performance of a deep reinforcement learning agent in the forex market.\n* The additional reward function is designed to guide the agent towards favorable policies or steer away from unfavorable ones.\n\n**",
+    "edge": "**\n\n* The use of an additional reward function provides additional information to the agent, allowing it to learn more efficiently and make more informed decisions.\n\n**",
+    "pseudo_code": "**\n\n* Input: OHLC (Open, High, Low, Close) data for a currency pair\n* Output: Trading actions (buy, sell, or hold)\n* PPO algorithm:\n\t+ Use Actor-Critic structure to monitor the trading environment and make optimal trades\n\t+ Additional reward function:\n\t\t- Provides additional information to the agent to guide its learning\n\n**SIGNAL GENERATION LOGIC:**\n\n* The Actor network generates a trading action (buy, sell, or hold) based on the predicted input data and the additional reward function.\n\n**ENTRY/EXIT RULES:**\n\n* The trading agent enters a long position when the Actor network predicts a buy signal and the additional reward function confirms the signal.\n* The trading agent exits a long position when the Actor network predicts a sell signal or the additional reward function indicates a change in market conditions.\n\n**",
+    "source_info": {
+      "paper": "** \n* Authors: A. Tsantekidis, N. Passalis, A.-S. Toufa, K. Saitas - Zarkias, S. Chairistanidis, and A. Tefas\n* Paper: \"Price Trailing for Financial Trading Using Deep Reinforcement Learning",
+      "authors": [
+        "with Additional Reward\n\n**DESCRIPTION:**\n\n* The PPO with additional reward model uses a Proximal Policy Optimization (PPO) algorithm with an additional reward function to improve the performance of a deep reinforcement learning agent in the forex market.\n* The additional reward function is designed to guide the agent towards favorable policies or steer away from unfavorable ones.\n\n**EDGE:**\n\n* The use of an additional reward function provides additional information to the agent",
+        "allowing it to learn more efficiently and make more informed decisions.\n\n**PSEUDOCODE:**\n\n* Input: OHLC (Open",
+        "High",
+        "Low",
+        "Close) data for a currency pair\n* Output: Trading actions (buy",
+        "sell",
+        "or hold)\n* PPO algorithm:\n\t+ Use Actor-Critic structure to monitor the trading environment and make optimal trades\n\t+ Additional reward function:\n\t\t- Provides additional information to the agent to guide its learning\n\n**SIGNAL GENERATION LOGIC:**\n\n* The Actor network generates a trading action (buy",
+        "sell",
+        "or hold) based on the predicted input data and the additional reward function.\n\n**ENTRY/EXIT RULES:**\n\n* The trading agent enters a long position when the Actor network predicts a buy signal and the additional reward function confirms the signal.\n* The trading agent exits a long position when the Actor network predicts a sell signal or the additional reward function indicates a change in market conditions.\n\n**SOURCE:** \n* Authors: A. Tsantekidis",
+        "N. Passalis",
+        "A.-S. Toufa",
+        "K. Saitas - Zarkias",
+        "S. Chairistanidis",
+        "and A. Tefas\n* Paper: \"Price Trailing for Financial Trading Using Deep Reinforcement Learning\""
+      ]
+    },
+    "idea_name": "** PPO with Additional Reward"
+  },
+  "ddf9a292-57e9-4670-95ee-24b92565b14c": {
+    "description": "**\n* This idea uses a Long Short-Term Memory (LSTM) neural network to predict stock prices based on historical data.\n* The LSTM model is trained to predict the next day's stock price using a rolling window of past price data.\n* The trading strategy is event-driven, meaning it takes advantage of the distribution of predicted returns rather than just the direction of the prediction.\n* The strategy uses a percentile-based allocation policy to determine the amount of stock to buy or sell.\n* The model and strategy are tested on four major US stock indices: S&P 500, DJIA, NASDAQ, and R2000.\n\n**",
+    "edge": "**\n* The LSTM model can capture complex patterns in historical data that traditional models may miss.\n* The event-driven trading strategy can take advantage of the distribution of predicted returns, allowing for more informed trading decisions.\n* The percentile-based allocation policy can help manage risk and maximize returns.\n\n**",
+    "pseudo_code": "**\n```\n// Define the LSTM model architecture\nlstm_model = Sequential()\nlstm_model.add(LSTM(units=64, return_sequences=True, input_shape=(T, H)))\nlstm_model.add(Dense(1))\n\n// Define the trading strategy\ndef trading_strategy(predicted_returns, current_price):\n  // Calculate the percentile of the predicted return\n  percentile = np.percentile(predicted_returns, 50)\n  \n  // Determine the allocation based on the percentile\n  if predicted_returns < percentile:\n    allocation = 0\n  else:\n    allocation = Amax * (predicted_returns - percentile) / (max(predicted_returns) - percentile)\n  \n  // Buy or sell based on the allocation\n  if allocation > 0:\n    buy_units = allocation * current_price\n  else:\n    sell_units = -allocation * current_price\n\n  return buy_units, sell_units\n```\n\n**",
+    "source_info": {
+      "paper": "** \"High-performance stock index trading: making effective use of a deep long short-term memory network\" by Chariton Chalvatzis and Dimitrios Hristu-Varsakelis\n**",
+      "authors": [
+        "** Chariton Chalvatzis and Dimitrios Hristu-Varsakelis\n\n**"
+      ]
+    },
+    "idea_name": "** LSTM-based Stock Price Prediction with Event-Driven Trading Strategy"
+  },
+  "6270280e-4a03-4e87-8a41-1f0b04cb7838": {
+    "description": "**\n* This idea uses a prediction model to determine the direction of the next day's stock price movement (up or down).\n* The trading strategy is based on the predicted direction, buying if the predicted price is higher and selling if it is lower.\n\n**",
+    "edge": "**\n* The prediction model can provide accurate directional predictions, allowing for profitable trades.\n* The strategy is simple to implement and can be used with various prediction models.\n\n**",
+    "pseudo_code": "**\n```\n// Define the prediction model\ndef prediction_model(current_price):\n  // Predict the next day's stock price\n  predicted_price = ...\n\n  // Determine the direction of the prediction\n  if predicted_price > current_price:\n    direction = 1 (up)\n  else:\n    direction = -1 (down)\n\n  return direction\n\n// Define the trading strategy\ndef trading_strategy(direction, current_price):\n  if direction == 1:\n    buy_units = 1\n  else:\n    sell_units = 1\n\n  return buy_units, sell_units\n```\n\n**",
+    "source_info": {
+      "paper": "** Various papers on directional trading strategies\n**",
+      "authors": [
+        "** Various authors\n\n**"
+      ]
+    },
+    "idea_name": "** Directional \"Up-Down\" Trading Strategy"
+  },
+  "4bb66515-0797-43e7-8103-3e3541072749": {
+    "description": "**\n* This idea uses an Autoregressive Integrated Moving Average (ARIMA) model to predict stock prices.\n* The trading strategy is based on the predicted stock price, buying if the predicted price is higher and selling if it is lower.\n\n**",
+    "edge": "**\n* The ARIMA model can provide accurate predictions of stock prices, allowing for profitable trades.\n* The strategy is simple to implement and can be used with various prediction models.\n\n**",
+    "pseudo_code": "**\n```\n// Define the ARIMA model\ndef arima_model(current_price):\n  // Predict the next day's stock price\n  predicted_price = ...\n\n  return predicted_price\n\n// Define the trading strategy\ndef trading_strategy(predicted_price, current_price):\n  if predicted_price > current_price:\n    buy_units = 1\n  else:\n    sell_units = 1\n\n  return buy_units, sell_units\n```\n\n**",
+    "source_info": {
+      "paper": "** Various papers on ARIMA-based trading strategies\n**",
+      "authors": [
+        "** Various authors"
+      ]
+    },
+    "idea_name": "** ARIMA-based Stock Price Prediction with Trading Strategy"
   }
 }

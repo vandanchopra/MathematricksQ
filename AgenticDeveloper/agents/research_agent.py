@@ -1,14 +1,18 @@
 import os
 import json
+import yaml
 import asyncio
 from typing import List, Dict, Optional
 from tqdm.asyncio import tqdm
 from AgenticDeveloper.tools.web_tools import ArxivSearchTool, PDFHandler, HTMLHandler
 from AgenticDeveloper.agents.base import BaseAgent
+from AgenticDeveloper.logger import get_logger
+import uuid
 
 class IdeaResearcherAgent(BaseAgent):
     def __init__(self, config_path: Optional[str] = None, config: Optional[Dict] = None):
         super().__init__(config_path, config)
+        self.logger = get_logger("ResearchAgent")
         self.arxiv_tool = ArxivSearchTool()
         self.pdf_handler = PDFHandler()
         self.html_handler = HTMLHandler()
@@ -17,6 +21,117 @@ class IdeaResearcherAgent(BaseAgent):
         if not os.path.exists(self.ideas_dump_path):
             with open(self.ideas_dump_path, "w") as f:
                 json.dump({}, f)
+
+    def _get_chunk_size_from_config(self) -> int:
+        """Get the maximum words per chunk based on LLM's context window."""
+        llm_config = self.config.get("llm", {})
+        research_provider = llm_config.get("research_provider", "openrouter_llama4-scout")
+        provider_config = llm_config.get(research_provider, {})
+        context_window_k = provider_config.get("context_window_in_k", 128)
+        
+        # Since 1 token ≈ 0.75 words, and we want to use 50% of context window:
+        # context_window_k * 1000 * 0.75 * 0.5
+        max_words = int(context_window_k * 1000 * 0.75 * 0.5)
+        return max_words
+
+    def _count_words(self, text: str) -> int:
+        """Count the number of words in text."""
+        return len(text.split())
+
+    def _chunk_text(self, text: str, max_words: int) -> List[str]:
+        """Split text into chunks based on word count."""
+        words = text.split()
+        total_words = len(words)
+        num_chunks = (total_words + max_words - 1) // max_words
+        
+        chunks = []
+        for i in range(num_chunks):
+            start_idx = i * max_words
+            end_idx = min((i + 1) * max_words, total_words)
+            chunk = ' '.join(words[start_idx:end_idx])
+            chunks.append(chunk)
+            
+        return chunks
+
+    async def _analyze_resource(self, text: str) -> Dict[str, dict]:
+        # Get chunk size from config and create chunks
+        max_words = self._get_chunk_size_from_config()
+        chunks = self._chunk_text(text, max_words=max_words)
+        
+        ideas = {}
+        
+        # Process each chunk with the research LLM
+        for chunk in tqdm(chunks, desc=f"Analyzing Text with LLM...", unit="chunk"):
+            prompt = (
+                "You are a advanced quantitative researcher in a big wallstreet trading firm, analyzing academic papers for trading strategies and indicators.\n\n"
+                "Extract all tradable ideas and indicators that can provide extra edge to trading strategies.\n"
+                "For each idea, provide the following information in a clear, structured format:\n\n"
+                "IDEA NAME: A clear, descriptive name for the strategy/indicator\n"
+                "DESCRIPTION: A detailed explanation of how the idea works. Write atleast 15 bullet points explaining the idea.\n"
+                "EDGE: A thorough explanation of why this idea provides trading edge\n"
+                "PSEUDOCODE: we don't want a full fledged strategy, we just want code for the idea only, \n"
+                "- Signal generation logic\n"
+                "- Entry/exit rules\n"
+                "SOURCE: Name of the paper/source\n"
+                "AUTHORS: Names of the authors\n\n"
+                "Analyze the following text and extract all trading ideas:\n\n"
+                f"{chunk}\n\n"
+                "Format each idea as a complete, standalone trading indicator that could be implemented as part of a bigger strategy."
+            )
+
+            response = await self.call_llm(prompt, llm_destination="research")
+            
+            # Parse ideas from response
+            idea_blocks = response.split("IDEA NAME:")[1:]  # Skip first empty split
+            for block in idea_blocks:
+                try:
+                    lines = block.strip().split("\n")
+                    
+                    # Extract idea name
+                    idea_name = lines[0].strip()
+                    
+                    # Extract other sections
+                    desc_start = block.find("DESCRIPTION:") + len("DESCRIPTION:")
+                    desc_end = block.find("EDGE:")
+                    description = block[desc_start:desc_end].strip()
+                    
+                    edge_start = block.find("EDGE:") + len("EDGE:")
+                    edge_end = block.find("PSEUDOCODE:")
+                    edge = block[edge_start:edge_end].strip()
+                    
+                    pseudo_start = block.find("PSEUDOCODE:") + len("PSEUDOCODE:")
+                    pseudo_end = block.find("SOURCE:")
+                    pseudocode = block[pseudo_start:pseudo_end].strip()
+                    
+                    source_start = block.find("SOURCE:") + len("SOURCE:")
+                    source_end = block.find("AUTHORS:")
+                    source = block[source_start:source_end].strip()
+                    
+                    authors_start = block.find("AUTHORS:") + len("AUTHORS:")
+                    authors = block[authors_start:].strip()
+                    
+                    if all([idea_name, description, edge, pseudocode, source, authors]):
+                        ideas[idea_name] = {
+                            'description': description,
+                            'edge': edge,
+                            'pseudo_code': pseudocode,
+                            'source_info': {
+                                'paper': source,
+                                'authors': [a.strip() for a in authors.split(',')]
+                            }
+                        }
+                    else:
+                        # show me what is being rejected
+                        self.logger.warning(f"Rejected idea due to missing fields: {block}")
+                        continue
+                        
+                except Exception as e:
+                    self.logger.warning(f"Failed to parse idea block: {str(e)}")
+                    continue
+
+            tqdm.write(f"Extracted {len(idea_blocks)} ideas from chunk")
+
+        return ideas
 
     async def run(self, query: str = "momentum trading", max_results: int = 3):
         await self.search_and_process(query, max_results)
@@ -40,7 +155,7 @@ class IdeaResearcherAgent(BaseAgent):
 
         for paper in papers:
             if paper["pdf_url"] in existing_urls:
-                print(f"[ResearchAgent] Skipping already processed paper: {paper['title']}")
+                self.logger.info(f"Skipping already processed paper: {paper['title']}")
                 continue
 
             pdf_path = await self.pdf_handler.download_pdf(paper["pdf_url"], "AgenticDeveloper/research_ideas")
@@ -50,108 +165,24 @@ class IdeaResearcherAgent(BaseAgent):
                 text = ""
 
             # Extract multiple ideas from the paper
-            ideas = await self._analyze_resource(text, paper)
+            ideas = await self._analyze_resource(text)
 
-            for idea_name, (desc, pseudo) in ideas.items():
-                self._save_idea(idea_name, paper, desc, pseudo, pdf_path)
+            for idea_name, idea in ideas.items():
+                self._save_idea(idea_name, idea)
+                
+            self.logger.info(f"{len(ideas)} ideas extracted from {paper['title']}")
 
-    async def _analyze_resource(self, text: str, paper: Dict) -> Dict[str, tuple]:
-        chunks = [text[i:i+1000] for i in range(0, len(text), 1000)]
-        ideas = {}
-
-        for chunk in tqdm(chunks, desc=f"Analyzing {paper.get('title', '')}"):
-            prompt = (
-                "Extract all distinct trading strategies or ideas from the following text. "
-                "For each, provide:\n"
-                "- A clear, detailed, actionable description\n"
-                "- Step-by-step pseudocode including:\n"
-                "  * Universe selection\n"
-                "  * Entry and exit criteria\n"
-                "  * Risk management rules\n"
-                "  * Parameter suggestions\n"
-                "Text:\n"
-                f"{chunk[:1000]}"
-            )
-
-            # Simulate LLM response
-            response = f"Summary of chunk: {chunk[:30]}... pseudo code: pass"
-
-            # Post-process: if response is generic, simulate retry with refined prompt
-            if "description of idea" in response.lower() or "pass" in response:
-                refined_prompt = (
-                    "Your previous answer was too vague. Please extract concrete, detailed trading ideas "
-                    "and provide specific, step-by-step pseudocode implementations."
-                )
-                # Simulate improved response
-                response = (
-                    "Idea: Mid-cap momentum strategy\n"
-                    "Description: Select KOSPI 100-50 mid-cap stocks. Rank by 6-month past returns. "
-                    "Go long top 20%, short bottom 20%. Hold for 3 months. Rebalance monthly. "
-                    "Avoid KOSPI 50 large caps to improve alpha.\n"
-                    "Pseudocode:\n"
-                    "def midcap_momentum():\n"
-                    "    universe = get_kospi_200()\n"
-                    "    midcaps = filter_market_cap(universe, rank_range=(50,100))\n"
-                    "    ranked = rank_by_past_return(midcaps, lookback=126)\n"
-                    "    longs = top_percentile(ranked, 20)\n"
-                    "    shorts = bottom_percentile(ranked, 20)\n"
-                    "    portfolio = long_short(longs, shorts)\n"
-                    "    hold(portfolio, 63)\n"
-                    "    rebalance_monthly()\n"
-                    "\n"
-                    "Idea: Liquidity-based strategy\n"
-                    "Description: In KOSPI 200 excluding KOSPI 50, rank stocks by average daily turnover. "
-                    "Go long lowest 20% liquidity, short highest 20%. Hold 3 months, rebalance monthly. "
-                    "Low liquidity stocks tend to outperform.\n"
-                    "Pseudocode:\n"
-                    "def liquidity_strategy():\n"
-                    "    universe = get_kospi_200()\n"
-                    "    ex_largecaps = exclude_kospi_50(universe)\n"
-                    "    ranked = rank_by_liquidity(ex_largecaps, lookback=126)\n"
-                    "    longs = bottom_percentile(ranked, 20)\n"
-                    "    shorts = top_percentile(ranked, 20)\n"
-                    "    portfolio = long_short(longs, shorts)\n"
-                    "    hold(portfolio, 63)\n"
-                    "    rebalance_monthly()\n"
-                )
-
-            # Parse ideas from response (simulate parsing)
-            if "midcap_momentum" in response:
-                ideas[f"{paper.get('title', 'Untitled')} Mid-Cap Momentum"] = (
-                    "Select KOSPI 100-50 mid-cap stocks. Rank by 6-month past returns. Go long top 20%, short bottom 20%. Hold for 3 months. Rebalance monthly. Avoid KOSPI 50 large caps to improve alpha.",
-                    "def midcap_momentum():\n    universe = get_kospi_200()\n    midcaps = filter_market_cap(universe, rank_range=(50,100))\n    ranked = rank_by_past_return(midcaps, lookback=126)\n    longs = top_percentile(ranked, 20)\n    shorts = bottom_percentile(ranked, 20)\n    portfolio = long_short(longs, shorts)\n    hold(portfolio, 63)\n    rebalance_monthly()"
-                )
-            if "liquidity_strategy" in response:
-                ideas[f"{paper.get('title', 'Untitled')} Liquidity Strategy"] = (
-                    "In KOSPI 200 excluding KOSPI 50, rank stocks by average daily turnover. Go long lowest 20% liquidity, short highest 20%. Hold 3 months, rebalance monthly. Low liquidity stocks tend to outperform.",
-                    "def liquidity_strategy():\n    universe = get_kospi_200()\n    ex_largecaps = exclude_kospi_50(universe)\n    ranked = rank_by_liquidity(ex_largecaps, lookback=126)\n    longs = bottom_percentile(ranked, 20)\n    shorts = top_percentile(ranked, 20)\n    portfolio = long_short(longs, shorts)\n    hold(portfolio, 63)\n    rebalance_monthly()"
-                )
-
-            tqdm.write(response[:60])  # Print snippet of response
-            await asyncio.sleep(0.1)  # Simulate async LLM call
-
-        return ideas
-
-    def _save_idea(self, idea_name: str, paper: Dict, summary: str, pseudo_code: str, pdf_path: Optional[str]):
+    def _save_idea(self, idea_name, idea):
         # Load existing ideas
         try:
             with open(self.ideas_dump_path, "r") as f:
                 ideas = json.load(f)
         except (FileNotFoundError, json.JSONDecodeError):
             ideas = {}
-
+        
         # Update with new idea
-        ideas[idea_name] = {
-            "description": summary,
-            "pseudo_code": pseudo_code,
-            "source": {
-                "title": paper.get("title", "Untitled"),
-                "authors": paper.get("authors", []),
-                "url": paper.get("pdf_url", ""),
-                "local_pdf_path": pdf_path
-            },
-            "learnings_from_testing": []
-        }
+        idea['idea_name'] = idea_name
+        ideas[str(uuid.uuid4())] = idea
 
         # Save updated ideas atomically
         tmp_path = self.ideas_dump_path + ".tmp"
@@ -160,6 +191,5 @@ class IdeaResearcherAgent(BaseAgent):
         os.replace(tmp_path, self.ideas_dump_path)
 
         abs_path = os.path.abspath(self.ideas_dump_path)
-        abs_path = os.path.abspath(self.ideas_dump_path)
-        print(f"[ResearchAgent] Research ideas saved at: {abs_path}")
-        print(f"[ResearchAgent] Research ideas content:\n{json.dumps(ideas, indent=2)}")
+        self.logger.info(f"Research ideas saved at: {abs_path}")
+        # self.logger.info(f"Research ideas content:\n{json.dumps(ideas, indent=2)}")

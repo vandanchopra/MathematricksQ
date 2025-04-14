@@ -591,7 +591,7 @@
     },
     "job-organization-id": "cd6f2f0926974671b071a3da0a9d36d0",
     "organization-id": "cd6f2f0926974671b071a3da0a9d36d0",
-    "file-database-last-update": "04/09/2025 10:10:06",
+    "file-database-last-update": "04/13/2025 16:01:43",
     "id": "Local",
     "data-downloader": "QuantConnect.DownloaderDataProvider.Launcher.Models.BrokerageDataDownloader",
     "load-existing-holdings": "false",

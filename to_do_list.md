@@ -147,6 +147,28 @@ Added iterative workflow loop with decision points:
 - Next: Implement decision logic and dynamic tool invocation
 }
 
+{AlphaSeeker Orchestration Refactor Plan (2025-04-10):
+
+1. Remove reliance on LangChain OpenAI Functions agent for orchestration.
+2. Implement a **custom async loop** inside AlphaSeekerMetaAgent.run():
+   - If NewStrategy:
+     - Call ResearchTool with initial prompt
+     - Pass research output to StrategyWriterTool
+   - Else (ExistingStrategy):
+     - Analyze existing strategy and backtest results
+     - Decide to fix or research
+3. After strategy generation:
+   - Call BacktesterTool
+   - Call BacktestAnalyzerTool
+4. Use analysis to decide:
+   - Minor fix → StrategyWriterTool
+   - New research → ResearchTool
+   - Finalize → stop loop
+5. Repeat loop until stopping criteria met.
+6. Log progress and decisions at each step.
+7. Gradually replace placeholders with real logic.
+}
+
 
 3. [ ] CLI Interface Development
    - Add --new flag for new strategy creation

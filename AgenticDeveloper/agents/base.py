@@ -14,11 +14,10 @@ import asyncio
 from dotenv import load_dotenv
 load_dotenv()
 
-
 class OpenRouterLLMWrapper:
-    def __init__(self, api_key: str, model: str, temperature: float = 0.7, max_tokens: int = 4000, timeout: int = 60):
+    def __init__(self, api_key: str, base_url: str, model: str, temperature: float = 0.7, max_tokens: int = 4000, timeout: int = 60):
         self.client = OpenAIClient(
-            base_url="https://openrouter.ai/api/v1",
+            base_url=base_url,
             api_key=api_key,
         )
         self.model = model
@@ -27,40 +26,83 @@ class OpenRouterLLMWrapper:
         self.timeout = timeout
 
     def invoke(self, prompt: str) -> str:
-        response = self.client.chat.completions.create(
-            extra_headers={
-                "HTTP-Referer": "https://your-site-url.com",
-                "X-Title": "Your Site Name",
-            },
-            extra_body={},
-            model=self.model,
-            temperature=self.temperature,
-            max_tokens=self.max_tokens,
-            messages=[
-                {"role": "user", "content": prompt}
-            ]
-        )
-        return response.choices[0].message.content
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                response = self.client.chat.completions.create(
+                    extra_headers={
+                        "HTTP-Referer": "https://your-site-url.com",
+                        "X-Title": "Your Site Name",
+                    },
+                    extra_body={},
+                    model=self.model,
+                    temperature=self.temperature,
+                    max_tokens=self.max_tokens,
+                    messages=[
+                        {"role": "user", "content": prompt}
+                    ]
+                )
+                
+                if not response:
+                    raise ValueError("API returned None response")
+                if not hasattr(response, 'choices') or not response.choices:
+                    raise ValueError("API response missing choices")
+                if not hasattr(response.choices[0], 'message') or not response.choices[0].message:
+                    raise ValueError("API response missing message")
+                if not hasattr(response.choices[0].message, 'content'):
+                    raise ValueError("API response missing content")
+                
+                return response.choices[0].message.content
+                
+            except Exception as e:
+                if attempt == max_retries - 1:  # Last attempt
+                    raise RuntimeError(f"Failed to get valid response after {max_retries} attempts: {str(e)}")
+                import time
+                time.sleep(1 * (attempt + 1))  # Exponential backoff
 
     async def ainvoke(self, prompt: str) -> str:
         loop = asyncio.get_event_loop()
         def sync_call():
-            response = self.client.chat.completions.create(
-                extra_headers={
-                    "HTTP-Referer": "https://your-site-url.com",
-                    "X-Title": "Your Site Name",
-                },
-                extra_body={},
-                model=self.model,
-                temperature=self.temperature,
-                max_tokens=self.max_tokens,
-                messages=[
-                    {"role": "user", "content": prompt}
-                ]
-            )
-            return response.choices[0].message.content
+            max_retries = 3
+            last_error = None
+            
+            for attempt in range(max_retries):
+                try:
+                    response = self.client.chat.completions.create(
+                        extra_headers={
+                            "HTTP-Referer": "https://your-site-url.com",
+                            "X-Title": "Your Site Name",
+                        },
+                        extra_body={},
+                        model=self.model,
+                        temperature=self.temperature,
+                        max_tokens=self.max_tokens,
+                        messages=[
+                            {"role": "user", "content": prompt}
+                        ]
+                    )
+                    
+                    if not response:
+                        raise ValueError("API returned None response")
+                    if not hasattr(response, 'choices') or not response.choices:
+                        raise ValueError("API response missing choices")
+                    if not hasattr(response.choices[0], 'message') or not response.choices[0].message:
+                        raise ValueError("API response missing message")
+                    if not hasattr(response.choices[0].message, 'content'):
+                        raise ValueError("API response missing content")
+                    
+                    return response.choices[0].message.content
+                    
+                except Exception as e:
+                    last_error = e
+                    if attempt == max_retries - 1:  # Last attempt
+                        raise RuntimeError(f"Failed to get valid response after {max_retries} attempts: {str(e)}")
+                    import time
+                    time.sleep(1 * (attempt + 1))  # Exponential backoff
+                    
+            raise last_error  # Should not reach here, but just in case
+            
         return await loop.run_in_executor(None, sync_call)
-
 
 # Configure logging
 logging.basicConfig(
@@ -80,7 +122,7 @@ class BaseAgent(ABC):
     def __init__(self, config_path: Optional[str] = None, config: Optional[Dict] = None):
         self.logger = logging.getLogger(self.__class__.__name__)
         self.config = config if config is not None else self._load_config(config_path)
-        self.llm = self._initialize_llm()
+        self._initialize_llms()
         self.tools = self._initialize_tools()
         self.max_iterations = self.config.get("max_iterations", 5)
         
@@ -99,39 +141,53 @@ class BaseAgent(ABC):
             self.logger.error(f"Failed to load config from {config_path}: {str(e)}")
             raise
             
-    def _initialize_llm(self) -> BaseLLM:
-        """Initialize LLM based on configuration"""
+    def _initialize_llms(self):
+        """Initialize LLMs based on configured providers"""
         llm_config = self.config.get("llm", {})
-        provider = llm_config.get("provider", "ollama")
+
+        # Get the list of providers we need
+        providers_to_init = [
+            llm_config.get("thinking_provider", "openrouter_quasar"),
+            llm_config.get("strategy_writer_provider", "openrouter_quasar")
+        ]
         
-        if provider == "ollama":
-            return self._initialize_ollama(llm_config.get("ollama", {}))
-        elif provider == "openai":
-            return self._initialize_openai(llm_config.get("openai", {}))
-        elif provider == "openrouter":
-            return self._initialize_openrouter(llm_config.get("openrouter", {}))
-        else:
-            raise ValueError(f"Unsupported LLM provider: {provider}")
+        # Add research provider if the agent has _analyze_resource method
+        if hasattr(self, '_analyze_resource'):
+            providers_to_init.append(llm_config.get("research_provider", "openrouter_llama4-scout"))
+
+        # Track initialized providers to avoid duplicate initialization
+        initialized_providers = {}
+        
+        # Initialize each provider once and store the instance
+        for provider in providers_to_init:
+            if provider not in initialized_providers:
+                provider_config = llm_config.get(provider, {})
+                
+                # Initialize based on provider type
+                if provider.startswith("ollama_"):
+                    initialized_providers[provider] = self._initialize_ollama(provider_config)
+                elif provider.startswith("openrouter_"):
+                    initialized_providers[provider] = self._initialize_openrouter(provider_config)
+                elif provider.startswith("openai_"):
+                    initialized_providers[provider] = self._initialize_openai(provider_config)
+                else:
+                    raise ValueError(f"Unsupported provider: {provider}")
+
+        # Assign providers to their respective roles
+        self.thinking_llm = initialized_providers[llm_config.get("thinking_provider")]
+        self.strategy_writer_llm = initialized_providers[llm_config.get("strategy_writer_provider")]
+        if hasattr(self, '_analyze_resource'):
+            self.research_llm = initialized_providers[llm_config.get("research_provider")]
             
     def _initialize_ollama(self, config: Dict) -> BaseLLM:
-        """Initialize Ollama LLM with validation and availability check.
-
-        Args:
-            config (Dict): Configuration dictionary for Ollama settings
-
-        Returns:
-            BaseLLM: Initialized Ollama language model
-
-        Raises:
-            ValueError: If configuration is invalid
-            RuntimeError: If Ollama service is not available
-        """
+        """Initialize Ollama LLM with validation and availability check."""
         try:
-            # Validate configuration
-            model = str(config.get("model", "llama2"))
-            base_url = str(config.get("base_url", "http://localhost:11434")).rstrip('/')
+            model = str(config.get("model"))
+            base_url = str(config.get("base_url")).rstrip('/')
             timeout = int(config.get("timeout", 60))
 
+            if not model:
+                raise ValueError("Model name is required for Ollama")
             if timeout <= 0:
                 raise ValueError("Timeout must be a positive integer")
 
@@ -157,22 +213,31 @@ class BaseAgent(ABC):
             raise ValueError("OPENAI_API_KEY environment variable not set")
             
         return OpenAI(
+            api_base=config.get("base_url", "https://api.openai.com/v1"),
             model_name=config.get("model", "gpt-4"),
             temperature=config.get("temperature", 0.7),
             max_tokens=config.get("max_tokens", 1000),
             timeout=config.get("timeout", 60)
         )
+
     def _initialize_openrouter(self, config: Dict) -> BaseLLM:
         """Initialize OpenRouter LLM"""
         api_key = os.getenv("OPENROUTER_API_KEY")
         if not api_key:
             raise ValueError("OPENROUTER_API_KEY environment variable not set")
-        model = config.get("model", "mistralai/mixtral-8x7b")
+        
+        model = config.get("model")
+        base_url = config.get("base_url", "https://openrouter.ai/api/v1")
         temperature = config.get("temperature", 0.7)
         max_tokens = config.get("max_tokens", 4000)
         timeout = config.get("timeout", 60)
+
+        if not model:
+            raise ValueError("Model name is required for OpenRouter")
+
         return OpenRouterLLMWrapper(
             api_key=api_key,
+            base_url=base_url,
             model=model,
             temperature=temperature,
             max_tokens=max_tokens,
@@ -200,6 +265,21 @@ class BaseAgent(ABC):
         """Main execution method to be implemented by specific agents"""
         pass
         
+    async def call_llm(self, prompt: str, llm_destination: str = "thinking") -> str:
+        """Call the appropriate LLM based on destination."""
+        if llm_destination == "strategy_writer":
+            # provider = self.config.get("llm", {}).get("strategy_writer_provider", "unknown")
+            # self.logger.info(f"[LLM CALL] Provider: {provider} (strategy_writer)\nPrompt:\n{prompt[:200]}")
+            return await self.strategy_writer_llm.ainvoke(prompt)
+        elif llm_destination == "research":
+            # provider = self.config.get("llm", {}).get("research_provider", "unknown")
+            # self.logger.info(f"[LLM CALL] Provider: {provider} (research)\nPrompt:\n{prompt[:200]}")
+            return await self.research_llm.ainvoke(prompt)
+        else:
+            # provider = self.config.get("llm", {}).get("thinking_provider", "unknown")
+            # self.logger.info(f"[LLM CALL] Provider: {provider} (thinking)\nPrompt:\n{prompt[:200]}")
+            return await self.thinking_llm.ainvoke(prompt)
+
     def log_progress(self, message: str, level: str = "info") -> None:
         """Log progress messages"""
         log_method = getattr(self.logger, level.lower())

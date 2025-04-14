@@ -5,10 +5,12 @@ from datetime import datetime
 from typing import Dict, Optional
 
 from .base import BaseAgent
+from AgenticDeveloper.logger import get_logger
 
 class BacktesterAgent(BaseAgent):
     def __init__(self):
         super().__init__()
+        self.logger = get_logger("BacktesterAgent")
 
     async def run(self, strategy_path: str, mode: str = "local") -> Dict:
         """
@@ -41,16 +43,32 @@ class BacktesterAgent(BaseAgent):
         stdout_str = stdout.decode() if stdout else ""
         stderr_str = stderr.decode() if stderr else ""
 
-        self.log_progress(f"CLI stdout:\n{stdout_str}")
-        self.log_progress(f"CLI stderr:\n{stderr_str}")
+        filtered_stdout = "\n".join(
+            line for line in stdout_str.splitlines()
+            if "error" in line.lower() and "tracking error" not in line.lower()
+        )
+        filtered_stderr = "\n".join(
+            line for line in stderr_str.splitlines()
+            if "error" in line.lower() and "tracking error" not in line.lower()
+        )
+        if filtered_stdout:
+            self.logger.error(f"Lean CLI stdout errors:\n{filtered_stdout}")
+        if filtered_stderr:
+            self.logger.error(f"Lean CLI stderr errors:\n{filtered_stderr}")
 
         # Parse output directory from CLI output or error output
         folder_path = None
-        pattern = r"output is stored in\s*'([^']+)'"
+        patterns = [
+            r"output is stored in\s*'([^']+)'",
+            r"stored the output in\s*'([^']+)'"
+        ]
         for output in (stdout_str, stderr_str):
-            match = re.search(pattern, output, re.DOTALL | re.IGNORECASE)
-            if match:
-                folder_path = match.group(1)
+            for pattern in patterns:
+                match = re.search(pattern, output, re.DOTALL | re.IGNORECASE)
+                if match:
+                    folder_path = match.group(1)
+                    break
+            if folder_path:
                 break
  
         errors = []
@@ -86,8 +104,10 @@ class BacktesterAgent(BaseAgent):
         errors += self.check_backtest_logs_for_errors(folder_path)
         print(f"Finished Checking backtest logs for errors in {folder_path}")
 
-        success = len(errors) == 0
-        return success, errors
+        # Only consider non-tracking-error messages when determining success
+        real_errors = [err for err in errors if "STATISTICS:: TRACKING ERROR" not in err.upper()]
+        success = len(real_errors) == 0
+        return success, real_errors
 
     def check_errors_in_console_output(self, console_output: str) -> list:
         """
@@ -99,7 +119,11 @@ class BacktesterAgent(BaseAgent):
         i = 0
         while i < len(lines):
             line = lines[i]
-            if ("error" in line.lower()) or ("syntaxerror" in line.lower()) or ("traceback" in line.lower()):
+            if (
+                ("error" in line.lower() and "tracking error" not in line.lower())
+                or ("syntaxerror" in line.lower())
+                or ("traceback" in line.lower())
+            ):
                 error_block = [line.rstrip()]
                 i += 1
                 # Capture indented traceback/code lines
@@ -130,7 +154,8 @@ class BacktesterAgent(BaseAgent):
         i = 0
         while i < len(lines):
             line = lines[i]
-            if "ERROR" in line.upper():
+            # Only consider ERROR lines that aren't tracking error statistics
+            if "ERROR" in line.upper() and "STATISTICS:: TRACKING ERROR" not in line.upper():
                 error_block = [line.rstrip()]
                 i += 1
                 # Capture indented traceback lines
@@ -141,6 +166,8 @@ class BacktesterAgent(BaseAgent):
             else:
                 i += 1
 
+        # Filter out any tracking error statistics that might have slipped through
+        errors = [err for err in errors if "STATISTICS:: TRACKING ERROR" not in err.upper()]
         return errors
 
 

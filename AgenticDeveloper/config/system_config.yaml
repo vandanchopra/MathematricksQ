@@ -1,19 +1,39 @@
 # LLM Configuration
 llm:
-  provider: "openrouter"  # Can be "ollama" or "openai" or "openrouter"
-  openrouter:
-    model: "openrouter/quasar-alpha"
+  thinking_provider: "openrouter_quasar"
+  strategy_writer_provider: "openrouter_quasar"
+  research_provider: "openrouter_llama4-scout"
+  openrouter_quasar:
+    model: "openrouter/optimus-alpha"
+    base_url: "https://openrouter.ai/api/v1"
     temperature: 0.7
-    max_tokens: 1000
+    max_tokens: 5000
     timeout: 60
-  ollama:
-    model: "deepseek-r1:32b"  # Using remote deepseek model  deepseek-r1:32b
-    base_url: "http://localhost:11434"  # Using SSH tunnel
+    context_window_in_k: 1000  # ~128K tokens context window for quasar
+  openrouter_deepseek:
+    model: "openrouter/deepseek-coder-33b-instruct"
+    base_url: "https://openrouter.ai/api/v1"
+    temperature: 0.7
+    max_tokens: 5000
     timeout: 60
-  openai:
-    model: "gpt-4"
+    context_window_in_k: 128  # ~100K tokens context window
+  openrouter_llama4-scout:
+    model: "meta-llama/llama-4-scout:free"
+    base_url: "https://openrouter.ai/api/v1"
+    temperature: 0.7
+    max_tokens: 5000
     timeout: 60
-    # API key to be set via environment variable OPENAI_API_KEY
+    context_window_in_k: 10000  # ~196K tokens context window
+  ollama_qwen:
+    model: "qwen:latest"
+    base_url: "http://localhost:11434"
+    timeout: 60
+    context_window_in_k: 32  # ~32K tokens context window for qwen
+  ollama_deepseek:
+    model: "deepseek-coder:33b"
+    base_url: "http://localhost:11434"
+    timeout: 60
+    context_window_in_k: 128  # ~32K tokens context window
 
 # Agent Configuration
 agents:
