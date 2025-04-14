@@ -100,39 +100,83 @@ prompt = ChatPromptTemplate.from_messages([
 import shutil
 
 class AlphaSeekerMetaAgent(BaseAgent):
+    def __init__(self, config_path: str = "AgenticDeveloper/config/system_config.yaml", config=None):
+        super().__init__(config_path=config_path, config=config)
+        self.logger = get_logger("AlphaSeekerMetaAgent")
+        
     async def generate_new_strategy_name(self, human_input: str) -> str:
         """
         Generate a new strategy name using the LLM: "adjective" "adjective" "noun" (e.g., SleepyTanHippo).
+        Names are stored in strategy_names.json and validated against existing strategies.
         """
-        prompt = (
-            "Give me a python list of 10 examples with the following logic: "
-            "\"adjective\" \"adjective\" \"noun\" (eg. SleepyTanHippo). "
-            "Return only a valid python list of strings, no explanation."
-        )
-        response = await self.call_llm(prompt, llm_destination="thinking")
-        # Try to extract a python list from the response
-        import ast
+        import json
+        import os
+        
+        names_file = "AgenticDeveloper/strategy_names.json"
         names = []
+        
+        # Try to load existing names from file
+        if os.path.exists(names_file):
+            try:
+                with open(names_file, 'r') as f:
+                    data = json.load(f)
+                    names = data.get('names', [])
+            except Exception as e:
+                self.logger.error(f"Failed to load strategy names from file: {e}")
+
+        # If no names available, generate new ones using LLM
+        if not names:
+            prompt = (
+                "Give me a python list of 10 examples with the following logic: "
+                "\"adjective\" \"adjective\" \"noun\" (eg. SleepyTanHippo). "
+                "Return only a valid python list of strings, no explanation."
+            )
+            response = await self.call_llm(prompt, llm_destination="thinking")
+            
+            # Try to extract a python list from the response
+            import ast
+            try:
+                # Find the first [ ... ] block in the response
+                start = response.find("[")
+                end = response.find("]", start)
+                if start != -1 and end != -1:
+                    list_str = response[start:end+1]
+                    names = ast.literal_eval(list_str)
+                else:
+                    # Fallback: try to parse the whole response
+                    names = ast.literal_eval(response)
+            except Exception as e:
+                self.logger.error(f"Failed to parse LLM response for strategy names: {e}\nResponse: {response}")
+                from datetime import datetime
+                return "Strategy_" + datetime.now().strftime("%Y%m%d_%H%M%S")
+                
+            if not names or not isinstance(names, list):
+                from datetime import datetime
+                return "Strategy_" + datetime.now().strftime("%Y%m%d_%H%M%S")
+        
+        # Filter out names that already exist in Strategies/AgenticDev or Strategies
+        valid_names = []
+        for name in names:
+            agenticdev_path = os.path.join("Strategies/AgenticDev", name)
+            strategies_path = os.path.join("Strategies", name)
+            if not os.path.exists(agenticdev_path) and not os.path.exists(strategies_path):
+                valid_names.append(name)
+        
+        # If no valid names left, generate a timestamp-based name
+        if not valid_names:
+            from datetime import datetime
+            return "Strategy_" + datetime.now().strftime("%Y%m%d_%H%M%S")
+        
+        # Choose a random valid name
+        new_name = random.choice(valid_names)
+        
+        # Remove the chosen name and save remaining valid names back to file
+        valid_names.remove(new_name)
         try:
-            # Find the first [ ... ] block in the response
-            start = response.find("[")
-            end = response.find("]", start)
-            if start != -1 and end != -1:
-                list_str = response[start:end+1]
-                names = ast.literal_eval(list_str)
-            else:
-                # Fallback: try to parse the whole response
-                names = ast.literal_eval(response)
+            with open(names_file, 'w') as f:
+                json.dump({'names': valid_names}, f, indent=2)
         except Exception as e:
-            self.logger.error(f"Failed to parse LLM response for strategy names: {e}\nResponse: {response}")
-            from datetime import datetime
-            return "Strategy_" + datetime.now().strftime("%Y%m%d_%H%M%S")
-        if not names or not isinstance(names, list):
-            from datetime import datetime
-            return "Strategy_" + datetime.now().strftime("%Y%m%d_%H%M%S")
-        new_name = random.choice(names)
-        
-        
+            self.logger.error(f"Failed to save strategy names to file: {e}")
         
         return new_name
 
@@ -163,10 +207,7 @@ class AlphaSeekerMetaAgent(BaseAgent):
                 self.logger.error(f"Failed to fetch version history from {version_history_path}: {e}")
                 return ""
         return ""
-    def __init__(self, config_path: str = "AgenticDeveloper/config/system_config.yaml", config=None):
-        super().__init__(config_path=config_path, config=config)
-        self.logger = get_logger("AlphaSeekerMetaAgent")
-
+    
     async def run(
         self,
         new_strategy: bool,
@@ -205,8 +246,6 @@ class AlphaSeekerMetaAgent(BaseAgent):
             "human_input": human_input,
             "strategy_code": strategy_code,
             "version_history": version_history,
-            "backtest_results": "",
-            "analysis": "",
             "iteration": 0,
             "research_outputs": [],
             "strategy_updates": [],
@@ -396,7 +435,7 @@ class AlphaSeekerMetaAgent(BaseAgent):
             "}\n"
             "\nNotes:\n"
             "- If no research has been done, start with ResearchTool\n"
-            "- After testing an idea, use BacktestAnalyzerTool to evaluate its performance\n"
+            "- After BacktesterTool has run on an idea, use BacktestAnalyzerTool to evaluate its performance\n"
             "- Only move to a new idea after fully testing the current one\n"
         )
         response = await self.call_llm(prompt, llm_destination="thinking")
