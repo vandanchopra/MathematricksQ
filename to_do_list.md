@@ -1,5 +1,17 @@
 # AgenticDeveloper Project Tasks
 
+i want @/AgenticDeveloper/agents/backtester.py to also now run in mode == 'cloud': 
+   1) First we rename the strategy version we want to run to main.py in that strategy folder.
+   2) We cloud push so that the strategy is now in the cloud.
+   3) then we run lean cloud backtest {strategy_folder_path}
+   4) now we wait for the test to run.
+   5) Once the test is complete and successful (We get the performance table in the console), we take the performance and put it in a file called 'summary.json'. If it didn't work right, we put the 'console errors' into a file called 'errors.json'
+
+
+read @terminal for how backtests are run in the cloud, we run :lean cloud backtest "Hyper-Active Apricot Alligator": -- which automatically runs the main.py. but before we run the backtest, we need to push the project to cloud using 'lean cloud push'.
+
+
+
 ## HUMAN NOTES
 I want to make an agentic system that does the following: It is a algorithmic trading agent system with the following parts (agents) using an AI agent framework.
 0) [COMPLETED] use Langchain for the agent network. use quantconnect for backtesting and running queues.

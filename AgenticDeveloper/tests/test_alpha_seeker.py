@@ -21,7 +21,7 @@ async def run_existing_strategy(human_input: str, strategy_start_point_filepath:
     result = await agent.run(
         new_strategy=False,
         human_input=human_input,
-        strategy_start_point_filepath=strategy_start_point_filepath
+        start_point_filepath=strategy_start_point_filepath
     )
     print("\nFinal State:")
     print(json.dumps(result, indent=2))

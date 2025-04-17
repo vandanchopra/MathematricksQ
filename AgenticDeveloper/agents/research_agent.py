@@ -8,6 +8,7 @@ from AgenticDeveloper.tools.web_tools import ArxivSearchTool, PDFHandler, HTMLHa
 from AgenticDeveloper.agents.base import BaseAgent
 from AgenticDeveloper.logger import get_logger
 import uuid
+import datetime as dt
 
 class IdeaResearcherAgent(BaseAgent):
     def __init__(self, config_path: Optional[str] = None, config: Optional[Dict] = None):
@@ -63,80 +64,119 @@ class IdeaResearcherAgent(BaseAgent):
         # Process each chunk with the research LLM
         for chunk in tqdm(chunks, desc=f"Analyzing Text with LLM...", unit="chunk"):
             prompt = (
-                "You are a advanced quantitative researcher in a big wallstreet trading firm, analyzing academic papers for trading strategies and indicators.\n\n"
-                "Extract all tradable ideas and indicators that can provide extra edge to trading strategies.\n"
-                "For each idea, provide the following information in a clear, structured format:\n\n"
-                "IDEA NAME: A clear, descriptive name for the strategy/indicator\n"
-                "DESCRIPTION: A detailed explanation of how the idea works. Write atleast 15 bullet points explaining the idea.\n"
-                "EDGE: A thorough explanation of why this idea provides trading edge\n"
-                "PSEUDOCODE: we don't want a full fledged strategy, we just want code for the idea only, \n"
-                "- Signal generation logic\n"
-                "- Entry/exit rules\n"
-                "SOURCE: Name of the paper/source\n"
-                "AUTHORS: Names of the authors\n\n"
-                "Analyze the following text and extract all trading ideas:\n\n"
+                "You are an advanced quantitative researcher in a major Wall Street trading firm, analyzing academic papers for trading strategies and indicators.\n\n"
+                "Extract all tradable ideas and indicators that can provide extra edge to trading strategies. Format EACH idea as a JSON object with the following structure:\n\n"
+                "{\n"
+                '  "idea_name": "Clear strategy name",\n'
+                '  "description": [\n'
+                '    "Point 1 about how it works",\n'
+                '    "Point 2 about how it works",\n'
+                '    "... at least 15 detailed bullet points"\n'
+                '  ],\n'
+                '  "edge": [\n'
+                '    "Point 1 about trading edge",\n'
+                '    "Point 2 about trading edge",\n'
+                '    "... multiple points about why this provides edge"\n'
+                '  ],\n'
+                '  "pseudo_code": {\n'
+                '    "signal_generation": "Detailed signal generation logic",\n'
+                '    "entry_rules": "Clear entry conditions",\n'
+                '    "exit_rules": "Clear exit conditions"\n'
+                '  }\n'
+                "}\n\n"
+                "Analyze this text and extract all trading ideas:\n\n"
                 f"{chunk}\n\n"
-                "Format each idea as a complete, standalone trading indicator that could be implemented as part of a bigger strategy."
+                "IMPORTANT:\n"
+                "1. Return a JSON array of ideas, each following the exact structure above\n"
+                "2. Include at least 15 points in description\n"
+                "3. Provide specific signal generation and trading rules\n"
+                "4. Ensure the JSON is properly formatted and valid"
             )
 
             response = await self.call_llm(prompt, llm_destination="research")
             
-            # Parse ideas from response
-            idea_blocks = response.split("IDEA NAME:")[1:]  # Skip first empty split
-            for block in idea_blocks:
-                try:
-                    lines = block.strip().split("\n")
-                    
-                    # Extract idea name
-                    idea_name = lines[0].strip()
-                    
-                    # Extract other sections
-                    desc_start = block.find("DESCRIPTION:") + len("DESCRIPTION:")
-                    desc_end = block.find("EDGE:")
-                    description = block[desc_start:desc_end].strip()
-                    
-                    edge_start = block.find("EDGE:") + len("EDGE:")
-                    edge_end = block.find("PSEUDOCODE:")
-                    edge = block[edge_start:edge_end].strip()
-                    
-                    pseudo_start = block.find("PSEUDOCODE:") + len("PSEUDOCODE:")
-                    pseudo_end = block.find("SOURCE:")
-                    pseudocode = block[pseudo_start:pseudo_end].strip()
-                    
-                    source_start = block.find("SOURCE:") + len("SOURCE:")
-                    source_end = block.find("AUTHORS:")
-                    source = block[source_start:source_end].strip()
-                    
-                    authors_start = block.find("AUTHORS:") + len("AUTHORS:")
-                    authors = block[authors_start:].strip()
-                    
-                    if all([idea_name, description, edge, pseudocode, source, authors]):
-                        ideas[idea_name] = {
-                            'description': description,
-                            'edge': edge,
-                            'pseudo_code': pseudocode,
-                            'source_info': {
-                                'paper': source,
-                                'authors': [a.strip() for a in authors.split(',')]
-                            }
-                        }
-                    else:
-                        # show me what is being rejected
-                        self.logger.warning(f"Rejected idea due to missing fields: {block}")
-                        continue
-                        
-                except Exception as e:
-                    self.logger.warning(f"Failed to parse idea block: {str(e)}")
-                    continue
+            # Log response for debugging
+            self.logger.info(f"LLM Response:\n{response}")
+            
+            # Parse JSON from response
+            chunk_ideas = {}
+            try:
+                self.logger.debug("Looking for JSON array in response")
+                # Find JSON array in response, handle code blocks
+                json_start = response.find("```json")
+                if json_start != -1:
+                    json_start = response.find("[", json_start)
+                    json_end = response.find("```", json_start)
+                else:
+                    json_start = response.find("[")
+                    json_end = response.rfind("]") + 1
 
-            tqdm.write(f"Extracted {len(idea_blocks)} ideas from chunk")
+                if json_start == -1 or json_end == 0:
+                    self.logger.warning("No JSON array found in response")
+                    continue
+                
+                # Parse JSON array
+                json_str = response[json_start:json_end]
+                try:
+                    paper_ideas = json.loads(json_str)
+                except json.JSONDecodeError as e:
+                    # Try cleaning up the JSON
+                    json_str = json_str.replace('}\n  }', '}}')  # Fix common formatting issue
+                    paper_ideas = json.loads(json_str)
+                
+                if not paper_ideas:
+                    self.logger.warning("Empty JSON array in response")
+                    continue
+                
+                self.logger.info(f"Found {len(paper_ideas)} potential ideas in response")
+                
+                # Process each idea
+                successful_ideas = 0
+                for idea_json in paper_ideas:
+                    # Extract and validate idea name
+                    idea_name = idea_json.get('idea_name')
+                    if not idea_name:
+                        self.logger.warning("Idea missing name, skipping")
+                        continue
+                    
+                    # Validate required fields
+                    required_fields = ['description', 'edge', 'pseudo_code']
+                    if not all(k in idea_json for k in required_fields):
+                        missing = [k for k in required_fields if k not in idea_json]
+                        self.logger.warning(f"Idea '{idea_name}' missing fields: {missing}")
+                        continue
+                    
+                    # Add to ideas dict with our internal format
+                    chunk_ideas[idea_name] = {
+                        'description': '\n'.join(idea_json['description']),
+                        'edge': '\n'.join(idea_json['edge']),
+                        'pseudo_code': idea_json['pseudo_code'],
+                        'source_info': {}  # Will be added by caller
+                    }
+                    successful_ideas += 1
+                    self.logger.info(f"Successfully parsed idea: {idea_name}")
+                
+                if successful_ideas > 0:
+                    tqdm.write(f"Extracted {successful_ideas} ideas from chunk")
+                    ideas.update(chunk_ideas)
+                
+            except json.JSONDecodeError as e:
+                self.logger.warning(f"Failed to parse JSON response: {str(e)}")
+                self.logger.warning(f"Failed to parse JSON, raw content: {json_str[:200]}...")
+                continue
+            except Exception as e:
+                self.logger.warning(f"Error processing ideas: {str(e)}")
+                continue
+
+            if chunk_ideas:
+                tqdm.write(f"Extracted {len(ideas)} ideas from chunk")
 
         return ideas
 
     async def run(self, query: str = "momentum trading", max_results: int = 3):
         await self.search_and_process(query, max_results)
 
-    async def search_and_process(self, query: str, max_results: int = 6):
+    async def search_and_process(self, query: str, max_results: int = 6) -> Dict[str, Dict]:
         papers = await self.arxiv_tool.search(query, max_results)
 
         # Load existing ideas to skip duplicates
@@ -146,15 +186,16 @@ class IdeaResearcherAgent(BaseAgent):
         except (FileNotFoundError, json.JSONDecodeError):
             existing_ideas = {}
 
-        existing_urls = set()
-        for idea in existing_ideas.values():
-            src = idea.get("source", {})
-            url = src.get("url", "")
-            if url:
-                existing_urls.add(url)
-
+        # Track processed URLs using stored URLs in ideas
+        processed_urls = {
+            idea.get('source_info', {}).get('url', '')
+            for idea in existing_ideas.values()
+        }
+        processed_urls.discard('')  # Remove empty URLs
+        
+        new_ideas = {}
         for paper in papers:
-            if paper["pdf_url"] in existing_urls:
+            if paper["pdf_url"] in processed_urls:
                 self.logger.info(f"Skipping already processed paper: {paper['title']}")
                 continue
 
@@ -165,14 +206,36 @@ class IdeaResearcherAgent(BaseAgent):
                 text = ""
 
             # Extract multiple ideas from the paper
-            ideas = await self._analyze_resource(text)
+            paper_ideas = await self._analyze_resource(text)
+            
+            # Add source info and save each idea
+            for idea_name, idea in paper_ideas.items():
+                try:
+                    # Update source info
+                    idea['source_info'].update({
+                        'url': paper["pdf_url"],
+                        'title': paper["title"]
+                    })
+                    
+                    # Save idea and get ID
+                    idea_id = self._save_idea(idea_name, idea)
+                    if idea_id:
+                        new_ideas[idea_id] = idea.copy()  # Store copy of saved idea
+                    else:
+                        self.logger.warning(f"Failed to save idea: {idea_name} - no ID returned")
+                except Exception as e:
+                    self.logger.error(f"Error saving idea {idea_name}: {str(e)}")
+                    continue
 
-            for idea_name, idea in ideas.items():
-                self._save_idea(idea_name, idea)
+        self.logger.info(f"Total ideas added in this run: {len(new_ideas)}")
+        if new_ideas:
+            self.logger.info("New ideas generated:")
+            for idea_id, idea in new_ideas.items():
+                self.logger.info(f"  - {idea['idea_name']} (ID: {idea_id})")
                 
-            self.logger.info(f"{len(ideas)} ideas extracted from {paper['title']}")
+        return {'new_ideas': new_ideas}
 
-    def _save_idea(self, idea_name, idea):
+    def _save_idea(self, idea_name, idea) -> str:
         # Load existing ideas
         try:
             with open(self.ideas_dump_path, "r") as f:
@@ -182,8 +245,10 @@ class IdeaResearcherAgent(BaseAgent):
         
         # Update with new idea
         idea['idea_name'] = idea_name
-        ideas[str(uuid.uuid4())] = idea
-
+        idea['updated_dt'] = dt.datetime.now().isoformat()
+        idea_id = str(uuid.uuid4())
+        ideas[idea_id] = idea.copy()  # Make a copy to avoid reference issues
+        
         # Save updated ideas atomically
         tmp_path = self.ideas_dump_path + ".tmp"
         with open(tmp_path, "w") as f:
@@ -193,3 +258,5 @@ class IdeaResearcherAgent(BaseAgent):
         abs_path = os.path.abspath(self.ideas_dump_path)
         self.logger.info(f"Research ideas saved at: {abs_path}")
         # self.logger.info(f"Research ideas content:\n{json.dumps(ideas, indent=2)}")
+        
+        return idea_id

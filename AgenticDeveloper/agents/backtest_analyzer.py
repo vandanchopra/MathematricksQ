@@ -1,19 +1,19 @@
 import json
 import os
-import glob
 from datetime import datetime
 from typing import Dict, List, Any, Optional
 from .base import BaseAgent
 from AgenticDeveloper.logger import get_logger
 
 class BacktestAnalyzerAgent(BaseAgent):
-    def __init__(self, config_path: str = "../config/system_config.yaml", config: Optional[Dict] = None):
-        super().__init__(config_path=config_path, config=config)
-        self.logger = get_logger("BacktestAnalyzerAgent")
     """Agent responsible for analyzing backtest results and providing improvement suggestions"""
     
-    def __init__(self, config_path: str = "../config/system_config.yaml", config: Optional[Dict] = None):
+    def __init__(self, config_path: str = "AgenticDeveloper/config/system_config.yaml", config: Optional[Dict] = None):
         super().__init__(config_path=config_path, config=config)
+        self.logger = get_logger("BacktestAnalyzerAgent")
+        # Get context window size in tokens from config
+        provider = self.config["llm"]["thinking_provider"]
+        self.context_window = self.config["llm"][provider]["context_window_in_k"] * 1000
         
     async def run(self, backtest_dir: str) -> Dict[str, Any]:
         """
@@ -26,18 +26,17 @@ class BacktestAnalyzerAgent(BaseAgent):
         Returns:
             Dictionary containing analysis results and suggestions
         """
-        self.log_progress(f"Starting analysis for backtest: {backtest_dir}")
+        self.logger.debug(f"Starting analysis for backtest: {backtest_dir}")
         
         # Verify backtest directory exists
         if not os.path.exists(backtest_dir):
             raise ValueError(f"Backtest directory not found: {backtest_dir}")
             
         # Load backtest results
-        results = self._load_backtest_results(backtest_dir)
-        self.log_progress("Loaded backtest results, analyzing...")
+        backtest_info = self._load_backtest_results(backtest_dir)
         
         # Analyze results using LLM
-        analysis = await self._analyze_results(results)
+        analysis = await self._analyze_results(backtest_info)
         
         # Store analysis
         analysis_output = {
@@ -45,77 +44,95 @@ class BacktestAnalyzerAgent(BaseAgent):
             "backtest_path": backtest_dir,
             "analysis": analysis
         }
-        
         output_file = os.path.join(backtest_dir, "BacktestAnalyzerAgent_analysis.json")
         with open(output_file, 'w') as f:
             json.dump(analysis_output, f, indent=2)
             
-        self.log_progress(f"Analysis complete and stored in: {output_file}")
+        self.logger.debug(f"Analysis complete and stored in: {output_file}")
+        
+        # Update version history
+        self._update_version_history(backtest_dir, analysis)
+        
         return analysis_output
         
-    def _load_backtest_results(self, backtest_dir: str) -> Dict[str, Any]:
-        """Load all relevant backtest data for analysis"""
-        # First load results.json to get basic metrics
-        results_path = os.path.join(backtest_dir, "results.json")
-        with open(results_path, 'r') as f:
-            results = json.load(f)
-            
-        # Find backtest ID from files
-        json_files = glob.glob(os.path.join(backtest_dir, "[0-9]*-*.json"))
-        if json_files:
-            backtest_id = os.path.basename(json_files[0]).split('-')[0]
-            
-            # Load detailed backtest data
-            summary_path = os.path.join(backtest_dir, f"{backtest_id}-summary.json")
-            orders_path = os.path.join(backtest_dir, f"{backtest_id}-order-events.json")
-            
-            try:
-                with open(summary_path, 'r') as f:
-                    results["summary"] = json.load(f)
-                    self.log_progress("Loaded summary data")
-            except FileNotFoundError:
-                self.log_progress(f"Warning: Summary file not found: {summary_path}", level="warning")
-                
-            try:
-                with open(orders_path, 'r') as f:
-                    results["orders"] = json.load(f)
-                    self.log_progress("Loaded order events data")
-            except FileNotFoundError:
-                self.log_progress(f"Warning: Order events file not found: {orders_path}", level="warning")
-                
-        # Load strategy code from code directory
-        code_path = os.path.join(backtest_dir, "code", "main.py")
+    def _update_version_history(self, backtest_dir: str, analysis: Dict) -> None:
+        """Update version history with backtest analysis"""
         try:
-            with open(code_path, 'r') as f:
-                results["strategy_code"] = f.read()
-                self.log_progress("Loaded strategy code")
-        except FileNotFoundError:
-            self.log_progress(f"Warning: Strategy code not found: {code_path}", level="warning")
+            # Navigate up to find strategy directory
+            strategy_dir = os.path.dirname(backtest_dir)  # backtests/
+            strategy_dir = os.path.dirname(strategy_dir)  # StrategyName/
+            version_history_path = os.path.join(strategy_dir, "version_history.json")
             
-        return results
+            if not os.path.exists(version_history_path):
+                self.logger.warning(f"Version history file not found: {version_history_path}")
+                return
+                
+            # Load version history
+            with open(version_history_path, 'r') as f:
+                version_history = json.load(f)
+                
+            # Find matching version and backtest
+            backtest_path = os.path.abspath(backtest_dir)
+            updated = False
+            
+            for version in version_history:
+                if 'backtests' in version:
+                    for backtest in version['backtests']:
+                        if os.path.abspath(backtest.get('backtest_folder', '')) == backtest_path:
+                            # Add or update analysis
+                            backtest['BacktestAnalyzerAgent-analysis'] = analysis
+                            updated = True
+                            break
+                if updated:
+                    break
+                    
+            if not updated:
+                self.logger.warning(f"Could not find matching backtest in version history for: {backtest_path}")
+                return
+                
+            # Save updated version history
+            with open(version_history_path, 'w') as f:
+                json.dump(version_history, f, indent=2)
+                self.logger.debug(f"Updated version history in {version_history_path}")
+                
+        except Exception as e:
+            self.logger.error(f"Failed to update version history: {str(e)}")
+        
+    
         
     async def _analyze_results(self, results: Dict[str, Any]) -> Dict[str, Any]:
         """Use LLM to analyze backtest results and generate insights"""
         # Prepare the prompt for analysis
+        
         prompt = self._create_analysis_prompt(results)
         
+        '''# Log prompt size and content for visibility
+        prompt_size = len(prompt.encode('utf-8'))
+        self.logger.debug(f"Analysis prompt size: {prompt_size} bytes")
+        self.logger.debug("Analysis prompt content (paginated):")
+        self.paginate_output(prompt)'''
+        
         try:
-            # Get LLM analysis
-            response = await self.llm.ainvoke(prompt)
-            self.log_progress("Received LLM response, parsing JSON...")
+            # Get LLM analysis using thinking_llm from base class
+            response = await self.call_llm(prompt)  # Uses thinking_llm by default
+            self.logger.debug("Received LLM response, parsing JSON...")
             
             # Parse JSON from response
             analysis = self._parse_llm_response(response)
             return analysis
             
         except Exception as e:
-            self.log_progress(f"Error during LLM analysis: {str(e)}", level="error")
+            self.logger.debug(f"Error during LLM analysis: {str(e)}")
             raise
             
     def _create_analysis_prompt(self, results: Dict[str, Any]) -> str:
         """Create a detailed prompt for the LLM to analyze backtest results"""
-        metrics = results["metrics"]
-        
+        summary = results["summary"]
+        orders = results["orders"]  # No need for .get() since we always initialize it
+        errors = results["errors"]
+        failed_requests = results["failed_requests"]
+        # self.logger.debug({"keys":results["failed_requests"]})
+        # raise NotImplementedError("LLM analysis not implemented yet")
         prompt = f"""As a quantitative trading expert, analyze these backtest results and return your analysis in JSON format.
 
 IMPORTANT: Return your response as a valid JSON object with this exact structure:
@@ -129,7 +146,8 @@ IMPORTANT: Return your response as a valid JSON object with this exact structure
     "trade_analysis": {{
         "execution_quality": "Analysis of trade execution and timing",
         "position_sizing": "Assessment of position sizing effectiveness",
-        "win_loss_patterns": "Analysis of winning and losing trade patterns"
+        "win_loss_patterns": "Analysis of winning and losing trade patterns",
+        "errors_assessment": "Analysis of errors and failed requests impact"
     }},
     "strategy_analysis": {{
         "overall_assessment": "High-level assessment of the strategy",
@@ -152,18 +170,23 @@ IMPORTANT: Return your response as a valid JSON object with this exact structure
         "strategy": [
             "Strategy enhancement 1",
             "Strategy enhancement 2"
+        ],
+        "error_handling": [
+            "Error handling improvement 1",
+            "Error handling improvement 2"
         ]
     }}
 }}
 
-Analyze these metrics:
-- Returns: {metrics['Compounding Annual Return']}% annual return, {metrics['Net Profit']}% net profit
-- Risk: {metrics['Drawdown']}% max drawdown, Sharpe {metrics['Sharpe Ratio']}, Sortino {metrics['Sortino Ratio']}
-- Trading: {metrics['Win Rate']}% win rate, {metrics['Loss Rate']}% loss rate, {metrics['Total Orders']} trades
-- Market: Alpha {metrics['Alpha']}, Beta {metrics['Beta']}, Information Ratio {metrics['Information Ratio']}
-- Risk metrics: Std Dev {metrics['Annual Standard Deviation']}, Tracking Error {metrics['Tracking Error']}, Treynor {metrics['Treynor Ratio']}, Turnover {metrics['Portfolio Turnover']}%
+Key metrics from summary:
+- Total trading days: {summary.get('TotalDays', 'N/A')}
+- Total trades: {len(orders)}
+- Number of errors: {len(errors)}
+- Failed data requests: {failed_requests}
+- Performance metrics: {json.dumps(summary['totalPerformance']['tradeStatistics'], indent=2)}
+- Portfolio metrics: {json.dumps(summary['totalPerformance']['portfolioStatistics'], indent=2)}
 
-Provide detailed, quantitative analysis in your JSON response. Ensure all suggestions are specific and actionable."""
+Consider any errors or data request failures in your analysis. Provide detailed, quantitative analysis in your JSON response. Ensure all suggestions are specific and actionable."""
         return prompt
         
     def _parse_llm_response(self, response: str) -> Dict[str, Any]:
@@ -180,12 +203,12 @@ Provide detailed, quantitative analysis in your JSON response. Ensure all sugges
             analysis = json.loads(response)
             
             # Log structure for debugging
-            self.log_progress(f"Successfully parsed JSON with keys: {list(analysis.keys())}")
+            self.logger.debug(f"Successfully parsed JSON with keys: {list(analysis.keys())}")
             
             return analysis
             
         except Exception as e:
-            self.log_progress(f"Error parsing LLM response: {str(e)}", level="error")
+            self.logger.debug(f"Error parsing LLM response: {str(e)}")
             fallback_analysis = {
                 "metrics_analysis": {
                     "error": "Failed to parse metrics analysis"

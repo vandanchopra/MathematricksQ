@@ -6,11 +6,14 @@ import asyncio
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import time
 from agents.base import BaseAgent
+from AgenticDeveloper.logger import get_logger
+
+logger = get_logger("TestLLMAgent")
 
 class TestAgent(BaseAgent):
     async def run(self, prompt: str) -> str:
         """Simple test method to verify LLM is working"""
-        response = await self.llm.ainvoke(prompt)
+        response = await self.thinking_llm.ainvoke(prompt)
         return response
 
 async def main():
@@ -25,7 +28,7 @@ async def main():
     """ * 200  # Repeat to make it large
     
     content = content[:60000]  # Limit to 60k chars
-    print(f"Content length: {len(content)} chars")
+    logger.info(f"Content length: {len(content)} chars")
     
     prompt = f"""Analyze this trading strategy content and extract key points:
 
@@ -39,43 +42,43 @@ Return in JSON format:
     "implementation": ["Implementation details"]
 }}
 """
-    print(f"Total prompt length: {len(prompt)} chars")
+    logger.info(f"Total prompt length: {len(prompt)} chars")
     
     try:
         start = time.time()
-        print(('--'*20))
+        logger.info("TEST #1 / 4 -----")
         response = await agent.run('Quick test to check if LLM is working')
-        print(f"Response: {response}")
-        print(f"Time taken 1: {time.time() - start:.2f} seconds")
+        logger.info(f"Response: {response}")
+        logger.info(f"Time taken 1: {time.time() - start:.2f} seconds")
         
         
         start = time.time()
-        print(('--'*20))
+        logger.info("TEST #2 / 4 -----")
         response = await agent.run('Quick test 2 to check if LLM is working')
-        print(f"Response: {response}")
-        print(f"Time taken 2: {time.time() - start:.2f} seconds")
+        logger.info(f"Response: {response}")
+        logger.info(f"Time taken 2: {time.time() - start:.2f} seconds")
         
-        print(('--'*20))
+        logger.info("TEST #3 / 4 -----")
         start = time.time()
-        print("\nFirst 100 chars of content:")
-        print(content[:100])
+        logger.info("\nFirst 100 chars of content:")
+        logger.info(content[:100])
         
-        print("Testing LLM connection...")
+        logger.info("Testing LLM connection...")
         response = await agent.run(prompt)
-        print(f"\nPrompt: {prompt}")
-        print(f"Response: {response}")
-        print("\nLLM integration is working! ✅")
-        print(f"Time taken 3: {time.time() - start:.2f} seconds")
+        logger.info(f"\nPrompt: {prompt}")
+        logger.info(f"Response: {response}")
+        logger.info("\nLLM integration is working! ✅")
+        logger.info(f"Time taken 3: {time.time() - start:.2f} seconds")
         
         
         start = time.time()
-        print(('--'*20))
+        logger.info("TEST #4 / 4 -----")
         response = await agent.run('Quick test to check if LLM is working')
-        print(f"Response: {response}")
-        print(f"Time taken 4: {time.time() - start:.2f} seconds")
+        logger.info(f"Response: {response}")
+        logger.info(f"Time taken 4: {time.time() - start:.2f} seconds")
         
     except Exception as e:
-        print(f"\nError testing LLM: {str(e)} ❌")
+        logger.error(f"\nError testing LLM: {str(e)} ❌")
 
 if __name__ == "__main__":
     asyncio.run(main())
