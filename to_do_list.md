@@ -1,15 +1,9 @@
 # AgenticDeveloper Project Tasks
 
-i want @/AgenticDeveloper/agents/backtester.py to also now run in mode == 'cloud': 
-   1) First we rename the strategy version we want to run to main.py in that strategy folder.
-   2) We cloud push so that the strategy is now in the cloud.
-   3) then we run lean cloud backtest {strategy_folder_path}
-   4) now we wait for the test to run.
-   5) Once the test is complete and successful (We get the performance table in the console), we take the performance and put it in a file called 'summary.json'. If it didn't work right, we put the 'console errors' into a file called 'errors.json'
-
-
-read @terminal for how backtests are run in the cloud, we run :lean cloud backtest "Hyper-Active Apricot Alligator": -- which automatically runs the main.py. but before we run the backtest, we need to push the project to cloud using 'lean cloud push'.
-
+to do: 
+1) [DONE] check if burke ratio is the one we want to follow.
+2) find out if we can download the backtest details using the backtest id (You'l have to recreate this from --verbose logs)
+3) write the code to find the delta and save the same.
 
 
 ## HUMAN NOTES
@@ -96,89 +90,111 @@ I want to make an agentic system that does the following: It is a algorithmic tr
    - Overall the Alpha Seekers job is to think about how to develop strategies in a way that we're not 'curve-fitting' or over-training on our train-data set.
 
 {
-Alpha Seeker Agent Implementation Plan by Roo (2025-09-04):
+'''
+        if new_strategy:
+            generate a new strategy name and initialize the directory
+            (next_idea = xxxx) now go to research analyst and fetch next idea: (the logic here should be to fetch an idea that has not yet been tested on this strategy)
+            create the state object.
+            now, go to strategy writer and generate the strategy code for this idea
+            now go to backtester and run the backtest
+            now go to backtest analyzer and analyze the results
+            now create the state
+        
+        2. (delta = xxx ) now calculate the delta in performance (if new, delta will be full, even if it's -ve) - (the metric we will use for delta calcuation is (CAGR * Sharpe ratio))
+        Check if number of orders is greater than 100, if not, go one of the following to increase the number of orders:
+            - Increase the time period
+            - add more assets
+            - reduce the timeframe / resolution being traded
+            - Alter the strategy parameters (if rebalancing, increase the rebalancing frequency)
+        3. (parent = xxx ) Now, based on the delta in performance, decide whether to keep the version, or discard it. if the version is kept, it is called the 'parent', else, we go back to the original parent.
+        ---- now you want to decide what direction to give to the strategy writer tool.
+        4. (next_idea = xxx) - find out the version of the upcoming strategy, 
+            - if it's odd, then 'alpha seeker decides what to do next', 
+            - if it's even, then alpha seeker goes to researcher with a 'prompt' and gets ideas. Now, with that idea, thinking LLM decides what to do next and creates a 'direction' for strategy writer.
+        5. Now strategy writer writes a new strategy.
+        6. Now, backtester runs the strategy.
+        7. Now, backtest analyzer analyzes the results.
+        8. Update Google Sheet with key Metrics (CAGR, Sharpe, Burke, Max DD, Sortino, Win %, Avg Win, Avg Loss, Total Orders)
+        8. Now, we go back to step 2.
+        
+        '''
 
-1. Carefully review existing agent implementations:
-   - research_agent.py
-   - backtest_analyzer.py
-   - strategy_developer.py
-   - backtester.py
-   - Understand their APIs, inputs, outputs, and integration points.
 
-2. Design AlphaSeekerAgent class:
-   - Define core methods: __init__, run, coordinate_agents, evaluate_results
-   - Plan for start modes: no input, string input, existing strategy
-   - Plan incremental improvement loop and orchestration logic
+Development Plan for AlphaSeekerMetaAgent Refactoring:
 
-3. Create AlphaSeekerAgent skeleton in AgenticDeveloper/agents/alpha_seeker.py:
-   - Add class definition and init method
-   - Add placeholders for core methods
+Helper Methods to Add:
+def _get_latest_version_number(self, strategy_path: str) -> int:
+    # Extract last number from strategy filename
+    # Returns int for odd/even decision making
+def _calculate_performance_delta(self, current_results, parent_results) -> float:
+    # Calculate CAGR * Sharpe ratio delta between versions
+    # Returns float representing improvement
+def _update_google_sheets(self, metrics: dict):
+    # Update performance metrics to Google Sheets
+    # Uses environment variables for authentication
+Core Process Methods:
+async def _initialize_new_strategy(self) -> dict:
+    # Generate strategy name
+    # Set up directory structure
+    # Return initial state
+async def _get_next_research_idea(self, state: dict) -> dict:
+    # Use research agent to fetch untested idea
+    # Update state with current idea
+async def _generate_strategy_direction(self, state: dict) -> str:
+    # Based on version number (odd/even):
+    # - Even: Get research ideas and create direction
+    # - Odd: Let alpha seeker decide direction
+Main Run Function Flow:
+async def run(self, new_strategy: bool, human_input: str = "", start_point_filepath: str = None):
+    # 1. Initialize/Load Strategy
+    if new_strategy:
+        state = await self._initialize_new_strategy()
+        idea = await self._get_next_research_idea(state)
+    else:
+        state = self._load_existing_strategy(start_point_filepath)
+    
+    while True:
+        # 2. Generate Strategy
+        direction = await self._generate_strategy_direction(state)
+        new_strategy = await self._write_strategy(direction)
+        
+        # 3. Test & Analyze
+        results = await self._run_backtest(new_strategy)
+        analysis = await self._analyze_results(results)
+        
+        # 4. Calculate Delta & Update State
+        delta = self._calculate_performance_delta(results, state['parent_results'])
+        state = self._update_state(state, results, delta)
+        
+        # 5. Record Performance
+        await self._update_google_sheets(results)
+        
+        # 6. Get Next Direction
+        next_version = self._get_latest_version_number(state['current_strategy'])
+        if next_version % 2 == 0:
+            # Even: Get new research ideas
+            idea = await self._get_next_research_idea(state)
+Dependencies to Add:
+from google.oauth2.credentials import Credentials
+from googleapiclient.discovery import build
+from typing import Dict, Optional
+import os
+import json
+import re
+from datetime import datetime
+Required Environment Variables:
+GOOGLE_SHEETS_CREDENTIALS={"type": "service_account", ...}
+GOOGLE_SHEETS_SPREADSHEET_ID=your_spreadsheet_id
+GOOGLE_SHEETS_WORKSHEET_NAME=StrategyPerformance
+Implementation Strategy:
 
-4. Integrate existing agents step-by-step:
-   - Start with Research Agent integration
-   - Then Strategy Developer
-   - Then Backtester
-   - Then Backtest Analyzer
+First implement helper methods and test each individually
+Then implement core process methods with proper error handling
+Finally tie everything together in main run function
+Add comprehensive logging throughout
+Add type hints and docstrings for better maintainability
+This structure keeps AlphaSeeker as the "brain" while delegating specific tasks to other agents. Each method has a single responsibility, making the code easier to maintain and test.
 
-5. Implement incremental improvement loop:
-   - Run research, develop strategy, backtest, analyze
-   - Loop with stopping criteria and human pause points
-
-6. Add logging, progress updates, and error handling
-
-7. Develop unit tests for AlphaSeekerAgent logic
-
-8. Create integration tests with mock agents
-
-9. Document AlphaSeekerAgent usage and update README.md
-
-10. Mark this task as complete in to_do_list.md when done
-}
-{
-Created AlphaSeekerAgent skeleton in AgenticDeveloper/agents/alpha_seeker.py
-- Inherits from BaseAgent
-- Initializes Research, Strategy Developer, Backtester, Backtest Analyzer agents
-- Added async run(), coordinate_agents(), evaluate_results() placeholders
-- Ready for incremental integration of agent workflows
-
-Refactored AlphaSeekerAgent methods to use explicit parameters
-- run() and coordinate_agents() now accept: new_strategy (bool), existing_strategy_path (Optional[str]), initial_prompt (Optional[str])
-- Improved docstrings for clarity
-- Renamed start_mode param to new_strategy (bool)
-
-Implemented core orchestration logic:
-- NewStrategy mode: runs research and strategy generation
-- ExistingStrategy mode: runs backtest analysis
-- Added error handling and progress logging
-
-Added iterative workflow loop with decision points:
-- Loop calls research, strategy writing, backtesting, analysis
-- Stubbed decide_next_step() method controls loop flow
-- Placeholders for minor fix and new research branches
-- Aligns with AlphaSeeker meta-agent architecture
-- Next: Implement decision logic and dynamic tool invocation
-}
-
-{AlphaSeeker Orchestration Refactor Plan (2025-04-10):
-
-1. Remove reliance on LangChain OpenAI Functions agent for orchestration.
-2. Implement a **custom async loop** inside AlphaSeekerMetaAgent.run():
-   - If NewStrategy:
-     - Call ResearchTool with initial prompt
-     - Pass research output to StrategyWriterTool
-   - Else (ExistingStrategy):
-     - Analyze existing strategy and backtest results
-     - Decide to fix or research
-3. After strategy generation:
-   - Call BacktesterTool
-   - Call BacktestAnalyzerTool
-4. Use analysis to decide:
-   - Minor fix → StrategyWriterTool
-   - New research → ResearchTool
-   - Finalize → stop loop
-5. Repeat loop until stopping criteria met.
-6. Log progress and decisions at each step.
-7. Gradually replace placeholders with real logic.
 }
 
 

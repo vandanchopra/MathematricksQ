@@ -10,12 +10,12 @@ async def agent():
     return StrategyDeveloperAgent()
 
 async def test_run_creates_strategy_file():
-    start_point_filepath = "Strategies/AgenticDev/AncientStoneGolem/strategy_v1_1.py"
+    start_point_filepath = "Strategies/AgenticDev/AncientStoneGolem/strategy_v1_3_2_1_1.py"
     strategy_dir = os.path.dirname(start_point_filepath)
     # instructions = "Increase the number of trades by increasing the number of assets it's trading. Add SPY, AAPL, MSFT, NVDA"
     # instructions = "Increase the performance of the strategy by increasing the sharpe ratio"
     instructions = "Improve the sharpe ratio and the compoundingAnnualReturn"
-    backtest_dir = "Strategies/AgenticDev/AncientStoneGolem/backtests/2025-04-17_12-50-01"
+    backtest_dir = "Strategies/AgenticDev/AncientStoneGolem/backtests/2025-04-19_19-55-29"
     
     # # # # New Strategy
     # start_point_filepath = None

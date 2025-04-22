@@ -123,8 +123,7 @@ class StrategyDeveloperAgent(BaseAgent):
                 results = self._load_backtest_results(backtest_dir)
             else:
                 results = {}
-            
-            
+                
             errors_dict = results.get("errors", None)
             errors_list = errors_dict['errors'] if errors_dict else []
             error_fix = False
@@ -172,7 +171,7 @@ class StrategyDeveloperAgent(BaseAgent):
             parent_filepath = final_path
             
             # Run backtest
-            result = await self.test_generated_code(final_path)
+            result = await self.test_generated_code(final_path, backtest_mode="cloud")
             backtest_dir = result['folder_path']
             self.logger.info(f"Backtest result: {result}")
             
@@ -191,14 +190,21 @@ class StrategyDeveloperAgent(BaseAgent):
 
         return final_path
 
-    async def test_generated_code(self, python_file_path: str) -> dict:
+    async def test_generated_code(self, python_file_path: str, backtest_mode: str = "local") -> Dict[str, Any]:
         """
         Run a lean backtest on the specified python file.
         Returns a dict with backtest results.
         """
-
+        # Initialize backtester with output display enabled
         backtester = BacktesterAgent()
-        result = await backtester.run(python_file_path)
+        backtester.logger.setLevel(self.logger.level)
+        for handler in backtester.logger.handlers:
+            backtester.logger.removeHandler(handler)
+        for handler in self.logger.handlers:
+            backtester.logger.addHandler(handler)
+        
+        # Run backtest and capture result
+        result = await backtester.run(strategy_path=python_file_path, mode=backtest_mode)
         return result
 
     def generate_strategy_code(self, instructions: str) -> (str):
@@ -340,4 +346,4 @@ class StrategyDeveloperAgent(BaseAgent):
     
 if __name__ == "__main__":
     agent = StrategyDeveloperAgent()
-    agent.test_generated_code("/Users/vandanchopra/Vandan_Personal_Folder/CODE_STUFF/Projects/MathematricksQ/Strategies/AgenticDev/FirstAutoStrategy/strategy_v1_0_3.py")
+    agent.test_generated_code("/Users/vandanchopra/Vandan_Personal_Folder/CODE_STUFF/Projects/MathematricksQ/Strategies/AgenticDev/FirstAutoStrategy/strategy_v1_0_3.py", backtest_mode="cloud")

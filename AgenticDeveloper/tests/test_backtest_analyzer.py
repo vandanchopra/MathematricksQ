@@ -33,7 +33,7 @@ async def main():
     agent = BacktestAnalyzerAgent("AgenticDeveloper/config/system_config.yaml")
     
     # Specific backtest directory to analyze
-    backtest_dir = "Strategies/AgenticDev/ShinyGoldenOtter/backtests/2025-04-15_10-56-37"
+    backtest_dir = "Strategies/AgenticDev/AncientStoneGolem/backtests/2025-04-19_19-55-29"
     
     try:
         print(f"\nAnalyzing backtest results in: {backtest_dir}")

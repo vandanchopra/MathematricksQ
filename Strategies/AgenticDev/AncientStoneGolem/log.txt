@@ -1,0 +1,6 @@
+2025-04-20T21:02:47.7073874Z TRACE:: Engine.Main(): LEAN ALGORITHMIC TRADING ENGINE v2.5.0.0 Mode: DEBUG (64bit) Host: Vandans-MacBook-Pro-2
+2025-04-20T21:02:47.7651656Z TRACE:: Engine.Main(): Started 9:02 PM
+2025-04-20T21:02:47.7789476Z TRACE:: Config.Get(): Configuration key not found. Key: lean-manager-type - Using default value: LocalLeanManager
+2025-04-21T01:21:14.5471194Z TRACE:: Engine.Main(): LEAN ALGORITHMIC TRADING ENGINE v2.5.0.0 Mode: DEBUG (64bit) Host: Vandans-MacBook-Pro-2
+2025-04-21T01:21:14.5949119Z TRACE:: Engine.Main(): Started 1:21 AM
+2025-04-21T01:21:14.6042862Z TRACE:: Config.Get(): Configuration key not found. Key: lean-manager-type - Using default value: LocalLeanManager

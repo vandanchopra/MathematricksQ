@@ -1,13 +1,13 @@
 from AlgorithmImports import *
 
-class MultiAssetLongShortImproved(QCAlgorithm):
+class MultiAssetLongShort(QCAlgorithm):
 
     def Initialize(self):
         self.SetStartDate(2023, 12, 1)
         self.SetEndDate(2025, 4, 15)
         self.SetCash(100000)
 
-        tickers = ["AAPL"]  # Consider adding/removing tickers based on performance
+        tickers = ["TSLA", "SPY", "AAPL", "MSFT", "NVDA"]
         self.symbols = [self.AddEquity(t, Resolution.MINUTE).Symbol for t in tickers]
 
         # Indicator and trade management dictionaries
@@ -16,7 +16,6 @@ class MultiAssetLongShortImproved(QCAlgorithm):
         self.ema100 = {}
         self.ema200 = {}
         self.atr = {}
-        self.bb = {}  # Bollinger Bands
 
         self.entry_price = {}
         self.position_direction = {}
@@ -24,46 +23,54 @@ class MultiAssetLongShortImproved(QCAlgorithm):
         self.take_profit = {}
         self.last_trade_time = {}
 
-        # Parameters (Optimized)
-        self.fast_period = 12  # Adjusted for potentially smoother signals
-        self.slow_period = 26  # Adjusted for potentially smoother signals
-        self.signal_period = 9  # Standard MACD signal period
+        # Parameters (same for all, can be made symbol-specific if desired)
+        self.fast_period = 8
+        self.slow_period = 18
+        self.signal_period = 6
 
-        self.rsi_period = 14  # Standard RSI period
+        self.rsi_period = 9
         self.ema100_period = 100
         self.ema200_period = 200
-        self.atr_period = 14  # Standard ATR period
-        self.bb_period = 20   # Standard Bollinger Band period
-        self.bb_std = 2.0      # Standard Deviations for BB
+        self.atr_period = 10
 
-        self.long_macd_threshold = 0.01  # Tightened for more selective entries
-        self.short_macd_threshold = -0.01 # Tightened for more selective entries
-        self.rsi_oversold = 30  # More aggressive oversold
-        self.rsi_overbought = 70 # More aggressive overbought
+        self.long_macd_threshold = 0.03
+        self.short_macd_threshold = -0.03
+        self.rsi_oversold = 35
+        self.rsi_overbought = 65
 
-        self.max_risk_per_trade = 0.0075  # Reduced risk per trade
+        self.max_risk_per_trade = 0.01
         self.min_trade_size = 0.05
-        self.atr_stop_loss_mult = 1.5  # Tighter stop loss
-        self.atr_take_profit_mult = 2.5  # Reduced take profit
+        self.atr_stop_loss_mult = 2.0
+        self.atr_take_profit_mult = 3.0
 
-        self.trade_cooldown = timedelta(minutes=2) # Increased cooldown
-        self.max_drawdown_pct = 0.075 # Reduced drawdown limit
+        self.trade_cooldown = timedelta(minutes=1)
+        self.max_drawdown_pct = 0.10
         self.equity_peak = self.Portfolio.TotalPortfolioValue
-        self.rebalance_time = datetime.min # Rebalancing
 
+        # Add volatility filter
+        self.volatility = {}
+        self.volatility_period = 20  # Lookback period for volatility calculation
+        self.volatility_threshold = 0.5  # Threshold for volatility (adjust as needed)
+
+        # Initialize indicators and dictionaries
         for symbol in self.symbols:
             self.macd[symbol] = self.MACD(symbol, self.fast_period, self.slow_period, self.signal_period, MovingAverageType.Exponential, Resolution.MINUTE)
             self.rsi[symbol] = self.RSI(symbol, self.rsi_period, MovingAverageType.Simple, Resolution.MINUTE)
             self.ema100[symbol] = self.EMA(symbol, self.ema100_period, Resolution.MINUTE)
             self.ema200[symbol] = self.EMA(symbol, self.ema200_period, Resolution.MINUTE)
             self.atr[symbol] = self.ATR(symbol, self.atr_period, MovingAverageType.Simple, Resolution.MINUTE)
-            self.bb[symbol] = self.BB(symbol, self.bb_period, self.bb_std, MovingAverageType.Simple, Resolution.MINUTE)
 
-            self.entry_price[symbol] = None
+            self.entry_price[symbol] = 0.0  # Initialize to a float value
             self.position_direction[symbol] = 0
-            self.stop_loss[symbol] = None
-            self.take_profit[symbol] = None
+            self.stop_loss[symbol] = 0.0 # Initialize to a float value
+            self.take_profit[symbol] = 0.0 # Initialize to a float value
             self.last_trade_time[symbol] = datetime.min
+
+            # Initialize volatility
+            self.volatility[symbol] = RollingWindow[float](self.volatility_period)
+
+        self.Schedule.On(self.DateRules.EveryDay(), self.TimeRules.At(15, 50), self.LiquidatePositions)
+
 
     def OnData(self, data):
         # Max drawdown protection
@@ -81,7 +88,7 @@ class MultiAssetLongShortImproved(QCAlgorithm):
 
         for symbol in self.symbols:
             # Data and indicators ready?
-            if not (self.macd[symbol].IsReady and self.rsi[symbol].IsReady and self.ema100[symbol].IsReady and self.ema200[symbol].IsReady and self.atr[symbol].IsReady and self.bb[symbol].IsReady):
+            if not (self.macd[symbol].IsReady and self.rsi[symbol].IsReady and self.ema100[symbol].IsReady and self.ema200[symbol].IsReady and self.atr[symbol].IsReady):
                 continue
             if symbol not in data or not data[symbol]:
                 continue
@@ -92,14 +99,16 @@ class MultiAssetLongShortImproved(QCAlgorithm):
             ema100_val = self.ema100[symbol].Current.Value
             ema200_val = self.ema200[symbol].Current.Value
             atr_val = self.atr[symbol].Current.Value
-            bb_upper = self.bb[symbol].UpperBand.Current.Value
-            bb_lower = self.bb[symbol].LowerBand.Current.Value
 
             long_position = self.Portfolio[symbol].IsLong
             short_position = self.Portfolio[symbol].IsShort
 
-            uptrend = price > ema100_val and ema100_val > ema200_val # Added 200 EMA check
-            downtrend = price < ema100_val and ema100_val < ema200_val # Added 200 EMA check
+            uptrend = price > ema100_val
+            downtrend = price < ema100_val
+
+            # Update volatility
+            log_return = np.log(price / data[symbol].Open) if data[symbol].Open != 0 else 0 # Avoid division by zero
+            self.volatility[symbol].Add(log_return)
 
             # Position sizing
             if atr_val > 0:
@@ -112,24 +121,31 @@ class MultiAssetLongShortImproved(QCAlgorithm):
 
             now = self.Time
 
-            # Entry Logic with cooldown
+            # Entry Logic with cooldown and volatility filter
             if (now - self.last_trade_time[symbol]) > self.trade_cooldown:
-                # Long Condition - Added BB Lower band confirmation
-                if (macd_hist > self.long_macd_threshold and rsi_val < self.rsi_oversold and uptrend and price < bb_lower):
-                    if not long_position:
+                # Calculate volatility (standard deviation of log returns)
+                if self.volatility[symbol].IsReady:
+                    volatility = np.std(list(self.volatility[symbol]))
+                else:
+                    volatility = 0.0  # Or some default value
+
+                # Volatility Filter: Only trade if volatility is below threshold
+                if volatility < self.volatility_threshold:  # Adjust threshold as needed
+
+                    # Long Condition
+                    if (macd_hist > self.long_macd_threshold and rsi_val < self.rsi_oversold and uptrend and not long_position):
                         self.SetHoldings(symbol, position_size)
-                        self.Debug(f"{symbol.Value} Going Long: MACD Hist: {macd_hist:.4f}, RSI: {rsi_val:.2f}, Price: {price}, EMA100: {ema100_val:.2f}, BB_Lower: {bb_lower:.2f}")
+                        self.Debug(f"{symbol.Value} Going Long: MACD Hist: {macd_hist:.4f}, RSI: {rsi_val:.2f}, Price: {price}, EMA100: {ema100_val:.2f}, Volatility: {volatility:.4f}")
                         self.entry_price[symbol] = price
                         self.position_direction[symbol] = 1
                         self.stop_loss[symbol] = price - self.atr_stop_loss_mult * atr_val
                         self.take_profit[symbol] = price + self.atr_take_profit_mult * atr_val
                         self.last_trade_time[symbol] = now
 
-                # Short Condition - Added BB Upper Band confirmation
-                elif (macd_hist < self.short_macd_threshold and rsi_val > self.rsi_overbought and downtrend and price > bb_upper):
-                    if not short_position:
+                    # Short Condition
+                    elif (macd_hist < self.short_macd_threshold and rsi_val > self.rsi_overbought and downtrend and not short_position):
                         self.SetHoldings(symbol, -position_size)
-                        self.Debug(f"{symbol.Value} Going Short: MACD Hist: {macd_hist:.4f}, RSI: {rsi_val:.2f}, Price: {price}, EMA100: {ema100_val:.2f}, BB_Upper: {bb_upper:.2f}")
+                        self.Debug(f"{symbol.Value} Going Short: MACD Hist: {macd_hist:.4f}, RSI: {rsi_val:.2f}, Price: {price}, EMA100: {ema100_val:.2f}, Volatility: {volatility:.4f}")
                         self.entry_price[symbol] = price
                         self.position_direction[symbol] = -1
                         self.stop_loss[symbol] = price + self.atr_stop_loss_mult * atr_val
@@ -137,7 +153,6 @@ class MultiAssetLongShortImproved(QCAlgorithm):
                         self.last_trade_time[symbol] = now
 
             # Exit Logic
-            # Long Exits
             if long_position and self.position_direction[symbol] == 1:
                 if price <= self.stop_loss[symbol]:
                     self.Liquidate(symbol)
@@ -147,16 +162,11 @@ class MultiAssetLongShortImproved(QCAlgorithm):
                     self.Liquidate(symbol)
                     self.Debug(f"{symbol.Value} Long Take Profit Triggered at {price:.2f}")
                     self._reset_position(symbol)
-                elif (macd_hist < self.short_macd_threshold and rsi_val > self.rsi_overbought and downtrend): # Exit when signal flips
+                elif (macd_hist < self.short_macd_threshold and rsi_val > self.rsi_overbought and downtrend):
                     self.Liquidate(symbol)
                     self.Debug(f"{symbol.Value} Long Exit: Signal flip to Short at {price:.2f}")
                     self._reset_position(symbol)
-                elif price > bb_upper: # Exit when price is above upper Bollinger Band
-                    self.Liquidate(symbol)
-                    self.Debug(f"{symbol.Value} Long Exit: Price above Upper BB at {price:.2f}")
-                    self._reset_position(symbol)
 
-            # Short Exits
             if short_position and self.position_direction[symbol] == -1:
                 if price >= self.stop_loss[symbol]:
                     self.Liquidate(symbol)
@@ -166,20 +176,24 @@ class MultiAssetLongShortImproved(QCAlgorithm):
                     self.Liquidate(symbol)
                     self.Debug(f"{symbol.Value} Short Take Profit Triggered at {price:.2f}")
                     self._reset_position(symbol)
-                elif (macd_hist > self.long_macd_threshold and rsi_val < self.rsi_oversold and uptrend): # Exit when signal flips
+                elif (macd_hist > self.long_macd_threshold and rsi_val < self.rsi_oversold and uptrend):
                     self.Liquidate(symbol)
                     self.Debug(f"{symbol.Value} Short Exit: Signal flip to Long at {price:.2f}")
                     self._reset_position(symbol)
-                elif price < bb_lower: # Exit when price is below lower Bollinger Band
-                    self.Liquidate(symbol)
-                    self.Debug(f"{symbol.Value} Short Exit: Price below Lower BB at {price:.2f}")
-                    self._reset_position(symbol)
 
     def _reset_position(self, symbol):
-        self.entry_price[symbol] = None
+        self.entry_price[symbol] = 0.0
         self.position_direction[symbol] = 0
-        self.stop_loss[symbol] = None
-        self.take_profit[symbol] = None
+        self.stop_loss[symbol] = 0.0
+        self.take_profit[symbol] = 0.0
+        self.last_trade_time[symbol] = datetime.min # Reset trade time
 
     def OnOrderEvent(self, orderEvent):
         self.Debug(str(orderEvent))
+
+    def LiquidatePositions(self):
+        for symbol in self.symbols:
+            if self.Portfolio[symbol].Invested:
+                self.Liquidate(symbol)
+                self.Debug(f"Scheduled liquidation of {symbol}")
+                self._reset_position(symbol)

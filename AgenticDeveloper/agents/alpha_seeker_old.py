@@ -12,7 +12,7 @@ from .strategy_developer import StrategyDeveloperAgent
 from .backtester import BacktesterAgent
 from .backtest_analyzer import BacktestAnalyzerAgent
 import asyncio
-import json
+import json as pyjson
 import re
 import random
 
@@ -25,7 +25,7 @@ async def research_tool_func(query: str = "momentum trading", max_results: int =
     # Load research ideas from JSON
     ideas_path = "AgenticDeveloper/research_ideas/research_ideas.json"
     with open(ideas_path, 'r') as f:
-        ideas = json.load(f)
+        ideas = pyjson.load(f)
     
     return {
         "query": query,
@@ -131,216 +131,8 @@ class AlphaSeekerMetaAgent(BaseAgent):
                 self.logger.error(f"Failed to fetch version history from {version_history_path}: {e}")
                 return ""
         return ""
-
-    def _get_latest_version_number(self, strategy_path: str) -> int:
-        """
-        Extract the last number from a strategy filename to determine if it's odd or even.
-        Example: strategy_v1_3_2_1_1_2.py returns 2
-        """
-        filename = os.path.basename(strategy_path)
-        # Remove file extension and split by underscores
-        parts = os.path.splitext(filename)[0].split('_')
-        # Find the last numeric part
-        for part in reversed(parts):
-            if part.isdigit():
-                return int(part)
-        return 1  # Default to 1 if no version number found
     
-    def _calculate_performance_delta(self, current_results: dict, parent_results: dict) -> float:
-        """
-        Calculate performance delta between current and parent version.
-        Delta = CAGR * Sharpe ratio
-        """
-        try:
-            current_performance = float(current_results.get('CAGR', 0)) * float(current_results.get('Sharpe', 0))
-            if parent_results:
-                parent_performance = float(parent_results.get('CAGR', 0)) * float(parent_results.get('Sharpe', 0))
-                return current_performance - parent_performance
-            return current_performance  # For new strategies, return absolute performance
-        except (ValueError, TypeError) as e:
-            self.logger.error(f"Error calculating performance delta: {e}")
-            return 0.0
-            
-    async def _update_google_sheets(self, metrics: dict):
-        """
-        Update strategy performance metrics to Google Sheets.
-        Metrics include: CAGR, Sharpe, Burke, Max DD, Sortino, Win %, Avg Win, Avg Loss, Total Orders
-        """
-        try:
-            if not os.getenv('GOOGLE_SHEETS_CREDENTIALS'):
-                self.logger.warning("Google Sheets credentials not found in environment")
-                return
-                
-            from google.oauth2.credentials import Credentials
-            from googleapiclient.discovery import build
-            
-            creds_dict = json.loads(os.getenv('GOOGLE_SHEETS_CREDENTIALS'))
-            creds = Credentials.from_authorized_user_info(creds_dict)
-            
-            service = build('sheets', 'v4', credentials=creds)
-            spreadsheet_id = os.getenv('GOOGLE_SHEETS_SPREADSHEET_ID')
-            range_name = os.getenv('GOOGLE_SHEETS_WORKSHEET_NAME')
-            
-            values = [[
-                metrics.get('CAGR', ''),
-                metrics.get('Sharpe', ''),
-                metrics.get('Burke', ''),
-                metrics.get('MaxDD', ''),
-                metrics.get('Sortino', ''),
-                metrics.get('WinRate', ''),
-                metrics.get('AvgWin', ''),
-                metrics.get('AvgLoss', ''),
-                metrics.get('TotalTrades', '')
-            ]]
-            
-            body = {'values': values}
-            service.spreadsheets().values().append(
-                spreadsheetId=spreadsheet_id,
-                range=range_name,
-                valueInputOption='USER_ENTERED',
-                body=body
-            ).execute()
-            
-        except Exception as e:
-            self.logger.error(f"Error updating Google Sheets: {e}")
-
     async def run(
-        self,
-        new_strategy: bool,
-        human_input: str = "",
-        start_point_filepath: str = None,
-    ):
-        """
-        Main entry point for AlphaSeeker's strategy development process.
-        
-        Args:
-            new_strategy (bool): True to create new strategy, False to modify existing
-            human_input (str): Initial guidance from user
-            start_point_filepath (str): Path to existing strategy file if new_strategy is False
-        """
-        self.logger.info("Starting AlphaSeeker run...")
-        
-        # Initialize state
-        state = {
-            "mode": "new_strategy" if new_strategy else "existing_strategy",
-            "strategy_name": None,
-            "current_strategy_path": start_point_filepath,
-            "parent_name": None,  # Name of the parent strategy file
-            "parent_strategy_backtest_path": None,  # Path to parent strategy backtest results
-            "parent_results": None,  # Performance metrics of parent strategy
-            "parent_errors": None,  # Errors from parent strategy
-            "current_strategy_version": None,  # Current version number (e.g., v1_2_3)
-            "current_strategy_results": None,  # Latest backtest results
-            "current_strategy_analysis": None,  # Latest backtest analysis
-            "current_strategy_delta": 0.0,  # Performance delta from parent
-            "current_idea": None,  # Current trading idea being tested
-            "version_history_path": None,  # Path to version_history.json
-            "iteration": 0
-        }
-        self.logger.info({"state": state})
-        # If starting from existing strategy, initialize parent details
-        if not new_strategy and start_point_filepath:
-            state["parent_name"] = os.path.basename(start_point_filepath)
-            state["strategy_name"] = os.path.splitext(state["parent_name"])[0]
-            strategy_dir = os.path.dirname(start_point_filepath)
-            state["version_history_path"] = os.path.join(strategy_dir, "version_history.json")
-            self.logger.info({"state": state})
-    
-        while True:
-            state["iteration"] += 1
-            self.logger.info(f"--- Iteration {state['iteration']} ---")
-            self.logger.info({"state": state})
-            
-            # Get parent strategy results if this is first iteration and not a new strategy
-            if state["iteration"] == 1 and not new_strategy and state["version_history_path"]:
-                # First get the latest backtest folder path from version history
-                with open(state["version_history_path"], 'r') as f:
-                    history = json.load(f)
-                    
-                # Find latest backtest folder
-                for entry in reversed(history):
-                    if "backtests" in entry and entry["backtests"]:
-                        latest_backtest = entry["backtests"][-1]
-                        backtest_folder = latest_backtest.get("backtest_folder")
-                        if backtest_folder and os.path.exists(backtest_folder):
-                            # Load results using BaseAgent's method
-                            results = self._load_backtest_results(backtest_folder)
-                            self.logger.info({'results': results})
-                            state["parent_results"] = results.get("summary", {}).get("portfolioStatistics", {})
-                            state["parent_errors"] = results.get("errors", [])
-                            state["parent_strategy_backtest_path"] = backtest_folder
-                            break
-                
-                if state["parent_strategy_backtest_path"]:
-                    self.logger.info("Parent Strategy Info:")
-                    self.logger.info({
-                        "parent_results": state["parent_results"],
-                        "parent_errors": state["parent_errors"],
-                        "parent_backtest_path": state["parent_strategy_backtest_path"]
-                    })
-
-            self.logger.info({"state": state})
-            raise Exception("Debugging iteration loop")
-            
-            
-            try:
-                # Step 1: For new strategy initialization
-                if new_strategy and state["iteration"] == 1:
-                    # Strategy name and directory are handled by StrategyDeveloperAgent
-                    idea = await self._get_next_research_idea(state)
-                    prompt = self._create_strategy_prompt(idea)
-                    result = await strategy_writer_tool_func(prompt, "Strategies/AgenticDev")
-                    state["current_strategy_path"] = self._extract_strategy_path(result)
-                # Step 2: Run backtest and analyze
-                backtest_result = await backtester_tool_func(state["current_strategy_path"])
-                analysis = await backtest_analyzer_tool_func(backtest_result)
-                
-                # Step 3: Update state with results and analysis
-                state["current_strategy_results"] = backtest_result
-                state["current_strategy_analysis"] = analysis
-                current_metrics = self._extract_metrics(backtest_result)
-                
-                # Step 4: Calculate performance delta
-                delta = self._calculate_performance_delta(current_metrics, state["parent_results"])
-                state["current_strategy_delta"] = delta
-                
-                # Step 5: Check trade count and determine next action
-                trade_count = current_metrics.get("TotalTrades", 0)
-                version_number = self._get_latest_version_number(state["current_strategy_path"])
-                state["current_strategy_version"] = f"v{version_number}"
-                
-                if trade_count < 100:
-                    direction = self._generate_trade_increase_prompt(state, current_metrics)
-                else:
-                    direction = await self._generate_strategy_direction(state, version_number, delta)
-                
-                # Step 6: Write new strategy version
-                result = await strategy_writer_tool_func(direction, "Strategies/AgenticDev", state["current_strategy_path"])
-                state["current_strategy_path"] = self._extract_strategy_path(result)
-                
-                # Step 7: Update metrics to Google Sheets
-                await self._update_google_sheets(current_metrics)
-                
-                # Step 8: Update parent information if performance improved
-                if delta > 0:
-                    state["parent_name"] = os.path.basename(state["current_strategy_path"])
-                    state["parent_results"] = current_metrics
-                
-                
-                # Let user review progress
-                user_input = input("Press Enter to continue or type 'stop' to exit: ")
-                if user_input.lower() == 'stop':
-                    break
-                    
-            except Exception as e:
-                self.logger.error(f"Error in iteration {state['iteration']}: {e}")
-                break
-        
-        self.logger.info("AlphaSeeker run complete.")
-        return state
-    
-    
-    async def run_old(
         self,
         new_strategy: bool,
         human_input: str = "",
@@ -468,19 +260,19 @@ class AlphaSeekerMetaAgent(BaseAgent):
                             history_path = os.path.join(strategy_dir, "version_history.json")
                             if os.path.exists(history_path):
                                 with open(history_path, 'r') as f:
-                                    history = json.load(f)
+                                    history = pyjson.load(f)
                                     if history:
                                         # Add test results to latest version
                                         history[-1]["test_results"] = result
                                         history[-1]["tested_idea"] = state["current_idea"]["name"]
                                 with open(history_path, 'w') as f:
-                                    json.dump(history, f, indent=2)
+                                    pyjson.dump(history, f, indent=2)
                         
                         # Update research ideas with test results
                         ideas_path = "AgenticDeveloper/research_ideas/research_ideas.json"
                         if os.path.exists(ideas_path):
                             with open(ideas_path, 'r') as f:
-                                ideas = json.load(f)
+                                ideas = pyjson.load(f)
                                 idea_name = state["current_idea"]["name"]
                                 if idea_name in ideas:
                                     # Fix KeyError for 'learnings_from_testing'
@@ -492,7 +284,7 @@ class AlphaSeekerMetaAgent(BaseAgent):
                                         "strategy_path": state.get("current_strategy_path", "")
                                     })
                             with open(ideas_path, 'w') as f:
-                                json.dump(ideas, f, indent=2)
+                                pyjson.dump(ideas, f, indent=2)
                     
                 elif tool == "BacktestAnalyzerTool":
                     result = await backtest_analyzer_tool_func(prompt)

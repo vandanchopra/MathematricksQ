@@ -128,11 +128,23 @@ class BacktestAnalyzerAgent(BaseAgent):
     def _create_analysis_prompt(self, results: Dict[str, Any]) -> str:
         """Create a detailed prompt for the LLM to analyze backtest results"""
         summary = results["summary"]
-        orders = results["orders"]  # No need for .get() since we always initialize it
+        orders = results.get("orders", [])
         errors = results["errors"]
         failed_requests = results["failed_requests"]
         # self.logger.debug({"keys":results["failed_requests"]})
         # raise NotImplementedError("LLM analysis not implemented yet")
+        if 'totalPerformance' in summary and 'tradeStatistics' in summary['totalPerformance']:
+            performance_metrics = summary['totalPerformance']['tradeStatistics']
+        else:
+            performance_metrics = {}
+            
+        if 'totalPerformance' in summary and 'portfolioStatistics' in summary['totalPerformance']:
+            portfolio_metrics = summary['totalPerformance']['portfolioStatistics']
+        elif 'performance_metrics' in summary:
+            portfolio_metrics = summary['performance_metrics']
+        else:
+            portfolio_metrics = {}
+            
         prompt = f"""As a quantitative trading expert, analyze these backtest results and return your analysis in JSON format.
 
 IMPORTANT: Return your response as a valid JSON object with this exact structure:
@@ -154,28 +166,7 @@ IMPORTANT: Return your response as a valid JSON object with this exact structure
         "risk_management": "Analysis of risk management approach",
         "code_implementation": "Review of strategy implementation"
     }},
-    "improvement_suggestions": {{
-        "performance": [
-            "Specific suggestion 1",
-            "Specific suggestion 2"
-        ],
-        "risk_management": [
-            "Risk improvement 1",
-            "Risk improvement 2"
-        ],
-        "execution": [
-            "Execution improvement 1",
-            "Execution improvement 2"
-        ],
-        "strategy": [
-            "Strategy enhancement 1",
-            "Strategy enhancement 2"
-        ],
-        "error_handling": [
-            "Error handling improvement 1",
-            "Error handling improvement 2"
-        ]
-    }}
+    "improvement_suggestions": "Make one specific and actionable suggestion to improve the strategy that you believe will have the most impact."
 }}
 
 Key metrics from summary:
@@ -183,8 +174,8 @@ Key metrics from summary:
 - Total trades: {len(orders)}
 - Number of errors: {len(errors)}
 - Failed data requests: {failed_requests}
-- Performance metrics: {json.dumps(summary['totalPerformance']['tradeStatistics'], indent=2)}
-- Portfolio metrics: {json.dumps(summary['totalPerformance']['portfolioStatistics'], indent=2)}
+- Performance metrics: {json.dumps(performance_metrics, indent=2)}
+- Portfolio metrics: {json.dumps(portfolio_metrics, indent=2)}
 
 Consider any errors or data request failures in your analysis. Provide detailed, quantitative analysis in your JSON response. Ensure all suggestions are specific and actionable."""
         return prompt
