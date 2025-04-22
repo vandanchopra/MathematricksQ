@@ -268,6 +268,33 @@ class BacktesterAgent(BaseAgent):
         self.logger.info(f"Created backtest folder at: {backtest_folder}")
         return backtest_folder, timestamp
     
+    def _get_performance_data(self, mode: str, stdout_str: str, backtest_folder: str) -> Dict[str, str]:
+        """Get performance data based on mode from appropriate source"""
+        performance_data = {}
+        
+        if mode == "cloud":
+            # For cloud mode, parse from console output
+            self.logger.info("Parsing performance data from console output...")
+            performance_data = self._parse_performance_table(stdout_str)
+        else:
+            # For local mode, read from summary.json
+            self.logger.info("Reading performance data from summary file...")
+            summary_files = [f for f in os.listdir(backtest_folder) if f.endswith('-summary.json')]
+            if summary_files:
+                summary_path = os.path.join(backtest_folder, summary_files[0])
+                with open(summary_path, 'r') as f:
+                    summary_data = json.load(f)
+                    if 'totalPerformance' in summary_data:
+                        performance_data = {
+                            **summary_data['totalPerformance'].get('tradeStatistics', {}),
+                            **summary_data['totalPerformance'].get('portfolioStatistics', {})
+                        }
+                        self.logger.info("Successfully loaded performance data from summary file")
+            else:
+                self.logger.warning("No summary file found for local backtest")
+        
+        return performance_data
+
     def _parse_performance_table(self, stdout_str: str) -> Dict[str, str]:
         """Parse performance table and statistics from output"""
         performance_data = {}
@@ -354,72 +381,8 @@ class BacktesterAgent(BaseAgent):
                 os.makedirs(backtest_folder, exist_ok=True)
                 self.logger.info(f"Created new backtest folder: {backtest_folder}")
             
-            # Clean up the code directory after backtest completes
-            code_dir = os.path.join(backtest_folder, "code")
-            
-            # Wait for files to be copied (max 10 seconds)
-            max_wait = 10
-            wait_interval = 0.5
-            total_waited = 0
-            last_file_count = 0
-            stable_count = 0
-            
-            while total_waited < max_wait:
-                if os.path.exists(code_dir):
-                    current_files = os.listdir(code_dir)
-                    current_count = len(current_files)
-                    self.logger.info(f"Found {current_count} files after waiting {total_waited}s: {current_files}")
-                    
-                    if current_count == last_file_count:
-                        stable_count += 1
-                        if stable_count >= 4:  # Files stable for 2 seconds
-                            break
-                    else:
-                        stable_count = 0
-                        last_file_count = current_count
-                        
-                await asyncio.sleep(wait_interval)
-                total_waited += wait_interval
-            
-            if os.path.exists(code_dir):
-                self.logger.info(f"Starting code directory cleanup in {mode} mode")
-                # Get target strategy filename
-                target_strategy = os.path.basename(strategy_path)
-                if target_strategy == "main.py":
-                    target_strategy = os.path.basename(strategy_path.replace("main.py", os.path.basename(strategy_path)))
-                self.logger.info(f"Target strategy to keep: {target_strategy}")
-                
-                # List files before cleanup
-                before_files = os.listdir(code_dir)
-                self.logger.info(f"Files before cleanup: {before_files}")
-                
-                # Remove all files except target strategy
-                for file in before_files:
-                    if file != target_strategy and file.endswith('.py'):
-                        file_path = os.path.join(code_dir, file)
-                        try:
-                            os.remove(file_path)
-                            self.logger.info(f"Removed: {file}")
-                        except Exception as e:
-                            self.logger.error(f"Error removing {file}: {e}")
-                
-                # Verify cleanup
-                after_files = os.listdir(code_dir)
-                self.logger.info(f"Files after cleanup: {after_files}")
-                
-                # Remove all files except target strategy
-                for file in os.listdir(code_dir):
-                    if file != target_strategy and file.endswith('.py'):
-                        file_path = os.path.join(code_dir, file)
-                        try:
-                            os.remove(file_path)
-                            self.logger.info(f"Removed: {file}")
-                        except Exception as e:
-                            self.logger.error(f"Error removing {file}: {e}")
-                
-                # Verify cleanup
-                after_files = os.listdir(code_dir)
-                self.logger.info(f"Files after cleanup: {after_files}")
+            # Clean up code directory
+            self._cleanup_code_directory(backtest_folder, strategy_path)
             
             # Initialize backtest output
             strategy_filename = os.path.basename(strategy_path)
@@ -431,10 +394,8 @@ class BacktesterAgent(BaseAgent):
             backtest_output["backtest_folder_path"] = backtest_folder
             backtest_output["backtest_console_output"] = stdout_str
             
-            # Parse performance table
-            self.logger.debug("Parsing performance data from output...")
-            self.logger.info("Parsing performance data from output...")
-            performance_data = self._parse_performance_table(stdout_str)
+            # Get performance data
+            performance_data = self._get_performance_data(mode, stdout_str, backtest_folder)
             backtest_output["performance"] = performance_data
             self.logger.info(f"Found {len(performance_data)} performance metrics")
             for key, value in performance_data.items():
@@ -645,6 +606,29 @@ class BacktesterAgent(BaseAgent):
         except Exception as e:
             self.logger.error(f"Failed to update version history: {str(e)}")
 
+    def _cleanup_code_directory(self, backtest_folder: str, strategy_path: str) -> None:
+        """Clean up code directory by recreating it with only the target strategy."""
+        import shutil
+        code_dir = os.path.join(backtest_folder, "code")
+        
+        # Step 1: Delete code folder if it exists
+        if os.path.exists(code_dir):
+            shutil.rmtree(code_dir)
+            self.logger.info(f"Deleted existing code directory: {code_dir}")
+        
+        # Step 2: Create empty code folder
+        os.makedirs(code_dir)
+        self.logger.info(f"Created fresh code directory: {code_dir}")
+        
+        # Step 3: Copy strategy file to code folder
+        strategy_filename = os.path.basename(strategy_path)
+        if strategy_filename == "main.py":
+            strategy_filename = os.path.basename(strategy_path.replace("main.py", os.path.basename(strategy_path)))
+        
+        strategy_copy_path = os.path.join(code_dir, strategy_filename)
+        shutil.copy2(strategy_path, strategy_copy_path)
+        self.logger.info(f"Copied strategy to code directory: {strategy_filename}")
+    
     def _extract_backtest_folder_from_output(self, stdout_str: str) -> str:
         """Extract backtest folder path from Lean CLI output"""
         self.logger.debug("Searching for backtest folder in output...")

@@ -9,7 +9,7 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
-
+strategy_test_path = "Strategies/AgenticDev/AncientStoneGolem/strategy_v2.py"
 @pytest.fixture
 def backtester_agent():
     agent = BacktesterAgent()
@@ -26,7 +26,7 @@ def backtester_agent():
 
 @pytest.mark.asyncio
 async def test_run_backtest_local(backtester_agent):
-    strategy_path = "Strategies/AgenticDev/AncientStoneGolem/strategy_v1_1.py"
+    strategy_path = strategy_test_path
     backtest_output = await backtester_agent.run(strategy_path, mode="local")
     print('\nLocal Backtest Output:')
     print(f'Success: {backtest_output["backtest_success"]}')
@@ -45,7 +45,7 @@ async def test_run_backtest_local(backtester_agent):
 
 @pytest.mark.asyncio
 async def test_run_backtest_cloud(backtester_agent):
-    strategy_path = "Strategies/AgenticDev/AncientStoneGolem/strategy_v1_1.py"
+    strategy_path = strategy_test_path
     
     """Test cloud backtesting with AncientStoneGolem strategy."""
     logger.info(f"Starting cloud backtest for {strategy_path}")
