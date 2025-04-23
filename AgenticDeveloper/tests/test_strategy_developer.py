@@ -1,44 +1,68 @@
 import os
 import json
-import asyncio
 import pytest
-from unittest.mock import patch
+import pytest_asyncio
 from AgenticDeveloper.agents.strategy_developer import StrategyDeveloperAgent
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def agent():
+    """Fixture that provides a StrategyDeveloperAgent instance"""
     return StrategyDeveloperAgent()
 
-async def test_run_creates_strategy_file():
-    start_point_filepath = "Strategies/AgenticDev/AncientStoneGolem/strategy_v1_3_2_1_1.py"
-    strategy_dir = os.path.dirname(start_point_filepath)
-    # instructions = "Increase the number of trades by increasing the number of assets it's trading. Add SPY, AAPL, MSFT, NVDA"
-    # instructions = "Increase the performance of the strategy by increasing the sharpe ratio"
+@pytest_asyncio.fixture
+async def test_strategy_path():
+    """Fixture that provides test strategy path"""
+    return "Strategies/AgenticDev/AncientStoneGolem/strategy_v2.py"
+
+@pytest_asyncio.fixture
+async def test_backtest_dir():
+    """Fixture that provides test backtest directory"""
+    return None
+
+@pytest.mark.asyncio
+async def test_improve_strategy(agent, test_strategy_path, test_backtest_dir):
+    """Test improving existing strategy with specific instructions"""
     instructions = "Improve the sharpe ratio and the compoundingAnnualReturn"
-    backtest_dir = "Strategies/AgenticDev/AncientStoneGolem/backtests/2025-04-19_19-55-29"
     
-    # # # # New Strategy
-    # start_point_filepath = None
-    # backtest_dir = None
-    # instructions = "Write a profitable long/short strategy that trades SPY, AAPL, MSFT, NVDA"
+    result_path = await agent.run(
+        instructions=instructions,
+        start_point_filepath=test_strategy_path,
+        backtest_dir=test_backtest_dir
+    )
     
-    agent_inst = StrategyDeveloperAgent()
-    result_path = await agent_inst.run(instructions=instructions, start_point_filepath=start_point_filepath, backtest_dir=backtest_dir)
-    
-    # Check that the strategy file was created
+    # Verify strategy file creation
     assert os.path.exists(result_path), "Strategy file was not created"
+    
+    # Verify file content exists
     with open(result_path, "r") as f:
         content = f.read()
-        
-    # Check that version_history.json was created and contains an entry
+        assert content.strip(), "Strategy file is empty"
+
+    # Verify version history
     strategy_dir = os.path.dirname(result_path)
     history_path = os.path.join(strategy_dir, "version_history.json")
-    assert os.path.exists(history_path), f"version_history.json was not created in {strategy_dir}"
+    assert os.path.exists(history_path), f"version_history.json not found in {strategy_dir}"
+    
     with open(history_path, "r") as f:
         history = json.load(f)
-    assert isinstance(history, list)
-    assert len(history) >= 1
-    assert any("version" in entry and "file" in entry for entry in history)
+        assert isinstance(history, list), "Version history should be a list"
+        assert len(history) >= 1, "Version history should have at least one entry"
+        assert any("version" in entry and "file" in entry for entry in history), \
+            "Version history entries should contain version and file fields"
 
-if __name__ == "__main__":
-    asyncio.run(test_run_creates_strategy_file())
+@pytest.mark.asyncio
+async def test_create_new_strategy(agent):
+    """Test creating a new strategy from scratch"""
+    instructions = "Write a profitable long/short strategy that trades SPY, AAPL, MSFT, NVDA"
+    
+    result_path = await agent.run(
+        instructions=instructions,
+        start_point_filepath=None,
+        backtest_dir=None
+    )
+    
+    assert os.path.exists(result_path), "New strategy file was not created"
+    
+    strategy_dir = os.path.dirname(result_path)
+    history_path = os.path.join(strategy_dir, "version_history.json")
+    assert os.path.exists(history_path), "Version history not created for new strategy"

@@ -100,7 +100,6 @@ class StrategyDeveloperAgent(BaseAgent):
         Optionally provide a previous strategy file path to include its code in the prompt.
         Returns the path to the saved strategy file.
         """
-
         max_retries = 10
         attempt = 0
         errors = []
@@ -120,59 +119,130 @@ class StrategyDeveloperAgent(BaseAgent):
                     
             # Prepare prompt: original instructions + previous errors if any
             if backtest_dir:
-                results = self._load_backtest_results(backtest_dir)
+                backtest_output_path = os.path.join(backtest_dir, 'backtest_output.json')
             else:
-                results = {}
+                # If no backtest_dir provided, try to get latest from version history
+                if parent_filepath:
+                    strategy_dir = os.path.dirname(parent_filepath)
+                    history_path = os.path.join(strategy_dir, "version_history.json")
+                    if os.path.exists(history_path):
+                        with open(history_path, 'r') as f:
+                            history = json.load(f)
+                            # Find latest backtest folder from version history
+                            latest_backtest = None
+                            latest_timestamp = None
+                            for entry in history:
+                                if 'backtests' in entry and entry['backtests']:
+                                    for backtest in entry['backtests']:
+                                        if 'backtest_folder' in backtest and 'timestamp' in backtest:
+                                            if not latest_timestamp or backtest['timestamp'] > latest_timestamp:
+                                                latest_timestamp = backtest['timestamp']
+                                                latest_backtest = backtest['backtest_folder']
+                            
+                            if latest_backtest:
+                                backtest_output_path = os.path.join(latest_backtest, 'backtest_output.json')
+                            else:
+                                backtest_output_path = None
+                    else:
+                        backtest_output_path = None
+                else:
+                    backtest_output_path = None
+
+            # Load results from backtest_output.json
+            results = {}
+            if backtest_output_path and os.path.exists(backtest_output_path):
+                with open(backtest_output_path, 'r') as f:
+                    results = json.load(f)
+                self.logger.info(f"Loaded backtest results from {backtest_output_path}")
                 
-            errors_dict = results.get("errors", None)
-            errors_list = errors_dict['errors'] if errors_dict else []
+            # Extract errors and performance data from backtest_output.json
+            errors_list = results.get("errors", [])
+            performance_data = results.get("performance", {})
             error_fix = False
             
             if errors_list:
                 error_text = str(errors_list)
                 previous_code_prompt = f"\n\nHere is the code previously written by you:\n{previous_code}. " if previous_code else ""
                 fix_errors_prompt = f"\n\nThe above code has errors. Please look at all the errors, and rewrite the entire code so that these problems are fixed:\n{error_text[:1000]}. "
-                base_instruction = "Write Quantconnect Lean compatible code in python, that fixes the errors. " 
+                base_instruction = "Write Quantconnect Lean compatible code in python, that fixes the errors. "
                 prompt = previous_code_prompt + fix_errors_prompt + base_instruction + instructions
                 error_fix = True
             else:
                 previous_code_prompt = f"\n\nHere is the code previously written by you:\n{previous_code}. " if previous_code else ""
-                analysis_prompt = f"\n\nHere is the analysis of the previous strategy:\n{results['analysis']}" if 'analysis' in results else ""
+                
+                # Include key performance metrics in the prompt
+                perf_text = ""
+                if performance_data:
+                    metrics = ["Sharpe Ratio", "Compounding Annual Return", "Drawdown", "Win Rate"]
+                    perf_text = "\n".join([f"{metric}: {performance_data.get(metric, 'N/A')}" for metric in metrics])
+                    
+                performance_prompt = f"\n\nHere is the performance of the previous strategy:\n{perf_text}\n" if perf_text else ""
                 base_instruction = f'Write Quantconnect Lean compatible code in python, that does the following: {instructions}. '
-                prompt = previous_code_prompt + analysis_prompt + base_instruction
+                prompt = previous_code_prompt + performance_prompt + base_instruction
             
             self.logger.info({'attempt':attempt, 'prompt': prompt, 'parent_filepath': parent_filepath, 'backtest_dir': backtest_dir})
             input("Press Enter to continue...")
             
             self.logger.info("Starting Code Generation...")
+            test = True
+            
+            if not test:
             # Generate strategy code
-            extracted_code, full_response = self.generate_strategy_code(prompt)
-            self.logger.info("Code Generation Complete.")
-            ''' 
-            if its a new start point, create a new project
-            if it's old, let the new strategy_filename and path.
+                extracted_code, full_response = self.generate_strategy_code(prompt)
+                self.logger.info("Code Generation Complete.")
+                ''' 
+                if its a new start point, create a new project
+                if it's old, let the new strategy_filename and path.
+                
+                '''
+                
+                if not parent_filepath:
+                    new_strategy_name = await self.generate_new_strategy_name()
+                    parent_filepath = os.path.join("Strategies/AgenticDev", new_strategy_name)
+                    self._create_new_project(parent_filepath)
+                
+                if not error_fix or attempt == 1:
+                    new_strategy_version = self._get_new_version(parent_filepath)
+                else:
+                    new_strategy_version = parent_filepath
+                    
+                # Save strategy version (overwrite or new version)
             
-            '''
-            
-            if not parent_filepath:
-                new_strategy_name = await self.generate_new_strategy_name()
-                parent_filepath = os.path.join("Strategies/AgenticDev", new_strategy_name)
-                self._create_new_project(parent_filepath)
-            
-            if not error_fix or attempt == 1:
-                new_strategy_version = self._get_new_version(parent_filepath)
+                final_path = self.save_strategy_version(extracted_code, new_strategy_version, llm_full_response=full_response)
+                self.logger.info(f"Saved strategy version at: {final_path}")
+                parent_filepath = final_path
+                
             else:
-                new_strategy_version = parent_filepath
-            
-            # Save strategy version (overwrite or new version)
-            
-            final_path = self.save_strategy_version(extracted_code, new_strategy_version, llm_full_response=full_response)
-            self.logger.info(f"Saved strategy version at: {final_path}")
-            parent_filepath = final_path
+                # Simulate code generation for testing
+                extracted_code = """from AlgorithmImports import *
+
+class SimpleStrategy(QCAlgorithm):
+    def Initialize(self):
+        self.SetStartDate(2023, 12, 1)
+        self.SetEndDate(2025, 4, 15)
+        self.SetCash(100000)
+        self.symbol = self.AddEquity("AAPL", Resolution.Minute).Symbol
+        self.sma = self.SMA(self.symbol, 20, Resolution.Minute)
+
+    def OnData(self, data):
+        if not self.sma.IsReady or not self.symbol in data:
+            return
+        if data[self.symbol].Close > self.sma.Current.Value:
+            self.SetHoldings(self.symbol, 1.0)
+        else:
+            self.Liquidate()"""
+                full_response = "Test strategy generated"
+                self.logger.info("Simulated Code Generation Complete.")
+                final_path = "Strategies/AgenticDev/AncientStoneGolem/strategy_v2_1.py"
+                # Save the test strategy
+                with open(final_path, "w") as f:
+                    f.write(extracted_code)
+                self.logger.info(f"Simulated strategy saved at: {final_path}")
+                input("Press Enter to continue...")
             
             # Run backtest
             result = await self.test_generated_code(final_path, backtest_mode="cloud")
-            backtest_dir = result['folder_path']
+            backtest_dir = result.get('backtest_folder_path')
             self.logger.info(f"Backtest result: {result}")
             
             if result.get("backtest_successful"):
