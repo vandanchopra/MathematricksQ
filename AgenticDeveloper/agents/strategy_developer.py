@@ -184,62 +184,32 @@ class StrategyDeveloperAgent(BaseAgent):
             input("Press Enter to continue...")
             
             self.logger.info("Starting Code Generation...")
-            test = True
             
-            if not test:
             # Generate strategy code
-                extracted_code, full_response = self.generate_strategy_code(prompt)
-                self.logger.info("Code Generation Complete.")
-                ''' 
-                if its a new start point, create a new project
-                if it's old, let the new strategy_filename and path.
-                
-                '''
-                
-                if not parent_filepath:
-                    new_strategy_name = await self.generate_new_strategy_name()
-                    parent_filepath = os.path.join("Strategies/AgenticDev", new_strategy_name)
-                    self._create_new_project(parent_filepath)
-                
-                if not error_fix or attempt == 1:
-                    new_strategy_version = self._get_new_version(parent_filepath)
-                else:
-                    new_strategy_version = parent_filepath
-                    
-                # Save strategy version (overwrite or new version)
+            extracted_code, full_response = self.generate_strategy_code(prompt)
+            self.logger.info("Code Generation Complete.")
+            ''' 
+            if its a new start point, create a new project
+            if it's old, let the new strategy_filename and path.
             
-                final_path = self.save_strategy_version(extracted_code, new_strategy_version, llm_full_response=full_response)
-                self.logger.info(f"Saved strategy version at: {final_path}")
-                parent_filepath = final_path
-                
+            '''
+            
+            if not parent_filepath:
+                new_strategy_name = await self.generate_new_strategy_name()
+                parent_filepath = os.path.join("Strategies/AgenticDev", new_strategy_name)
+                self._create_new_project(parent_filepath)
+            
+            if not error_fix or attempt == 1:
+                new_strategy_version = self._get_new_version(parent_filepath)
             else:
-                # Simulate code generation for testing
-                extracted_code = """from AlgorithmImports import *
-
-class SimpleStrategy(QCAlgorithm):
-    def Initialize(self):
-        self.SetStartDate(2023, 12, 1)
-        self.SetEndDate(2025, 4, 15)
-        self.SetCash(100000)
-        self.symbol = self.AddEquity("AAPL", Resolution.Minute).Symbol
-        self.sma = self.SMA(self.symbol, 20, Resolution.Minute)
-
-    def OnData(self, data):
-        if not self.sma.IsReady or not self.symbol in data:
-            return
-        if data[self.symbol].Close > self.sma.Current.Value:
-            self.SetHoldings(self.symbol, 1.0)
-        else:
-            self.Liquidate()"""
-                full_response = "Test strategy generated"
-                self.logger.info("Simulated Code Generation Complete.")
-                final_path = "Strategies/AgenticDev/AncientStoneGolem/strategy_v2_1.py"
-                # Save the test strategy
-                with open(final_path, "w") as f:
-                    f.write(extracted_code)
-                self.logger.info(f"Simulated strategy saved at: {final_path}")
-                input("Press Enter to continue...")
-            
+                new_strategy_version = parent_filepath
+                
+            # Save strategy version (overwrite or new version)
+        
+            final_path = self.save_strategy_version(extracted_code, new_strategy_version, llm_full_response=full_response)
+            self.logger.info(f"Saved strategy version at: {final_path}")
+            parent_filepath = final_path
+                
             # Run backtest
             result = await self.test_generated_code(final_path, backtest_mode="cloud")
             backtest_dir = result.get('backtest_folder_path')

@@ -34,7 +34,7 @@ async def analyzer():
 async def test_analyze_backtest_results(analyzer):
     """Test analyzing backtest results using backtest_output.json format"""
     # Use a backtest directory with known backtest_output.json
-    backtest_dir = "Strategies/AgenticDev/AncientStoneGolem/backtests/2025-04-22_22-12-10"
+    backtest_dir = "Strategies/AgenticDev/LazyYellowCat/backtests/2025-04-23_12-14-31"
     
     # Run analysis
     result = await analyzer.run(backtest_dir)

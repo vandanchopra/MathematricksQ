@@ -401,9 +401,18 @@ class BacktesterAgent(BaseAgent):
             for key, value in performance_data.items():
                 self.logger.info(f"  {key}: {value}")
             
-            # Check for errors
-            self.logger.debug("Checking for errors in output...")
-            error_messages = self.check_errors_in_console_output(stdout_str)
+            # Check for errors and warnings
+            self.logger.debug("Checking for errors and warnings in output...")
+            error_messages, warning_messages = self.check_errors_in_console_output(stdout_str)
+            
+            # Add warnings to output but don't affect success status
+            if "warnings" not in backtest_output:
+                backtest_output["warnings"] = []
+            backtest_output["warnings"].extend(warning_messages)
+            if warning_messages:
+                self.logger.debug(f"Found warnings: {warning_messages}")
+            
+            # Only errors affect success status
             if error_messages:
                 backtest_output["errors"].extend(error_messages)
                 backtest_output["backtest_success"] = False
@@ -447,7 +456,7 @@ class BacktesterAgent(BaseAgent):
             
             # Update version history
             self._update_version_history(strategy_path, backtest_folder, backtest_output["backtest_success"],
-                                    backtest_output["errors"], backtest_output["failed_data_requests"])
+                                    backtest_output["errors"], backtest_output["warnings"], backtest_output["failed_data_requests"])
             
             return backtest_output
             
@@ -488,7 +497,7 @@ class BacktesterAgent(BaseAgent):
             error_results["errors"].append(str(e))
             return error_results
 
-    def _update_version_history(self, strategy_path: str, backtest_folder: str, backtest_successful: bool, errors: list, failed_data_requests: list) -> None:
+    def _update_version_history(self, strategy_path: str, backtest_folder: str, backtest_successful: bool, errors: list, warnings: list, failed_data_requests: list) -> None:
         """Update version history with backtest results
 
         Args:
@@ -592,6 +601,7 @@ class BacktesterAgent(BaseAgent):
             
             version_entry['backtests'].append({
                 'errors': errors,
+                'warnings': warnings,
                 'backtest_successful': backtest_successful,
                 'results-summary': results_summary,
                 'backtest_folder': abs_backtest_folder,
@@ -667,15 +677,16 @@ class BacktesterAgent(BaseAgent):
         match = re.search(r'Backtest url: (https://[^\s]+)', output)
         return match.group(1) if match else ""
 
-    def check_errors_in_console_output(self, console_output: str) -> list:
-        """Check for error messages in the console output and extract multi-line error blocks."""
+    def check_errors_in_console_output(self, console_output: str) -> tuple[list, list]:
+        """Check for error messages and warnings in the console output and extract multi-line blocks."""
         errors = []
+        warnings = []
         lines = console_output.splitlines()
         i = 0
         while i < len(lines):
             line = lines[i]
-            # Look for error indicators
-            if (
+            is_warning = "warning" in line.lower()
+            is_error = (
                 ("error" in line.lower() and "tracking error" not in line.lower())
                 or ("syntaxerror" in line.lower())
                 or ("traceback" in line.lower())
@@ -683,10 +694,11 @@ class BacktesterAgent(BaseAgent):
                 or ("failed" in line.lower() and "failed data requests" not in line.lower())
                 or ("could not" in line.lower())
                 or ("unable to" in line.lower())
-                or "warning" in line.lower()
                 or "compiler error" in line.lower()
-            ):
-                error_block = [line.rstrip()]
+            )
+            
+            if is_warning or is_error:
+                message_block = [line.rstrip()]
                 i += 1
                 # Capture any related context (indented lines, stack traces, etc.)
                 while i < len(lines) and (
@@ -697,16 +709,21 @@ class BacktesterAgent(BaseAgent):
                     or "at line" in lines[i].lower()
                     or "file" in lines[i].lower()
                 ):
-                    error_block.append(lines[i].rstrip())
+                    message_block.append(lines[i].rstrip())
                     i += 1
-                errors.append("\n".join(error_block))
+                if is_warning:
+                    warnings.append("\n".join(message_block))
+                else:
+                    errors.append("\n".join(message_block))
             else:
                 i += 1
                 
-        # Log found errors for debugging
+        # Log found errors and warnings for debugging
         if errors:
             self.logger.debug(f"Found errors in console output: {errors}")
-        return errors
+        if warnings:
+            self.logger.debug(f"Found warnings in console output: {warnings}")
+        return errors, warnings
 
     def check_for_failed_data_requests(self, folder_path: str) -> list:
         """

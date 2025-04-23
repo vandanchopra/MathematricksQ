@@ -9,7 +9,7 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
-strategy_test_path = "Strategies/AgenticDev/AncientStoneGolem/strategy_v2.py"
+strategy_test_path = "Strategies/AgenticDev/LazyYellowCat/strategy_v1.py"
 @pytest.fixture
 def backtester_agent():
     agent = BacktesterAgent()

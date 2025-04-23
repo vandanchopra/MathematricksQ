@@ -135,7 +135,7 @@ async def test_strategy_developer(strategy_developer_agent):
 @pytest.mark.asyncio
 async def test_backtest_analyzer(backtest_analyzer_agent):
     """Test backtest analysis"""
-    backtest_dir = "Strategies/AgenticDev/AncientStoneGolem/backtests/2025-04-19_19-55-29"
+    backtest_dir = "Strategies/AgenticDev/LazyYellowCat/backtests/2025-04-23_12-14-31"
     
     # Pre-test validations
     assert os.path.exists(backtest_dir), "Backtest directory not found"
@@ -224,7 +224,7 @@ async def test_alpha_seeker_new_strategy(alpha_seeker_agent):
 @pytest.mark.asyncio
 async def test_alpha_seeker_existing_strategy(alpha_seeker_agent):
     """Test AlphaSeeker with existing strategy"""
-    strategy_path = "Strategies/AgenticDev/AncientStoneGolem/strategy_v1_3_1.py"
+    strategy_path = "Strategies/AgenticDev/LazyYellowCat/strategy_v1.py"
     assert os.path.exists(strategy_path), f"Strategy file not found: {strategy_path}"
     
     # Run with existing strategy

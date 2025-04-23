@@ -223,19 +223,24 @@ class AlphaSeekerMetaAgent(BaseAgent):
         state = {
             "mode": "new_strategy" if new_strategy else "existing_strategy",
             "strategy_name": None,
-            "current_strategy_path": start_point_filepath,
+            "version_history_path": None,  # Path to version_history.json
+            "parent_strategy_path": start_point_filepath,
             "parent_name": None,  # Name of the parent strategy file
             "parent_strategy_backtest_path": None,  # Path to parent strategy backtest results
-            "parent_results": None,  # Performance metrics of parent strategy
             "parent_errors": None,  # Errors from parent strategy
+            "parent_performance": None,  # Performance metrics of parent strategy
+            "parent_performance_analysis": None,  # Analysis of parent strategy performance
+
             "current_strategy_version": None,  # Current version number (e.g., v1_2_3)
-            "current_strategy_results": None,  # Latest backtest results
-            "current_strategy_analysis": None,  # Latest backtest analysis
+            "current_strategy_backtest_path": None,  # Path to parent strategy backtest results
+            "current_strategy_errors": None,  # Errors from parent strategy
+            "current_strategy_performance": None,  # Performance metrics of parent strategy
+            "current_strategy_performance_analysis": None,  # Analysis of parent strategy performance
             "current_strategy_delta": 0.0,  # Performance delta from parent
             "current_idea": None,  # Current trading idea being tested
-            "version_history_path": None,  # Path to version_history.json
             "iteration": 0
         }
+        
         self.logger.info({"state": state})
         # If starting from existing strategy, initialize parent details
         if not new_strategy and start_point_filepath:
@@ -262,13 +267,18 @@ class AlphaSeekerMetaAgent(BaseAgent):
                         latest_backtest = entry["backtests"][-1]
                         backtest_folder = latest_backtest.get("backtest_folder")
                         if backtest_folder and os.path.exists(backtest_folder):
-                            # Load results using BaseAgent's method
-                            results = self._load_backtest_results(backtest_folder)
-                            self.logger.info({'results': results})
-                            state["parent_results"] = results.get("summary", {}).get("portfolioStatistics", {})
-                            state["parent_errors"] = results.get("errors", [])
-                            state["parent_strategy_backtest_path"] = backtest_folder
-                            break
+                            # Load backtest output.json directly
+                            output_json_path = os.path.join(backtest_folder, 'backtest_output.json')
+                            if os.path.exists(output_json_path):
+                                with open(output_json_path, 'r') as f:
+                                    backtest_output = json.load(f)
+                                    self.logger.info({'backtest_output': backtest_output})
+                                    state["parent_results"] = backtest_output.get("performance", {})
+                                    state["parent_errors"] = backtest_output.get("errors", [])
+                                    state["parent_strategy_backtest_path"] = backtest_folder
+                                    state["parent_performance"] = backtest_output.get("performance", {})
+                                    state["parent_performance_analysis"] = backtest_output.get("analysis", {})
+                                    break
                 
                 if state["parent_strategy_backtest_path"]:
                     self.logger.info("Parent Strategy Info:")

@@ -2113,6 +2113,20 @@
         "backtest_folder": "/Users/vandanchopra/Vandan_Personal_Folder/CODE_STUFF/Projects/MathematricksQ/Strategies/AgenticDev/AncientStoneGolem/backtests/2025-04-22_22-56-54",
         "timestamp": "2025-04-22T22:56:54.484695",
         "failed_data_requests": []
+      },
+      {
+        "errors": [
+          "An error occurred during this backtest:"
+        ],
+        "backtest_successful": false,
+        "results-summary": {
+          "tradeStatistics": null,
+          "portfolioStatistics": null,
+          "error": "No summary file found in backtest folder"
+        },
+        "backtest_folder": "/Users/vandanchopra/Vandan_Personal_Folder/CODE_STUFF/Projects/MathematricksQ/Strategies/AgenticDev/AncientStoneGolem/backtests/2025-04-23_11-04-18",
+        "timestamp": "2025-04-23T11:04:18.951735",
+        "failed_data_requests": []
       }
     ]
   },
@@ -2131,21 +2145,7 @@
           "portfolioStatistics": null,
           "error": "No summary file found in backtest folder"
         },
-        "backtest_folder": "/Users/vandanchopra/Vandan_Personal_Folder/CODE_STUFF/Projects/MathematricksQ/Strategies/AgenticDev/AncientStoneGolem/backtests/2025-04-22_22-12-10",
-        "timestamp": "2025-04-22T22:12:10.227941",
-        "failed_data_requests": [],
-        "BacktestAnalyzerAgent-analysis": {
-          "metrics_analysis": {
-            "returns_assessment": "The strategy demonstrates a Compounding Annual Return of 15.811% and a total return of 79.79% over the backtesting period. While positive, the Sharpe Ratio of 0.578 and Sortino Ratio of 0.552 suggest that the risk-adjusted returns are not exceptional, indicating room for improvement. The positive alpha of 0.076 suggests some outperformance relative to the benchmark, but it's relatively modest.",
-            "risk_assessment": "The strategy carries a significant Drawdown of 31.800%, which is a major concern. This indicates substantial potential losses during adverse market conditions. The Beta of 0.367 indicates that the strategy is less volatile than the overall market, but the high drawdown suggests that it is still exposed to considerable downside risk. The Annual Standard Deviation of 0.182 further quantifies the volatility.",
-            "trading_efficiency": "The strategy has a Win Rate of 55% and a Loss Rate of 45%, suggesting relatively balanced performance. However, the Profit-Loss Ratio of 2.71 is positive, indicating that winning trades are significantly larger than losing trades on average. The Expectancy of 1.025 suggests that for every dollar risked, the strategy expects to make $1.025.",
-            "market_behavior": "The Beta of 0.367 indicates a partial correlation with the broader market. The Information Ratio of 0.118 is low, suggesting the strategy doesn't consistently generate significant excess returns relative to its benchmark after accounting for tracking error. The Tracking Error is 0.206."
-          },
-          "trade_analysis": {
-            "execution_quality": "With 41 total orders and minimal fees of $129.06, the trade execution appears reasonably efficient. The Average Win of 17.43% and Average Loss of -6.43% highlights the positive risk-reward profile.",
-            "position_sizing": "The Portfolio Turnover of 1.57% and Estimated Strategy Capacity of $480,000,000.00 suggest that the position sizing is conservative, and the strategy could potentially handle a larger capital base. However, further analysis is needed to determine if more aggressive position sizing could improve returns without drastically increasing drawdown.",
-            "win_loss_patterns": "The Win Rate of 55% and Profit-Loss Ratio of 2.71 suggest that the strategy is effective at capturing gains when it is correct. Further analysis of the sequence of wins and losses could reveal patterns that could be exploited or mitigated.",
-            "errors_assessment": "The absence of errors and failed data requests is a positive sign, indicating a stable and reliable implementation."
+        "failed data requests is a positive sign, indicating a stable and reliable implementation."
           },
           "strategy_analysis": {
             "overall_assessment": "The strategy shows promise with a positive annual return and a favorable profit-loss ratio. However, the high drawdown and relatively low Sharpe Ratio indicate significant room for improvement in risk management and overall efficiency. While the strategy generates profit, it is highly exposed to losses.",
