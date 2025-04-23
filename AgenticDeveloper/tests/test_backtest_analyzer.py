@@ -22,39 +22,49 @@ def display_json_section(title: str, content: dict, indent: int = 2):
     else:
         print(json.dumps(content, indent=2))
 
-async def main():
-    # Set up logging
-    logging.basicConfig(
-        level=logging.DEBUG,
-        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-    )
-    
-    # Initialize analyzer agent
-    agent = BacktestAnalyzerAgent("AgenticDeveloper/config/system_config.yaml")
-    
-    # Specific backtest directory to analyze
-    backtest_dir = "Strategies/AgenticDev/AncientStoneGolem/backtests/2025-04-19_19-55-29"
-    
-    try:
-        print(f"\nAnalyzing backtest results in: {backtest_dir}")
-        print("=" * 80)
-        
-        # Run analysis
-        result = await agent.run(backtest_dir)
-        analysis = result["analysis"]
-        
-        # Display analysis sections
-        display_json_section("Metrics Analysis", analysis["metrics_analysis"])
-        display_json_section("Trade Analysis", analysis["trade_analysis"])
-        display_json_section("Strategy Analysis", analysis["strategy_analysis"])
-        display_json_section("Improvement Suggestions", analysis["improvement_suggestions"])
-        
-        print("\nBacktest analysis complete! ✅")
-        print(f"Full analysis stored in: {backtest_dir}/BacktestAnalyzerAgent_analysis.json")
-        
-    except Exception as e:
-        print(f"\nError analyzing backtest: {str(e)} ❌")
-        raise
+import pytest
+import pytest_asyncio
 
-if __name__ == "__main__":
-    asyncio.run(main())
+@pytest_asyncio.fixture
+async def analyzer():
+    """Fixture to provide a BacktestAnalyzerAgent instance"""
+    return BacktestAnalyzerAgent()
+
+@pytest.mark.asyncio
+async def test_analyze_backtest_results(analyzer):
+    """Test analyzing backtest results using backtest_output.json format"""
+    # Use a backtest directory with known backtest_output.json
+    backtest_dir = "Strategies/AgenticDev/AncientStoneGolem/backtests/2025-04-22_22-12-10"
+    
+    # Run analysis
+    result = await analyzer.run(backtest_dir)
+    
+    # Verify expected keys in result
+    assert "timestamp" in result, "Result should include timestamp"
+    assert "backtest_path" in result, "Result should include backtest path"
+    assert "analysis" in result, "Result should include analysis"
+    
+    # Verify analysis structure
+    analysis = result["analysis"]
+    assert "metrics_analysis" in analysis, "Analysis should include metrics analysis"
+    assert "trade_analysis" in analysis, "Analysis should include trade analysis"
+    assert "strategy_analysis" in analysis, "Analysis should include strategy analysis"
+    assert "improvement_suggestions" in analysis, "Analysis should include improvement suggestions"
+    
+    # Verify standalone analysis file was created
+    standalone_file = os.path.join(backtest_dir, "BacktestAnalyzerAgent_analysis.json")
+    assert os.path.exists(standalone_file), "Standalone analysis file should be created"
+    
+    # Verify backtest_output.json was updated with analysis
+    output_json_path = os.path.join(backtest_dir, "backtest_output.json")
+    with open(output_json_path, 'r') as f:
+        backtest_output = json.load(f)
+        
+    assert "analysis" in backtest_output, "backtest_output.json should have analysis field"
+    assert backtest_output["analysis"] == result["analysis"], "Analysis in backtest_output.json should match result"
+
+@pytest.mark.asyncio
+async def test_analyze_backtest_with_invalid_path(analyzer):
+    """Test analyzer handles invalid backtest directory"""
+    with pytest.raises(ValueError, match="Backtest directory not found"):
+        await analyzer.run("invalid/path")

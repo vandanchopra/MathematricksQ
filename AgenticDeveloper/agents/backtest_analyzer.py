@@ -44,11 +44,25 @@ class BacktestAnalyzerAgent(BaseAgent):
             "backtest_path": backtest_dir,
             "analysis": analysis
         }
-        output_file = os.path.join(backtest_dir, "BacktestAnalyzerAgent_analysis.json")
-        with open(output_file, 'w') as f:
+        # Save standalone analysis file
+        standalone_output = os.path.join(backtest_dir, "BacktestAnalyzerAgent_analysis.json")
+        with open(standalone_output, 'w') as f:
             json.dump(analysis_output, f, indent=2)
+        self.logger.debug(f"Analysis complete and stored in: {standalone_output}")
+        
+        # Update backtest_output.json with analysis
+        backtest_output_path = os.path.join(backtest_dir, "backtest_output.json")
+        if os.path.exists(backtest_output_path):
+            with open(backtest_output_path, 'r') as f:
+                backtest_output = json.load(f)
             
-        self.logger.debug(f"Analysis complete and stored in: {output_file}")
+            # Add/update analysis field
+            backtest_output["analysis"] = analysis
+            
+            # Save updated backtest_output.json
+            with open(backtest_output_path, 'w') as f:
+                json.dump(backtest_output, f, indent=2)
+            self.logger.debug(f"Updated analysis in {backtest_output_path}")
         
         # Update version history
         self._update_version_history(backtest_dir, analysis)
@@ -125,25 +139,23 @@ class BacktestAnalyzerAgent(BaseAgent):
             self.logger.debug(f"Error during LLM analysis: {str(e)}")
             raise
             
+    def _load_backtest_results(self, backtest_dir: str) -> Dict[str, Any]:
+        """Load backtest results from backtest_output.json"""
+        output_json_path = os.path.join(backtest_dir, "backtest_output.json")
+        if not os.path.exists(output_json_path):
+            raise ValueError(f"backtest_output.json not found in {backtest_dir}")
+            
+        with open(output_json_path, 'r') as f:
+            results = json.load(f)
+            self.logger.debug(f"Loaded backtest results from {output_json_path}")
+            return results
+            
     def _create_analysis_prompt(self, results: Dict[str, Any]) -> str:
         """Create a detailed prompt for the LLM to analyze backtest results"""
-        summary = results["summary"]
+        performance_metrics = results.get("performance", {})
         orders = results.get("orders", [])
-        errors = results["errors"]
-        failed_requests = results["failed_requests"]
-        # self.logger.debug({"keys":results["failed_requests"]})
-        # raise NotImplementedError("LLM analysis not implemented yet")
-        if 'totalPerformance' in summary and 'tradeStatistics' in summary['totalPerformance']:
-            performance_metrics = summary['totalPerformance']['tradeStatistics']
-        else:
-            performance_metrics = {}
-            
-        if 'totalPerformance' in summary and 'portfolioStatistics' in summary['totalPerformance']:
-            portfolio_metrics = summary['totalPerformance']['portfolioStatistics']
-        elif 'performance_metrics' in summary:
-            portfolio_metrics = summary['performance_metrics']
-        else:
-            portfolio_metrics = {}
+        errors = results.get("errors", [])
+        failed_requests = results.get("failed_data_requests", [])
             
         prompt = f"""As a quantitative trading expert, analyze these backtest results and return your analysis in JSON format.
 
@@ -169,13 +181,25 @@ IMPORTANT: Return your response as a valid JSON object with this exact structure
     "improvement_suggestions": "Make one specific and actionable suggestion to improve the strategy that you believe will have the most impact."
 }}
 
-Key metrics from summary:
-- Total trading days: {summary.get('TotalDays', 'N/A')}
-- Total trades: {len(orders)}
-- Number of errors: {len(errors)}
-- Failed data requests: {failed_requests}
-- Performance metrics: {json.dumps(performance_metrics, indent=2)}
-- Portfolio metrics: {json.dumps(portfolio_metrics, indent=2)}
+Key Performance Metrics:
+- Sharpe Ratio: {performance_metrics.get('Sharpe Ratio', 'N/A')}
+- Compounding Annual Return: {performance_metrics.get('Compounding Annual Return', 'N/A')}
+- Total Trading Days: {performance_metrics.get('Total Trading Days', 'N/A')}
+- Win Rate: {performance_metrics.get('Win Rate', 'N/A')}
+- Loss Rate: {performance_metrics.get('Loss Rate', 'N/A')}
+- Profit-Loss Ratio: {performance_metrics.get('Profit-Loss Ratio', 'N/A')}
+- Alpha: {performance_metrics.get('Alpha', 'N/A')}
+- Beta: {performance_metrics.get('Beta', 'N/A')}
+- Sortino Ratio: {performance_metrics.get('Sortino Ratio', 'N/A')}
+- Information Ratio: {performance_metrics.get('Information Ratio', 'N/A')}
+- Drawdown: {performance_metrics.get('Drawdown', 'N/A')}
+
+Additional Information:
+- Total Trades: {len(orders) if orders else 'N/A'}
+- Number of Errors: {len(errors)}
+- Failed Data Requests: {len(failed_requests)}
+
+Raw Performance Data: {json.dumps(performance_metrics, indent=2)}
 
 Consider any errors or data request failures in your analysis. Provide detailed, quantitative analysis in your JSON response. Ensure all suggestions are specific and actionable."""
         return prompt

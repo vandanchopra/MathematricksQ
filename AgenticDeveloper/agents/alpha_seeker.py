@@ -15,6 +15,7 @@ import asyncio
 import json
 import re
 import random
+import shutil
 
 # Define LangChain tool wrappers for each agent
 async def research_tool_func(query: str = "momentum trading", max_results: int = 3) -> dict:
@@ -96,8 +97,6 @@ prompt = ChatPromptTemplate.from_messages([
     MessagesPlaceholder(variable_name="chat_history"),
     MessagesPlaceholder(variable_name="agent_scratchpad"),
 ])
-
-import shutil
 
 class AlphaSeekerMetaAgent(BaseAgent):
     def __init__(self, config_path: str = "AgenticDeveloper/config/system_config.yaml", config=None):
@@ -338,7 +337,6 @@ class AlphaSeekerMetaAgent(BaseAgent):
         
         self.logger.info("AlphaSeeker run complete.")
         return state
-    
     
     async def run_old(
         self,
