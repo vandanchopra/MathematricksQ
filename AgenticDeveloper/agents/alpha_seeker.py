@@ -1,3 +1,4 @@
+import concurrent.futures
 from langchain.agents import AgentExecutor, create_openai_functions_agent
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.messages import SystemMessage
@@ -37,17 +38,17 @@ async def strategy_writer_tool_func(instructions: str, strategy_dir: str, previo
     agent = StrategyDeveloperAgent()
     loop = asyncio.get_event_loop()
     path = await loop.run_in_executor(None, agent.run, instructions, strategy_dir, previous_strategy_path)
-    return f"Strategy saved at: {path}"
+    return path
 
 async def backtester_tool_func(strategy_path: str, mode: str = "local") -> str:
     agent = BacktesterAgent()
-    result = await agent.run(strategy_path, mode)
-    return f"Backtest result: {result}"
+    backtest_results = await agent.run(strategy_path, mode)
+    return backtest_results
 
 async def backtest_analyzer_tool_func(backtest_dir: str) -> str:
     agent = BacktestAnalyzerAgent()
-    result = await agent.run(backtest_dir)
-    return f"Backtest analysis: {result}"
+    backtest_analysis = await agent.run(backtest_dir)
+    return backtest_analysis
 
 research_tool = Tool.from_function(
     research_tool_func,
@@ -160,6 +161,159 @@ class AlphaSeekerMetaAgent(BaseAgent):
             self.logger.error(f"Error calculating performance delta: {e}")
             return 0.0
             
+    def determine_scenario(self, state: dict) -> str:
+        """Determine which improvement scenario applies"""
+        # SCENARIO 1: Check for errors first
+        if state["parent_strategy_errors"]:
+            return "error"
+        
+        # SCENARIO 2: Check trade count
+        total_orders = state["parent_strategy_performance"].get("Total Orders", 0)
+        try:
+            total_orders = int(str(total_orders).replace(",", ""))
+        except (ValueError, TypeError):
+            total_orders = 0
+            
+        if total_orders < 100:
+            return "low_trades"
+            
+        # SCENARIO 3: Need performance improvement
+        return "improvement_needed"
+
+    def create_improvement_prompt(self, scenario: str, state: dict) -> str:
+        """Generate appropriate prompt based on scenario"""
+        if scenario == "error":
+            return f"Fix the following errors in the strategy:\n{state['parent_strategy_errors']}"
+            
+        elif scenario == "low_trades":
+            total_orders = state["parent_strategy_performance"].get("Total Orders", 0)
+            return (f"The current strategy only generated {total_orders} orders. "
+                   "Modify the strategy to generate more trading opportunities by:\n"
+                   "1. Adjusting entry/exit conditions\n"
+                   "2. Adding more trading pairs\n"
+                   "3. Reducing minimum trade thresholds")
+                   
+        else:  # improvement_needed
+            return self.create_strategy_performance_improvement_prompt(state["parent_strategy_performance"])
+
+    def create_strategy_performance_improvement_prompt(self, metrics: dict) -> str:
+        """Create a prompt for improving strategy performance based on current metrics"""
+        sharpe_ratio = metrics.get("Sharpe Ratio", "0")
+        drawdown = metrics.get("Drawdown", "0%")
+        win_rate = metrics.get("Win Rate", "0%")
+        
+        prompt = "Improve the strategy performance with focus on:\n"
+        
+        if float(str(sharpe_ratio).replace("-", "0")) < 1.0:
+            prompt += f"1. Improve risk-adjusted returns (current Sharpe Ratio: {sharpe_ratio})\n"
+            
+        if float(str(drawdown).replace("%", "").replace("-", "0")) > 10.0:
+            prompt += f"2. Reduce maximum drawdown (current: {drawdown})\n"
+            
+        if float(str(win_rate).replace("%", "").replace("-", "0")) < 50.0:
+            prompt += f"3. Increase win rate (current: {win_rate})\n"
+            
+        prompt += "\nMake targeted improvements while maintaining the core strategy logic."
+        return prompt
+
+    def calculate_performance_delta(self, child_performance: dict, parent_performance: dict) -> float:
+        """Calculate delta between child and parent strategies"""
+        try:
+            child_sharpe = float(child_performance.get("Sharpe Ratio", 0))
+            parent_sharpe = float(parent_performance.get("Sharpe Ratio", 0))
+            return child_sharpe - parent_sharpe
+        except (ValueError, TypeError):
+            return 0.0
+
+    def should_keep_child(self, state: dict, child_performance: dict) -> bool:
+        """Determine if child strategy shows enough improvement to replace parent"""
+        delta = self.calculate_performance_delta(
+            child_performance,
+            state["parent_strategy_performance"]
+        )
+        return delta > 0
+
+    async def process_strategy_iteration(self, state: dict) -> dict:
+        """Main iteration loop for strategy improvement"""
+        try:
+            # 1. Determine current scenario
+            scenario = self.determine_scenario(state)
+            self.logger.info(f"Current scenario: {scenario}")
+            
+            # 2. Generate appropriate prompt
+            prompt = self.create_improvement_prompt(scenario, state)
+            
+            # 3. Give human 15 seconds to review/modify prompt
+            self.logger.info(f"Prompt for Next Direction for Strategy Development:\n{prompt}")
+            human_input = await self.wait_for_human_input(15)
+            if human_input:
+                prompt = human_input
+                
+            # 4. Create new strategy version
+            strategy_dev = StrategyDeveloperAgent()
+            new_strategy_path = await strategy_dev.run(
+                instructions=prompt,
+                start_point_filepath=state["parent_strategy_path"]
+            )
+            
+            # 5. Run backtest
+            backtester = BacktesterAgent()
+            backtest_result = await backtester.run(
+                strategy_path=new_strategy_path,
+                mode="cloud"
+            )
+            
+            # 6. Update metrics and check performance
+            if backtest_result["backtest_success"]:
+                if self.should_keep_child(state, backtest_result["performance"]):
+                    # Run analysis on successful child strategy
+                    analyzer = BacktestAnalyzerAgent()
+                    analysis_result = await analyzer.run(backtest_result["backtest_folder_path"])
+                    
+                    # Update parent with child's info
+                    state["parent_strategy_path"] = new_strategy_path
+                    state["parent_strategy_performance"] = backtest_result["performance"]
+                    state["parent_strategy_errors"] = backtest_result["errors"]
+                    state["parent_strategy_performance_analysis"] = analysis_result
+                    state["current_strategy_delta"] = self.calculate_performance_delta(
+                        backtest_result["performance"],
+                        state["parent_strategy_performance"]
+                    )
+                    self.logger.info("Child strategy showed improvement - updating parent")
+                else:
+                    self.logger.info("Child strategy did not show improvement - keeping parent")
+                    
+            return state
+            
+        except Exception as e:
+            self.logger.error(f"Error in process_strategy_iteration: {e}")
+            raise
+
+    async def wait_for_human_input(self, timeout_seconds: int = 15) -> str:
+        """Wait for human input with a timeout.
+        Returns the input if received, otherwise None."""
+        self.logger.info(f"Waiting {timeout_seconds} seconds for human input...")
+        print("Enter modifications (or press Enter to continue with current prompt):")
+        
+        try:
+            # Create an executor for running blocking input() in a separate thread
+            loop = asyncio.get_event_loop()
+            with concurrent.futures.ThreadPoolExecutor() as executor:
+                # Create input task
+                input_future = loop.run_in_executor(executor, input)
+                
+                try:
+                    # Wait for input with timeout
+                    user_input = await asyncio.wait_for(input_future, timeout=timeout_seconds)
+                    return user_input.strip() if user_input else None
+                except asyncio.TimeoutError:
+                    print("\nTimeout reached, continuing with generated prompt...")
+                    return None
+                    
+        except Exception as e:
+            self.logger.error(f"Error waiting for input: {e}")
+            return None
+
     async def _update_google_sheets(self, metrics: dict):
         """
         Update strategy performance metrics to Google Sheets.
@@ -222,14 +376,12 @@ class AlphaSeekerMetaAgent(BaseAgent):
         # Initialize state
         state = {
             "mode": "new_strategy" if new_strategy else "existing_strategy",
-            "strategy_name": None,
             "version_history_path": None,  # Path to version_history.json
             "parent_strategy_path": start_point_filepath,
-            "parent_name": None,  # Name of the parent strategy file
             "parent_strategy_backtest_path": None,  # Path to parent strategy backtest results
-            "parent_errors": None,  # Errors from parent strategy
-            "parent_performance": None,  # Performance metrics of parent strategy
-            "parent_performance_analysis": None,  # Analysis of parent strategy performance
+            "parent_strategy_errors": None,  # Errors from parent strategy
+            "parent_strategy_performance": None,  # Performance metrics of parent strategy
+            "parent_strategy_performance_analysis": None,  # Analysis of parent strategy performance
 
             "current_strategy_version": None,  # Current version number (e.g., v1_2_3)
             "current_strategy_backtest_path": None,  # Path to parent strategy backtest results
@@ -241,19 +393,14 @@ class AlphaSeekerMetaAgent(BaseAgent):
             "iteration": 0
         }
         
-        self.logger.info({"state": state})
         # If starting from existing strategy, initialize parent details
         if not new_strategy and start_point_filepath:
-            state["parent_name"] = os.path.basename(start_point_filepath)
-            state["strategy_name"] = os.path.splitext(state["parent_name"])[0]
             strategy_dir = os.path.dirname(start_point_filepath)
             state["version_history_path"] = os.path.join(strategy_dir, "version_history.json")
-            self.logger.info({"state": state})
     
         while True:
             state["iteration"] += 1
             self.logger.info(f"--- Iteration {state['iteration']} ---")
-            self.logger.info({"state": state})
             
             # Get parent strategy results if this is first iteration and not a new strategy
             if state["iteration"] == 1 and not new_strategy and state["version_history_path"]:
@@ -267,80 +414,36 @@ class AlphaSeekerMetaAgent(BaseAgent):
                         latest_backtest = entry["backtests"][-1]
                         backtest_folder = latest_backtest.get("backtest_folder")
                         if backtest_folder and os.path.exists(backtest_folder):
-                            # Load backtest output.json directly
-                            output_json_path = os.path.join(backtest_folder, 'backtest_output.json')
-                            if os.path.exists(output_json_path):
-                                with open(output_json_path, 'r') as f:
-                                    backtest_output = json.load(f)
-                                    self.logger.info({'backtest_output': backtest_output})
-                                    state["parent_results"] = backtest_output.get("performance", {})
-                                    state["parent_errors"] = backtest_output.get("errors", [])
-                                    state["parent_strategy_backtest_path"] = backtest_folder
-                                    state["parent_performance"] = backtest_output.get("performance", {})
-                                    state["parent_performance_analysis"] = backtest_output.get("analysis", {})
-                                    break
+                            # Load results using BaseAgent's method
+                            backtest_output = self._load_backtest_results(backtest_folder)
+                            state["parent_strategy_performance"] = backtest_output.get("performance", {})
+                            state["parent_strategy_errors"] = backtest_output.get("errors", [])
+                            state["parent_strategy_backtest_path"] = backtest_folder
+                            state["parent_strategy_performance_analysis"] = backtest_output.get("analysis", {})
+                            break
                 
-                if state["parent_strategy_backtest_path"]:
-                    self.logger.info("Parent Strategy Info:")
-                    self.logger.info({
-                        "parent_results": state["parent_results"],
-                        "parent_errors": state["parent_errors"],
-                        "parent_backtest_path": state["parent_strategy_backtest_path"]
-                    })
-
-            self.logger.info({"state": state})
-            raise Exception("Debugging iteration loop")
-            
+            for key, value in state.items():
+                if key in []:
+                    print('--' * 40)
+                    self.logger.info({f"{key}": value})
+                
             
             try:
-                # Step 1: For new strategy initialization
+                # Initial setup for new strategy if needed
                 if new_strategy and state["iteration"] == 1:
-                    # Strategy name and directory are handled by StrategyDeveloperAgent
                     idea = await self._get_next_research_idea(state)
                     prompt = self._create_strategy_prompt(idea)
-                    result = await strategy_writer_tool_func(prompt, "Strategies/AgenticDev")
-                    state["current_strategy_path"] = self._extract_strategy_path(result)
-                # Step 2: Run backtest and analyze
-                backtest_result = await backtester_tool_func(state["current_strategy_path"])
-                analysis = await backtest_analyzer_tool_func(backtest_result)
+                    strategy_path = await strategy_writer_tool_func(prompt, "Strategies/AgenticDev")
+                    state["parent_strategy_path"] = strategy_path
                 
-                # Step 3: Update state with results and analysis
-                state["current_strategy_results"] = backtest_result
-                state["current_strategy_analysis"] = analysis
-                current_metrics = self._extract_metrics(backtest_result)
-                
-                # Step 4: Calculate performance delta
-                delta = self._calculate_performance_delta(current_metrics, state["parent_results"])
-                state["current_strategy_delta"] = delta
-                
-                # Step 5: Check trade count and determine next action
-                trade_count = current_metrics.get("TotalTrades", 0)
-                version_number = self._get_latest_version_number(state["current_strategy_path"])
-                state["current_strategy_version"] = f"v{version_number}"
-                
-                if trade_count < 100:
-                    direction = self._generate_trade_increase_prompt(state, current_metrics)
-                else:
-                    direction = await self._generate_strategy_direction(state, version_number, delta)
-                
-                # Step 6: Write new strategy version
-                result = await strategy_writer_tool_func(direction, "Strategies/AgenticDev", state["current_strategy_path"])
-                state["current_strategy_path"] = self._extract_strategy_path(result)
-                
-                # Step 7: Update metrics to Google Sheets
-                await self._update_google_sheets(current_metrics)
-                
-                # Step 8: Update parent information if performance improved
-                if delta > 0:
-                    state["parent_name"] = os.path.basename(state["current_strategy_path"])
-                    state["parent_results"] = current_metrics
-                
+                # Process one iteration
+                state = await self.process_strategy_iteration(state)
                 
                 # Let user review progress
                 user_input = input("Press Enter to continue or type 'stop' to exit: ")
                 if user_input.lower() == 'stop':
                     break
-                    
+                
             except Exception as e:
                 self.logger.error(f"Error in iteration {state['iteration']}: {e}")
                 break

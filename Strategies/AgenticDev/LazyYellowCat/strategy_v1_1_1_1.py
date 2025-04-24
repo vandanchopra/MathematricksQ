@@ -25,7 +25,7 @@ class LongShortEquityStrategyImproved(QCAlgorithm):
         # Risk management parameters
         self.max_drawdown_threshold = -0.05  # Stop trading if drawdown exceeds 5%
         self.initial_portfolio_value = self.Portfolio.TotalPortfolioValue
-        self.high_watermark = self.Portfolio.TotalPortfolioValue # track the maximum value
+        self.high_watermark = self.initial_portfolio_value # track the maximum value
         self.stopped_trading = False
         self.stop_loss_percentage = 0.02 # Stop loss at 2%
 
@@ -41,13 +41,6 @@ class LongShortEquityStrategyImproved(QCAlgorithm):
         # Correlation Filter Parameters
         self.correlation_lookback = 20
         self.max_correlation = 0.7  # Maximum allowed correlation between assets
-
-        # Add ADX indicator
-        self.adx_period = 14
-        self.adx = {}
-        for symbol in self.symbols:
-            self.adx[symbol] = self.ADX(symbol, self.adx_period, Resolution.DAILY)
-            self.adx[symbol].Update(self.Time, self.Securities[symbol].Close)
 
 
     def OnData(self, data):
@@ -124,11 +117,11 @@ class LongShortEquityStrategyImproved(QCAlgorithm):
         tradable_longs = []
         tradable_shorts = []
         for symbol in long_symbols:
-            if self.IsVolatilityAcceptable(symbol, data) and self.IsTrending(symbol):
+            if self.IsVolatilityAcceptable(symbol, data):
                 tradable_longs.append(symbol)
 
         for symbol in short_symbols:
-            if self.IsVolatilityAcceptable(symbol, data) and self.IsTrending(symbol):
+            if self.IsVolatilityAcceptable(symbol, data):
                 tradable_shorts.append(symbol)
 
         # Correlation Filter: Check correlation between long and short positions
@@ -246,7 +239,7 @@ class LongShortEquityStrategyImproved(QCAlgorithm):
         history_short = self.History(short_symbol, self.correlation_lookback, Resolution.DAILY)
 
         if history_long.empty or history_short.empty:
-            return [], []  # Don't trade if history is missing
+            return [], [] # Don't trade if history is missing
 
         # Calculate returns and correlation
         returns_long = history_long['close'].pct_change().dropna()
@@ -266,15 +259,3 @@ class LongShortEquityStrategyImproved(QCAlgorithm):
             return [], []  # Skip trading if correlation is too high
 
         return long_symbols, short_symbols
-
-    def IsTrending(self, symbol):
-        """
-        Check if the asset is trending using ADX indicator.
-        """
-        if self.adx[symbol].IsReady:
-            if self.adx[symbol].DMI > 25:  #ADX reading above 25 indicates the presence of a trend
-                return True
-            else:
-                return False
-        else:
-            return False # ADX not ready

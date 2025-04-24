@@ -25,7 +25,7 @@ class LongShortEquityStrategyImproved(QCAlgorithm):
         # Risk management parameters
         self.max_drawdown_threshold = -0.05  # Stop trading if drawdown exceeds 5%
         self.initial_portfolio_value = self.Portfolio.TotalPortfolioValue
-        self.high_watermark = self.Portfolio.TotalPortfolioValue # track the maximum value
+        self.high_watermark = self.initial_portfolio_value # track the maximum value
         self.stopped_trading = False
         self.stop_loss_percentage = 0.02 # Stop loss at 2%
 
@@ -37,17 +37,6 @@ class LongShortEquityStrategyImproved(QCAlgorithm):
         self.atr_period = 14
         self.atr_multiple = 2  # Adjust based on testing; lower values tighten the stop
         self.atr = {}
-
-        # Correlation Filter Parameters
-        self.correlation_lookback = 20
-        self.max_correlation = 0.7  # Maximum allowed correlation between assets
-
-        # Add ADX indicator
-        self.adx_period = 14
-        self.adx = {}
-        for symbol in self.symbols:
-            self.adx[symbol] = self.ADX(symbol, self.adx_period, Resolution.DAILY)
-            self.adx[symbol].Update(self.Time, self.Securities[symbol].Close)
 
 
     def OnData(self, data):
@@ -99,16 +88,15 @@ class LongShortEquityStrategyImproved(QCAlgorithm):
                 continue
 
             returns = history['close'].pct_change().dropna()
-            # Adjusted momentum calculation: Exponentially weighted moving average of returns
-            momentum_score = returns.ewm(span=self.lookback).mean().iloc[-1]
+            momentum_score = returns.sum()
 
             self.momentum[symbol] = momentum_score
 
 
     def RebalancePortfolio(self, data):
         """
-        Adjusts portfolio holdings based on momentum scores, incorporating volatility and correlation filtering.
-        Longs the top one momentum stocks and shorts the bottom one to reduce risk.
+        Adjusts portfolio holdings based on momentum scores, incorporating volatility filtering.
+        Longs the top two momentum stocks and shorts the bottom two.
         """
         if not self.momentum:
             self.Log("No momentum data available. Skipping rebalancing.")
@@ -116,23 +104,20 @@ class LongShortEquityStrategyImproved(QCAlgorithm):
 
         sorted_symbols = sorted(self.momentum.items(), key=lambda x: x[1], reverse=True)
 
-        long_symbols = [symbol for symbol, _ in sorted_symbols[:1]]  # Top 1
-        short_symbols = [symbol for symbol, _ in sorted_symbols[-1:]] # Bottom 1
+        long_symbols = [symbol for symbol, _ in sorted_symbols[:2]]
+        short_symbols = [symbol for symbol, _ in sorted_symbols[-2:]]
 
 
         # Volatility Filter:  Only trade if volatility is within acceptable limits
         tradable_longs = []
         tradable_shorts = []
         for symbol in long_symbols:
-            if self.IsVolatilityAcceptable(symbol, data) and self.IsTrending(symbol):
+            if self.IsVolatilityAcceptable(symbol, data):
                 tradable_longs.append(symbol)
 
         for symbol in short_symbols:
-            if self.IsVolatilityAcceptable(symbol, data) and self.IsTrending(symbol):
+            if self.IsVolatilityAcceptable(symbol, data):
                 tradable_shorts.append(symbol)
-
-        # Correlation Filter: Check correlation between long and short positions
-        tradable_longs, tradable_shorts = self.ApplyCorrelationFilter(tradable_longs, tradable_shorts)
 
 
         long_weight = 0.5 / len(tradable_longs) if tradable_longs else 0
@@ -230,51 +215,3 @@ class LongShortEquityStrategyImproved(QCAlgorithm):
         atr = sum(true_range) / self.atr_period
         self.atr[symbol] = atr
         self.Log(f"ATR for {symbol}: {atr}")
-
-
-    def ApplyCorrelationFilter(self, long_symbols, short_symbols):
-        """
-        Filters long and short symbols based on correlation to reduce risk.
-        """
-        if not long_symbols or not short_symbols:
-            return long_symbols, short_symbols
-
-        long_symbol = long_symbols[0]
-        short_symbol = short_symbols[0]
-
-        history_long = self.History(long_symbol, self.correlation_lookback, Resolution.DAILY)
-        history_short = self.History(short_symbol, self.correlation_lookback, Resolution.DAILY)
-
-        if history_long.empty or history_short.empty:
-            return [], []  # Don't trade if history is missing
-
-        # Calculate returns and correlation
-        returns_long = history_long['close'].pct_change().dropna()
-        returns_short = history_short['close'].pct_change().dropna()
-
-        # Align the returns based on the index (dates)
-        aligned_returns = returns_long.to_frame('long').join(returns_short.to_frame('short'), how='inner')
-
-        if len(aligned_returns) < 2:
-            return [], []  # Need at least 2 data points for correlation
-
-        correlation = aligned_returns['long'].corr(aligned_returns['short'])
-
-
-        if abs(correlation) > self.max_correlation:
-            self.Log(f"Correlation between {long_symbol} and {short_symbol} is too high ({correlation:.2f}). Skipping trade.")
-            return [], []  # Skip trading if correlation is too high
-
-        return long_symbols, short_symbols
-
-    def IsTrending(self, symbol):
-        """
-        Check if the asset is trending using ADX indicator.
-        """
-        if self.adx[symbol].IsReady:
-            if self.adx[symbol].DMI > 25:  #ADX reading above 25 indicates the presence of a trend
-                return True
-            else:
-                return False
-        else:
-            return False # ADX not ready
