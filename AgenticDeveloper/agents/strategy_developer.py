@@ -100,7 +100,7 @@ class StrategyDeveloperAgent(BaseAgent):
         Optionally provide a previous strategy file path to include its code in the prompt.
         Returns the path to the saved strategy file.
         """
-        max_retries = 10
+        max_retries = 3
         attempt = 0
         errors = []
         final_path = None
@@ -178,8 +178,6 @@ class StrategyDeveloperAgent(BaseAgent):
                 base_instruction = f'Write Quantconnect Lean compatible code in python, that does the following: {instructions}. '
                 prompt = previous_code_prompt + performance_prompt + base_instruction
             
-            input("Press Enter to continue...")
-            
             # Generate strategy code
             extracted_code, full_response = self.generate_strategy_code(prompt)
             ''' 
@@ -206,9 +204,8 @@ class StrategyDeveloperAgent(BaseAgent):
             # Run backtest
             result = await self.test_generated_code(final_path, backtest_mode="cloud")
             backtest_dir = result.get('backtest_folder_path')
-            
-            if result.get("backtest_successful"):
-
+            self.logger.info(f"Backtest Success: {result.get('backtest_success')}")
+            if result.get("backtest_success"):
                 break
             else:
 

@@ -355,7 +355,6 @@ class BacktesterAgent(BaseAgent):
                 with open(output_txt_path, 'w') as f:
                     f.write(stdout_str)
                 
-                
             except Exception as e:
                 self.logger.error(f"[Backtester] Save failed - {e}")
             
@@ -560,43 +559,53 @@ class BacktesterAgent(BaseAgent):
         """Check for error messages and warnings in the console output and extract multi-line blocks."""
         errors = []
         warnings = []
+        
         lines = console_output.splitlines()
         i = 0
+        
         while i < len(lines):
             line = lines[i]
-            is_warning = "warning" in line.lower()
-            is_error = (
-                ("error" in line.lower() and "tracking error" not in line.lower())
-                or ("syntaxerror" in line.lower())
-                or ("traceback" in line.lower())
-                or ("exception" in line.lower())
-                or ("failed" in line.lower() and "failed data requests" not in line.lower())
-                or ("could not" in line.lower())
-                or ("unable to" in line.lower())
-                or "compiler error" in line.lower()
-            )
+            line_lower = line.lower()
             
-            if is_warning or is_error:
-                message_block = [line.rstrip()]
+            # Handle warning lines
+            if line.startswith("Warning"):
+                warnings.append(line.rstrip())
                 i += 1
-                # Capture any related context (indented lines, stack traces, etc.)
-                while i < len(lines) and (
-                    lines[i].startswith(" ")
-                    or lines[i].startswith("\t")
-                    or lines[i].startswith("***")
-                    or lines[i].strip() == ""
-                    or "at line" in lines[i].lower()
-                    or "file" in lines[i].lower()
-                ):
-                    message_block.append(lines[i].rstrip())
-                    i += 1
-                if is_warning:
-                    warnings.append("\n".join(message_block))
-                else:
-                    errors.append("\n".join(message_block))
-            else:
+                continue
+                
+            # Handle backtest error blocks
+            if "an error occurred during this backtest:" in line_lower:
+                error_lines = [line.rstrip()]  # Start with the "An error occurred" line
                 i += 1
                 
+                # Collect all lines until we hit something that's clearly not part of the error
+                while i < len(lines):
+                    next_line = lines[i]
+                    if (next_line.startswith("Backtest") or
+                        next_line.startswith("Build") or
+                        next_line.startswith("Started") or
+                        next_line.startswith("Successfully")):
+                        break
+                    error_lines.append(next_line.rstrip())
+                    i += 1
+                
+                errors.append("\n".join(error_lines))
+                continue
+            
+            # Handle other error lines
+            if (("error" in line_lower and "tracking error" not in line_lower)
+                or "syntaxerror" in line_lower
+                or "traceback" in line_lower
+                or "exception" in line_lower
+                or ("failed" in line_lower and "failed data requests" not in line_lower)
+                or "could not" in line_lower
+                or "unable to" in line_lower
+                or "compiler error" in line_lower):
+                
+                errors.append(line.rstrip())
+            
+            i += 1
+            
         return errors, warnings
 
     def check_for_failed_data_requests(self, folder_path: str) -> list:

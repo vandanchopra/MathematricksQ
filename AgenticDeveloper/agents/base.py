@@ -290,7 +290,6 @@ class BaseAgent(ABC):
             start_idx += page_size
             current_page += 1
 
-
 class OpenRouterLLMWrapper:
     """OpenRouter LLM wrapper class supporting sync and async operations"""
     def __init__(self, api_key: str, base_url: str, model: str, temperature: float = 0.7, max_tokens: int = 4000, timeout: int = 60):
@@ -321,8 +320,6 @@ class OpenRouterLLMWrapper:
                         {"role": "user", "content": prompt}
                     ]
                 )
-                
-                print(f"Debug - Raw API response: {response}")
                 
                 if not response:
                     raise ValueError("API returned None response")

@@ -1,4 +1,6 @@
 import concurrent.futures
+import sys
+import time
 from langchain.agents import AgentExecutor, create_openai_functions_agent
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.messages import SystemMessage
@@ -36,10 +38,9 @@ class AlphaSeekerMetaAgent(BaseAgent):
 
     async def strategy_writer_tool_func(self, instructions: str, strategy_dir: str, previous_strategy_path: str = None) -> str:
         agent = StrategyDeveloperAgent()
-        self.logger.info(f"New strategy created at {new_strategy_path}")
-        raise ValueError("Invalid strategy path")
         loop = asyncio.get_event_loop()
         new_strategy_path = await loop.run_in_executor(None, agent.run, instructions, strategy_dir, previous_strategy_path)
+        
         return new_strategy_path
 
     async def backtester_tool_func(self, strategy_path: str, mode: str = "local") -> str:
@@ -195,24 +196,26 @@ After each backtest:
                    "3. Reducing minimum trade thresholds")
                    
         else:  # improvement_needed
-            return self.create_strategy_performance_improvement_prompt(state["parent_strategy_performance"])
+            return self.create_strategy_performance_improvement_prompt(state)
 
-    def create_strategy_performance_improvement_prompt(self, metrics: dict) -> str:
+    def create_strategy_performance_improvement_prompt(self, state: dict) -> str:
         """Create a prompt for improving strategy performance based on current metrics"""
+        metrics = state["parent_strategy_performance"]
+        parent_strategy_performance_analysis = state["parent_strategy_performance_analysis"]
+        self.logger.debug({'parent_strategy_performance_analysis': parent_strategy_performance_analysis})
+        self.logger.debug({'state': state})
+        self.logger.debug({'state.keys()': state.keys()})
+        input("Press Enter to continue...")
         sharpe_ratio = metrics.get("Sharpe Ratio", "0")
         drawdown = metrics.get("Drawdown", "0%")
-        win_rate = metrics.get("Win Rate", "0%")
         
         prompt = "Improve the strategy performance with focus on:\n"
         
         if float(str(sharpe_ratio).replace("-", "0")) < 1.0:
             prompt += f"1. Improve risk-adjusted returns (current Sharpe Ratio: {sharpe_ratio})\n"
             
-        if float(str(drawdown).replace("%", "").replace("-", "0")) > 10.0:
+        if float(str(drawdown).replace("%", "").replace("-", "0")) > 15.0:
             prompt += f"2. Reduce maximum drawdown (current: {drawdown})\n"
-            
-        if float(str(win_rate).replace("%", "").replace("-", "0")) < 50.0:
-            prompt += f"3. Increase win rate (current: {win_rate})\n"
             
         prompt += "\nMake targeted improvements while maintaining the core strategy logic."
         return prompt
@@ -234,80 +237,89 @@ After each backtest:
         )
         return delta > 0
 
-    async def process_strategy_iteration(self, state: dict) -> dict:
-        """Main iteration loop for strategy improvement"""
+    def sleeper(self, total_seconds: int, message: str = "System Sleeping") -> None:
+        """Display a countdown timer while waiting.
+        
+        Args:
+            total_seconds (int): Total time to wait in seconds
+            message (str): Message to display while waiting
+        """
+        for remaining in range(total_seconds, 0, -1):
+            days = remaining // (24 * 60 * 60)
+            hours = (remaining % (24 * 60 * 60)) // (60 * 60)
+            minutes = (remaining % (60 * 60)) // 60
+            seconds = remaining % 60
+            
+            time_str = ""
+            if days > 0:
+                time_str += "{:2d} days,".format(days)
+            if hours > 0:
+                time_str += "{:2d} hours,".format(hours)
+            if minutes > 0:
+                time_str += "{:2d} minutes,".format(minutes)
+            if seconds > 0:
+                time_str += "{:2d} seconds".format(seconds)
+            
+            sys.stdout.write("\r")
+            sys.stdout.write(f"{message}: " + time_str + " remaining.")
+            sys.stdout.flush()
+            time.sleep(1)  # Sleep for 1 second
+        sys.stdout.write("\r" + " " * 100)  # Clear the line
+        sys.stdout.write("\r")
+
+    def _input_with_timeout(self, prompt: str = "") -> str:
+        """Get input with a timeout using signals"""
+        import signal
+        
+        def timeout_handler(signum, frame):
+            raise TimeoutError()
+        
+        # Set the timeout handler
+        signal.signal(signal.SIGALRM, timeout_handler)
+        signal.alarm(1)  # Will raise TimeoutError if no input after 1 second
+        
         try:
-            # 1. Determine current scenario
-            scenario = self.determine_scenario(state)
-
-            
-            # 2. Generate appropriate prompt
-            prompt = self.create_improvement_prompt(scenario, state)
-            
-            # 3. Give human 15 seconds to review/modify prompt
-
-            human_input = await self.wait_for_human_input(15)
-            if human_input:
-                prompt = human_input
-                
-            # 4. Create new strategy version
-            strategy_dev = StrategyDeveloperAgent()
-            new_strategy_path = await strategy_dev.run(
-                instructions=prompt,
-                start_point_filepath=state["parent_strategy_path"]
-            )
-            
-            # 5. Run backtest
-            backtester = BacktesterAgent()
-            backtest_result = await backtester.run(
-                strategy_path=new_strategy_path,
-                mode="cloud"
-            )
-            
-            # 6. Update metrics and check performance
-            if backtest_result["backtest_success"]:
-                if self.should_keep_child(state, backtest_result["performance"]):
-                    # Run analysis on successful child strategy
-                    analyzer = BacktestAnalyzerAgent()
-                    analysis_result = await analyzer.run(backtest_result["backtest_folder_path"])
-                    
-                    # Update parent with child's info
-                    state["parent_strategy_path"] = new_strategy_path
-                    state["parent_strategy_performance"] = backtest_result["performance"]
-                    state["parent_strategy_errors"] = backtest_result["errors"]
-                    state["parent_strategy_performance_analysis"] = analysis_result
-                    state["current_strategy_delta"] = self.calculate_performance_delta(
-                        backtest_result["performance"],
-                        state["parent_strategy_performance"]
-                    )
-                else:
-                    pass
-                    
-            return state
-            
-        except Exception as e:
-            self.logger.error(f"[AlphaSeeker] Strategy iteration failed - {e}")
-            raise
+            return input(prompt)
+        except TimeoutError:
+            return None
+        finally:
+            signal.alarm(0)  # Disable the alarm
 
     async def wait_for_human_input(self, timeout_seconds: int = 15) -> str:
         """Wait for human input with a timeout.
         Returns the input if received, otherwise None."""
         
         try:
-            # Create an executor for running blocking input() in a separate thread
             loop = asyncio.get_event_loop()
             with concurrent.futures.ThreadPoolExecutor() as executor:
-                # Create input task
-                input_future = loop.run_in_executor(executor, input)
+                # Start the sleeper
+                sleeper_future = loop.run_in_executor(
+                    executor,
+                    self.sleeper,
+                    timeout_seconds,
+                    "Waiting for human input"
+                )
                 
-                try:
-                    # Wait for input with timeout
-                    user_input = await asyncio.wait_for(input_future, timeout=timeout_seconds)
-                    return user_input.strip() if user_input else None
-                except asyncio.TimeoutError:
-                    print("\n[AlphaSeeker] Timeout - continuing with current prompt")
-                    return None
+                # Try to get input for the duration
+                start_time = time.time()
+                while time.time() - start_time < timeout_seconds:
+                    # Check for input with a 1-second timeout
+                    try:
+                        result = await loop.run_in_executor(executor, self._input_with_timeout)
+                        if result is not None:
+                            # Cancel the sleeper
+                            sleeper_future.cancel()
+                            return result.strip()
+                    except Exception:
+                        pass
                     
+                    # Sleep briefly to prevent CPU spinning
+                    await asyncio.sleep(0.1)
+                
+                # If we get here, we timed out
+                print("\n[AlphaSeeker] Timeout - continuing with current prompt")
+                return None
+                
         except Exception as e:
             self.logger.error(f"[AlphaSeeker] Input error - {e}")
             return None
@@ -386,19 +398,22 @@ After each backtest:
             "current_strategy_errors": None,  # Errors from parent strategy
             "current_strategy_performance": None,  # Performance metrics of parent strategy
             "current_strategy_performance_analysis": None,  # Analysis of parent strategy performance
-            "current_strategy_delta": 0.0,  # Performance delta from parent
+            "current_strategy_delta": None,  # Performance delta from parent
             "current_idea": None,  # Current trading idea being tested
             "iteration": 0
         }
+        self.logger.debug(f"Initial state created. Everything set to None.")
         
         # If starting from existing strategy, initialize parent details
         if not new_strategy and start_point_filepath:
             strategy_dir = os.path.dirname(start_point_filepath)
             state["version_history_path"] = os.path.join(strategy_dir, "version_history.json")
+            self.logger.debug(f"Starting from an existing strategy. Version history updated to state.")
     
         while True:
             state["iteration"] += 1
-
+            print('--' * 40)
+            self.logger.debug(f"Iteration {state['iteration']} started.")
             
             # Get parent strategy results if this is first iteration and not a new strategy
             if state["iteration"] == 1 and not new_strategy and state["version_history_path"]:
@@ -418,28 +433,72 @@ After each backtest:
                             state["parent_strategy_errors"] = backtest_output.get("errors", [])
                             state["parent_strategy_backtest_path"] = backtest_folder
                             state["parent_strategy_performance_analysis"] = backtest_output.get("analysis", {})
+                            self.logger.debug(f"Parent strategy performance loaded from backtest folder.")
                             break
-                
+            
+            
             try:
                 # Initial setup for new strategy if needed
                 if new_strategy and state["iteration"] == 1:
                     idea = await self._get_next_research_idea(state)
                     prompt = self._create_strategy_prompt(idea)
                     strategy_path = await self.strategy_writer_tool_func(prompt, "Strategies/AgenticDev")
+                    self.logger.debug(f"New strategy created at {strategy_path}")
                     state["parent_strategy_path"] = strategy_path
+                                
+                # 1. Determine current scenario
+                scenario = self.determine_scenario(state)
+                self.logger.debug(f"Scenario determined: {scenario}")
                 
-                # Process one iteration
-                state = await self.process_strategy_iteration(state)
+                # 2. Generate appropriate prompt
+                prompt = self.create_improvement_prompt(scenario, state)
+                self.logger.debug(f"Prompt for New Strategy generated: {prompt}")
+                # 3. Give human 15 seconds to review/modify prompt
+                human_input = await self.wait_for_human_input(15)
+                if human_input:
+                    prompt = human_input
+            
+                # 4. Create new strategy version
+                strategy_dev = StrategyDeveloperAgent()
+                new_strategy_path = await strategy_dev.run(
+                    instructions=prompt,
+                    start_point_filepath=state["parent_strategy_path"]
+                )
+                self.logger.debug(f"New strategy version created at {new_strategy_path}")
                 
-                # Let user review progress
-                user_input = input("Press Enter to continue or type 'stop' to exit: ")
-                if user_input.lower() == 'stop':
-                    break
+                # 5. Run backtest
+                backtester = BacktesterAgent()
+                backtest_result = await backtester.run(
+                    strategy_path=new_strategy_path,
+                    mode="cloud"
+                )
+                self.logger.debug(f"Backtest completed for new strategy version: {new_strategy_path}")
+                
+                # 6. Update metrics and check performance
+                if backtest_result["backtest_success"]:
+                    if self.should_keep_child(state, backtest_result["performance"]):
+                        self.logger.debug(f"Decided to keep child strategy based on performance. {new_strategy_path}")
+                        # Run analysis on successful child strategy
+                        analyzer = BacktestAnalyzerAgent()
+                        self.logger.debug(f"Running analysis on new strategy version: {new_strategy_path} with backtest result: {backtest_result['backtest_folder_path']}")
+                        analysis_result = await analyzer.run(backtest_result["backtest_folder_path"])
+                        
+                        # Update parent with child's info
+                        state["parent_strategy_path"] = new_strategy_path
+                        state["parent_strategy_performance"] = backtest_result["performance"]
+                        state["parent_strategy_errors"] = backtest_result["errors"]
+                        state["parent_strategy_performance_analysis"] = analysis_result
+                        state["current_strategy_delta"] = self.calculate_performance_delta(
+                            backtest_result["performance"],
+                            state["parent_strategy_performance"]
+                        )
+                    else:
+                        self.logger.debug(f"Child strategy dropped due to poor performance: {new_strategy_path}")
+                        pass
                 
             except Exception as e:
                 self.logger.error(f"[AlphaSeeker] Error in iteration {state['iteration']} - {e}")
                 break
-        
 
         return state
     
@@ -512,3 +571,42 @@ After each backtest:
         except Exception:
             self.logger.warning("[AlphaSeeker] Invalid decision - defaulting to stop")
             return {"tool": "STOP", "prompt": ""}
+
+if __name__ == "__main__":
+    import argparse
+    import asyncio
+    from AgenticDeveloper.logger import get_logger
+
+    logger = get_logger("AlphaSeekerMain")
+
+    parser = argparse.ArgumentParser(description="AlphaSeeker Meta Agent CLI")
+    parser.add_argument("--new", action="store_true", help="Create a new strategy")
+    parser.add_argument("--modify", action="store_true", help="Modify existing strategy")
+    parser.add_argument("--strategy-path", type=str, help="Path to existing strategy (required for --modify)")
+    parser.add_argument("--input", type=str, default="", help="Initial guidance for the agent")
+
+    args = parser.parse_args()
+
+    if args.new and args.modify:
+        logger.error("Cannot specify both --new and --modify")
+        exit(1)
+
+    if args.modify and not args.strategy_path:
+        logger.error("--strategy-path is required when using --modify")
+        exit(1)
+
+    async def main():
+        agent = AlphaSeekerMetaAgent()
+        try:
+            state = await agent.run(
+                new_strategy=args.new,
+                human_input=args.input,
+                start_point_filepath=args.strategy_path if args.modify else None
+            )
+            # logger.info("Final state:")
+            # logger.info(json.dumps(state, indent=2))
+        except Exception as e:
+            logger.error(f"Error running AlphaSeeker: {e}")
+            exit(1)
+
+    asyncio.run(main())
