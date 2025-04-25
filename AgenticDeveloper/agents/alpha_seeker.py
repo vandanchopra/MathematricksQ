@@ -393,13 +393,12 @@ After each backtest:
             "parent_strategy_performance": None,  # Performance metrics of parent strategy
             "parent_strategy_performance_analysis": None,  # Analysis of parent strategy performance
 
-            "current_strategy_version": None,  # Current version number (e.g., v1_2_3)
+            "current_strategy_path": None,  # Path to parent strategy backtest results
             "current_strategy_backtest_path": None,  # Path to parent strategy backtest results
             "current_strategy_errors": None,  # Errors from parent strategy
-            "current_strategy_performance": None,  # Performance metrics of parent strategy
+            "current_strategy_performance": None,  # Performance metrics of current strategy
             "current_strategy_performance_analysis": None,  # Analysis of parent strategy performance
             "current_strategy_delta": None,  # Performance delta from parent
-            "current_idea": None,  # Current trading idea being tested
             "iteration": 0
         }
         self.logger.debug(f"Initial state created. Everything set to None.")
@@ -436,7 +435,6 @@ After each backtest:
                             self.logger.debug(f"Parent strategy performance loaded from backtest folder.")
                             break
             
-            
             try:
                 # Initial setup for new strategy if needed
                 if new_strategy and state["iteration"] == 1:
@@ -464,6 +462,7 @@ After each backtest:
                     instructions=prompt,
                     start_point_filepath=state["parent_strategy_path"]
                 )
+                state["current_strategy_path"] = new_strategy_path
                 self.logger.debug(f"New strategy version created at {new_strategy_path}")
                 
                 # 5. Run backtest
@@ -472,7 +471,9 @@ After each backtest:
                     strategy_path=new_strategy_path,
                     mode="cloud"
                 )
+                state["current_strategy_backtest_path"] = backtest_result["backtest_folder_path"]
                 self.logger.debug(f"Backtest completed for new strategy version: {new_strategy_path}")
+                
                 
                 # 6. Update metrics and check performance
                 if backtest_result["backtest_success"]:
@@ -485,8 +486,9 @@ After each backtest:
                         
                         # Update parent with child's info
                         state["parent_strategy_path"] = new_strategy_path
-                        state["parent_strategy_performance"] = backtest_result["performance"]
+                        state["parent_strategy_backtest_path"] = backtest_result["backtest_folder_path"]
                         state["parent_strategy_errors"] = backtest_result["errors"]
+                        state["parent_strategy_performance"] = backtest_result["performance"]
                         state["parent_strategy_performance_analysis"] = analysis_result
                         state["current_strategy_delta"] = self.calculate_performance_delta(
                             backtest_result["performance"],
