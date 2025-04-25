@@ -178,13 +178,11 @@ class BaseAgent(ABC):
             if timeout <= 0:
                 raise ValueError("Timeout must be a positive integer")
 
-            self.logger.info(f"Initializing Ollama LLM with model: {model}")
             llm = OllamaLLM(
                 model=model,
                 base_url=base_url,
                 timeout=timeout
             )
-            self.logger.info(f"Ollama LLM initialized successfully with model: {model}")
             
             llm.invoke("test")  # This will raise an exception if Ollama is not available
             return llm
@@ -220,7 +218,6 @@ class BaseAgent(ABC):
 
         if not model:
             raise ValueError("Model name is required for OpenRouter")
-        self.logger.info(f"Initializing OpenRouter LLM with model: {model}")
         llm = OpenRouterLLMWrapper(
             api_key=api_key,
             base_url=base_url,
@@ -229,7 +226,6 @@ class BaseAgent(ABC):
             max_tokens=max_tokens,
             timeout=timeout
         )
-        self.logger.info(f"OpenRouter LLM initialized successfully with model: {model}")
         
         return llm
         
@@ -267,11 +263,6 @@ class BaseAgent(ABC):
         log_method = getattr(self.logger, level.lower())
         log_method(message)
         
-    async def wait_for_human_input(self, duration: int = 15) -> Optional[str]:
-        """Wait for human input with a timeout"""
-        self.logger.info(f"Waiting {duration} seconds for human input...")
-        return None
-
     def cleanup(self) -> None:
         """Cleanup method to be called when agent is done"""
         pass
@@ -280,9 +271,7 @@ class BaseAgent(ABC):
         """Display content in pages with user control"""
         total_len = len(content)
         num_pages = (total_len + page_size - 1) // page_size
-        
-        self.logger.info(f"Content will be displayed in {num_pages} pages. Press Enter to continue, 'q' to quit...")
-        
+                
         current_page = 1
         start_idx = 0
         

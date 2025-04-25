@@ -94,14 +94,10 @@ class IdeaResearcherAgent(BaseAgent):
             )
 
             response = await self.call_llm(prompt, llm_destination="research")
-            
-            # Log response for debugging
-            self.logger.info(f"LLM Response:\n{response}")
-            
+                        
             # Parse JSON from response
             chunk_ideas = {}
             try:
-                self.logger.debug("Looking for JSON array in response")
                 # Find JSON array in response, handle code blocks
                 json_start = response.find("```json")
                 if json_start != -1:
@@ -112,7 +108,7 @@ class IdeaResearcherAgent(BaseAgent):
                     json_end = response.rfind("]") + 1
 
                 if json_start == -1 or json_end == 0:
-                    self.logger.warning("No JSON array found in response")
+                    self.logger.warning("[Researcher] No ideas found in response")
                     continue
                 
                 # Parse JSON array
@@ -125,25 +121,23 @@ class IdeaResearcherAgent(BaseAgent):
                     paper_ideas = json.loads(json_str)
                 
                 if not paper_ideas:
-                    self.logger.warning("Empty JSON array in response")
+                    self.logger.warning("[Researcher] Empty response")
                     continue
-                
-                self.logger.info(f"Found {len(paper_ideas)} potential ideas in response")
-                
+                                
                 # Process each idea
                 successful_ideas = 0
                 for idea_json in paper_ideas:
                     # Extract and validate idea name
                     idea_name = idea_json.get('idea_name')
                     if not idea_name:
-                        self.logger.warning("Idea missing name, skipping")
+                        self.logger.warning("[Researcher] Invalid idea - missing name")
                         continue
                     
                     # Validate required fields
                     required_fields = ['description', 'edge', 'pseudo_code']
                     if not all(k in idea_json for k in required_fields):
                         missing = [k for k in required_fields if k not in idea_json]
-                        self.logger.warning(f"Idea '{idea_name}' missing fields: {missing}")
+                        self.logger.warning(f"[Researcher] Invalid idea {idea_name} - missing {missing}")
                         continue
                     
                     # Add to ideas dict with our internal format
@@ -154,18 +148,16 @@ class IdeaResearcherAgent(BaseAgent):
                         'source_info': {}  # Will be added by caller
                     }
                     successful_ideas += 1
-                    self.logger.info(f"Successfully parsed idea: {idea_name}")
                 
                 if successful_ideas > 0:
                     tqdm.write(f"Extracted {successful_ideas} ideas from chunk")
                     ideas.update(chunk_ideas)
                 
             except json.JSONDecodeError as e:
-                self.logger.warning(f"Failed to parse JSON response: {str(e)}")
-                self.logger.warning(f"Failed to parse JSON, raw content: {json_str[:200]}...")
+                self.logger.warning(f"[Researcher] Parse failed - {e}")
                 continue
             except Exception as e:
-                self.logger.warning(f"Error processing ideas: {str(e)}")
+                self.logger.warning(f"[Researcher] Processing error - {e}")
                 continue
 
             if chunk_ideas:
@@ -196,7 +188,6 @@ class IdeaResearcherAgent(BaseAgent):
         new_ideas = {}
         for paper in papers:
             if paper["pdf_url"] in processed_urls:
-                self.logger.info(f"Skipping already processed paper: {paper['title']}")
                 continue
 
             pdf_path = await self.pdf_handler.download_pdf(paper["pdf_url"], "AgenticDeveloper/research_ideas")
@@ -222,17 +213,11 @@ class IdeaResearcherAgent(BaseAgent):
                     if idea_id:
                         new_ideas[idea_id] = idea.copy()  # Store copy of saved idea
                     else:
-                        self.logger.warning(f"Failed to save idea: {idea_name} - no ID returned")
+                        self.logger.warning(f"[Researcher] Save failed - {idea_name}")
                 except Exception as e:
-                    self.logger.error(f"Error saving idea {idea_name}: {str(e)}")
+                    self.logger.error(f"[Researcher] Save error for {idea_name} - {e}")
                     continue
 
-        self.logger.info(f"Total ideas added in this run: {len(new_ideas)}")
-        if new_ideas:
-            self.logger.info("New ideas generated:")
-            for idea_id, idea in new_ideas.items():
-                self.logger.info(f"  - {idea['idea_name']} (ID: {idea_id})")
-                
         return {'new_ideas': new_ideas}
 
     def _save_idea(self, idea_name, idea) -> str:
@@ -256,7 +241,6 @@ class IdeaResearcherAgent(BaseAgent):
         os.replace(tmp_path, self.ideas_dump_path)
 
         abs_path = os.path.abspath(self.ideas_dump_path)
-        self.logger.info(f"Research ideas saved at: {abs_path}")
         # self.logger.info(f"Research ideas content:\n{json.dumps(ideas, indent=2)}")
         
         return idea_id

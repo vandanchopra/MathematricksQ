@@ -36,7 +36,7 @@ class StrategyDeveloperAgent(BaseAgent):
                     data = json.load(f)
                     names = data.get('names', [])
             except Exception as e:
-                self.logger.error(f"Failed to load strategy names from file: {e}")
+                self.logger.error(f"[StrategyDev] Name load failed - {e}")
 
         # If no names available, generate new ones using LLM
         if not names:
@@ -60,7 +60,7 @@ class StrategyDeveloperAgent(BaseAgent):
                     # Fallback: try to parse the whole response
                     names = ast.literal_eval(response)
             except Exception as e:
-                self.logger.error(f"Failed to parse LLM response for strategy names: {e}\nResponse: {response}")
+                self.logger.error(f"[StrategyDev] Name generation failed - {e}")
                 from datetime import datetime
                 return "Strategy_" + datetime.now().strftime("%Y%m%d_%H%M%S")
                 
@@ -90,7 +90,7 @@ class StrategyDeveloperAgent(BaseAgent):
             with open(names_file, 'w') as f:
                 json.dump({'names': valid_names}, f, indent=2)
         except Exception as e:
-            self.logger.error(f"Failed to save strategy names to file: {e}")
+            self.logger.error(f"[StrategyDev] Failed to save names - {e}")
         
         return new_name
 
@@ -110,7 +110,6 @@ class StrategyDeveloperAgent(BaseAgent):
         
         while attempt < max_retries:
             attempt += 1
-            self.logger.info(f"Attempt {attempt} to generate and test strategy")
             
             previous_code = ""
             if parent_filepath and os.path.exists(parent_filepath):
@@ -153,7 +152,6 @@ class StrategyDeveloperAgent(BaseAgent):
             if backtest_output_path and os.path.exists(backtest_output_path):
                 with open(backtest_output_path, 'r') as f:
                     results = json.load(f)
-                self.logger.info(f"Loaded backtest results from {backtest_output_path}")
                 
             # Extract errors and performance data from backtest_output.json
             errors_list = results.get("errors", [])
@@ -180,14 +178,10 @@ class StrategyDeveloperAgent(BaseAgent):
                 base_instruction = f'Write Quantconnect Lean compatible code in python, that does the following: {instructions}. '
                 prompt = previous_code_prompt + performance_prompt + base_instruction
             
-            self.logger.info({'attempt':attempt, 'prompt': prompt, 'parent_filepath': parent_filepath, 'backtest_dir': backtest_dir})
             input("Press Enter to continue...")
-            
-            self.logger.info("Starting Code Generation...")
             
             # Generate strategy code
             extracted_code, full_response = self.generate_strategy_code(prompt)
-            self.logger.info("Code Generation Complete.")
             ''' 
             if its a new start point, create a new project
             if it's old, let the new strategy_filename and path.
@@ -207,27 +201,20 @@ class StrategyDeveloperAgent(BaseAgent):
             # Save strategy version (overwrite or new version)
         
             final_path = self.save_strategy_version(extracted_code, new_strategy_version, llm_full_response=full_response)
-            self.logger.info(f"Saved strategy version at: {final_path}")
             parent_filepath = final_path
                 
             # Run backtest
             result = await self.test_generated_code(final_path, backtest_mode="cloud")
             backtest_dir = result.get('backtest_folder_path')
-            self.logger.info(f"Backtest result: {result}")
             
             if result.get("backtest_successful"):
-                self.logger.info("Backtest successful.")
+
                 break
             else:
-                self.logger.info("Backtest failed. Errors:")
+
                 errors = result.get("errors", [])
                 previous_code = extracted_code  # Use the latest code for next attempt
-            
-        if attempt == max_retries and errors:
-            self.logger.info("Max retries reached. Last errors:")
-            for err in errors:
-                self.logger.info(f" - {err}")
-
+        
         return final_path
 
     async def test_generated_code(self, python_file_path: str, backtest_mode: str = "local") -> Dict[str, Any]:
@@ -263,16 +250,12 @@ class StrategyDeveloperAgent(BaseAgent):
             # self.paginate_output(prompt)
             # self.logger.info(f"LLM prompt:\n{prompt}")    
             response = self.strategy_writer_llm.invoke(prompt)
-            self.logger.info(f"[StrategyDeveloperAgent] Raw LLM response:\n{response}\n")
 
             # Extract python code block
             code_blocks = re.findall(r"```python(.*?)```", response, re.DOTALL | re.IGNORECASE)
             if code_blocks:
                 code = code_blocks[0].strip()
                 return code, response
-            else:
-                self.logger.info(f"[StrategyDeveloperAgent] No python code block found in LLM response (looking for ```python ... ``` blocks), retrying ({attempt}/{max_attempts})...")
-
         raise ValueError("LLM did not return a valid python code block after multiple attempts.")
 
     def save_strategy_version(self, strategy_code: str, new_strategy_version: str, llm_full_response: str = None) -> str:
@@ -369,7 +352,7 @@ class StrategyDeveloperAgent(BaseAgent):
         config_json = os.path.join(strategy_dir, "config.json")
 
         if os.path.isdir(strategy_dir) and os.path.exists(main_py) and os.path.exists(config_json):
-            print(f"[StrategyDeveloperAgent] Existing Lean project detected at {strategy_dir}, skipping creation.")
+            print(f"[StrategyDev] Project exists - skipping creation")
             return  # Project already exists and is valid
 
         # Extract strategy name
@@ -382,7 +365,7 @@ class StrategyDeveloperAgent(BaseAgent):
         # Run lean project-create inside Strategies root
         cmd = f'cd "{strategies_root}" && lean project-create "{strategy_name}" --language python'
         os.system(cmd)
-        print("[StrategyDeveloperAgent] Project created.")
+        print("[StrategyDev] Project created")
     
 if __name__ == "__main__":
     agent = StrategyDeveloperAgent()

@@ -25,9 +25,7 @@ class BacktestAnalyzerAgent(BaseAgent):
         
         Returns:
             Dictionary containing analysis results and suggestions
-        """
-        self.logger.debug(f"Starting analysis for backtest: {backtest_dir}")
-        
+        """        
         # Verify backtest directory exists
         if not os.path.exists(backtest_dir):
             raise ValueError(f"Backtest directory not found: {backtest_dir}")
@@ -48,7 +46,6 @@ class BacktestAnalyzerAgent(BaseAgent):
         standalone_output = os.path.join(backtest_dir, "BacktestAnalyzerAgent_analysis.json")
         with open(standalone_output, 'w') as f:
             json.dump(analysis_output, f, indent=2)
-        self.logger.debug(f"Analysis complete and stored in: {standalone_output}")
         
         # Update backtest_output.json with analysis
         backtest_output_path = os.path.join(backtest_dir, "backtest_output.json")
@@ -62,7 +59,6 @@ class BacktestAnalyzerAgent(BaseAgent):
             # Save updated backtest_output.json
             with open(backtest_output_path, 'w') as f:
                 json.dump(backtest_output, f, indent=2)
-            self.logger.debug(f"Updated analysis in {backtest_output_path}")
         
         # Update version history
         self._update_version_history(backtest_dir, analysis)
@@ -78,7 +74,7 @@ class BacktestAnalyzerAgent(BaseAgent):
             version_history_path = os.path.join(strategy_dir, "version_history.json")
             
             if not os.path.exists(version_history_path):
-                self.logger.warning(f"Version history file not found: {version_history_path}")
+                self.logger.warning("[Analyzer] Version history missing")
                 return
                 
             # Load version history
@@ -101,16 +97,15 @@ class BacktestAnalyzerAgent(BaseAgent):
                     break
                     
             if not updated:
-                self.logger.warning(f"Could not find matching backtest in version history for: {backtest_path}")
+                self.logger.warning("[Analyzer] Backtest not found in history")
                 return
                 
             # Save updated version history
             with open(version_history_path, 'w') as f:
                 json.dump(version_history, f, indent=2)
-                self.logger.debug(f"Updated version history in {version_history_path}")
                 
         except Exception as e:
-            self.logger.error(f"Failed to update version history: {str(e)}")
+            self.logger.error(f"[Analyzer] History update failed - {e}")
         
     
         
@@ -129,15 +124,13 @@ class BacktestAnalyzerAgent(BaseAgent):
         try:
             # Get LLM analysis using thinking_llm from base class
             response = await self.call_llm(prompt)  # Uses thinking_llm by default
-            self.logger.debug("Received LLM response, parsing JSON...")
             
             # Parse JSON from response
             analysis = self._parse_llm_response(response)
             return analysis
             
         except Exception as e:
-            self.logger.debug(f"Error during LLM analysis: {str(e)}")
-            raise
+            raise Exception(f"[Analyzer] Analysis error - {e}")
             
     def _load_backtest_results(self, backtest_dir: str) -> Dict[str, Any]:
         """Load backtest results from backtest_output.json"""
@@ -147,7 +140,6 @@ class BacktestAnalyzerAgent(BaseAgent):
             
         with open(output_json_path, 'r') as f:
             results = json.load(f)
-            self.logger.debug(f"Loaded backtest results from {output_json_path}")
             return results
             
     def _create_analysis_prompt(self, results: Dict[str, Any]) -> str:
@@ -216,14 +208,10 @@ Consider any errors or data request failures in your analysis. Provide detailed,
                 
             # Parse JSON
             analysis = json.loads(response)
-            
-            # Log structure for debugging
-            self.logger.debug(f"Successfully parsed JSON with keys: {list(analysis.keys())}")
-            
+                        
             return analysis
             
         except Exception as e:
-            self.logger.debug(f"Error parsing LLM response: {str(e)}")
             fallback_analysis = {
                 "metrics_analysis": {
                     "error": "Failed to parse metrics analysis"

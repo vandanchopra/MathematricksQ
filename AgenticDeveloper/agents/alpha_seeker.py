@@ -18,66 +18,70 @@ import re
 import random
 import shutil
 
-# Define LangChain tool wrappers for each agent
-async def research_tool_func(query: str = "momentum trading", max_results: int = 3) -> dict:
-    """Returns research ideas as a dictionary."""
-    agent = IdeaResearcherAgent()
-    await agent.run(query=query, max_results=max_results)
-    
-    # Load research ideas from JSON
-    ideas_path = "AgenticDeveloper/research_ideas/research_ideas.json"
-    with open(ideas_path, 'r') as f:
-        ideas = json.load(f)
-    
-    return {
-        "query": query,
-        "ideas": ideas
-    }
+class AlphaSeekerMetaAgent(BaseAgent):
+    async def research_tool_func(self, query: str = "momentum trading", max_results: int = 3) -> dict:
+        """Returns research ideas as a dictionary."""
+        agent = IdeaResearcherAgent()
+        await agent.run(query=query, max_results=max_results)
+        
+        # Load research ideas from JSON
+        ideas_path = "AgenticDeveloper/research_ideas/research_ideas.json"
+        with open(ideas_path, 'r') as f:
+            ideas = json.load(f)
+        
+        return {
+            "query": query,
+            "ideas": ideas
+        }
 
-async def strategy_writer_tool_func(instructions: str, strategy_dir: str, previous_strategy_path: str = None) -> str:
-    agent = StrategyDeveloperAgent()
-    loop = asyncio.get_event_loop()
-    path = await loop.run_in_executor(None, agent.run, instructions, strategy_dir, previous_strategy_path)
-    return path
+    async def strategy_writer_tool_func(self, instructions: str, strategy_dir: str, previous_strategy_path: str = None) -> str:
+        agent = StrategyDeveloperAgent()
+        self.logger.info(f"New strategy created at {new_strategy_path}")
+        raise ValueError("Invalid strategy path")
+        loop = asyncio.get_event_loop()
+        new_strategy_path = await loop.run_in_executor(None, agent.run, instructions, strategy_dir, previous_strategy_path)
+        return new_strategy_path
 
-async def backtester_tool_func(strategy_path: str, mode: str = "local") -> str:
-    agent = BacktesterAgent()
-    backtest_results = await agent.run(strategy_path, mode)
-    return backtest_results
+    async def backtester_tool_func(self, strategy_path: str, mode: str = "local") -> str:
+        agent = BacktesterAgent()
+        backtest_results = await agent.run(strategy_path, mode)
+        return backtest_results
 
-async def backtest_analyzer_tool_func(backtest_dir: str) -> str:
-    agent = BacktestAnalyzerAgent()
-    backtest_analysis = await agent.run(backtest_dir)
-    return backtest_analysis
+    async def backtest_analyzer_tool_func(self, backtest_dir: str) -> str:
+        agent = BacktestAnalyzerAgent()
+        backtest_analysis = await agent.run(backtest_dir)
+        return backtest_analysis
 
-research_tool = Tool.from_function(
-    research_tool_func,
-    name="ResearchTool",
-    description="Conducts research based on a query and saves ideas."
-)
+    def _initialize_tools(self):
+        """Initialize LangChain tools"""
+        research_tool = Tool.from_function(
+            self.research_tool_func,
+            name="ResearchTool",
+            description="Conducts research based on a query and saves ideas."
+        )
 
-strategy_writer_tool = Tool.from_function(
-    strategy_writer_tool_func,
-    name="StrategyWriterTool",
-    description="Implements or modifies trading strategies based on instructions."
-)
+        strategy_writer_tool = Tool.from_function(
+            self.strategy_writer_tool_func,
+            name="StrategyWriterTool",
+            description="Implements or modifies trading strategies based on instructions."
+        )
 
-backtester_tool = Tool.from_function(
-    backtester_tool_func,
-    name="BacktesterTool",
-    description="Runs backtests on strategies."
-)
+        backtester_tool = Tool.from_function(
+            self.backtester_tool_func,
+            name="BacktesterTool",
+            description="Runs backtests on strategies."
+        )
 
-backtest_analyzer_tool = Tool.from_function(
-    backtest_analyzer_tool_func,
-    name="BacktestAnalyzerTool",
-    description="Analyzes backtest results and provides insights."
-)
+        backtest_analyzer_tool = Tool.from_function(
+            self.backtest_analyzer_tool_func,
+            name="BacktestAnalyzerTool",
+            description="Analyzes backtest results and provides insights."
+        )
 
-tools = [research_tool, strategy_writer_tool, backtester_tool, backtest_analyzer_tool]
-
-system_prompt = SystemMessage(
-    content="""You are AlphaSeeker, an autonomous trading strategy meta-agent.
+        self.tools = [research_tool, strategy_writer_tool, backtester_tool, backtest_analyzer_tool]
+        self.prompt = ChatPromptTemplate.from_messages([
+            SystemMessage(
+                content="""You are AlphaSeeker, an autonomous trading strategy meta-agent.
 You dynamically call tools to research, develop, backtest, and analyze strategies.
 You continuously improve strategies by looping through these tools.
 
@@ -91,18 +95,15 @@ After each backtest:
 2. Record learnings
 3. Only then consider moving to a new idea or improving the current one.
 """
-)
+            ),
+            MessagesPlaceholder(variable_name="chat_history"),
+            MessagesPlaceholder(variable_name="agent_scratchpad"),
+        ])
 
-prompt = ChatPromptTemplate.from_messages([
-    system_prompt,
-    MessagesPlaceholder(variable_name="chat_history"),
-    MessagesPlaceholder(variable_name="agent_scratchpad"),
-])
-
-class AlphaSeekerMetaAgent(BaseAgent):
     def __init__(self, config_path: str = "AgenticDeveloper/config/system_config.yaml", config=None):
         super().__init__(config_path=config_path, config=config)
-        self.logger = get_logger("AlphaSeekerMetaAgent")
+        self.logger = get_logger("AlphaSeeker")
+        self._initialize_tools()
     
     def fetch_strategy_code(self, strategy_path: str) -> str:
         """
@@ -112,7 +113,7 @@ class AlphaSeekerMetaAgent(BaseAgent):
             with open(strategy_path, "r") as f:
                 return f.read()
         except Exception as e:
-            self.logger.error(f"Failed to fetch strategy code from {strategy_path}: {e}")
+            self.logger.error(f"[AlphaSeeker] Strategy code fetch failed - {e}")
             return ""
 
     def fetch_version_history(self, strategy_path: str) -> str:
@@ -128,7 +129,7 @@ class AlphaSeekerMetaAgent(BaseAgent):
                 with open(version_history_path, "r") as f:
                     return json.dumps(json.load(f))
             except Exception as e:
-                self.logger.error(f"Failed to fetch version history from {version_history_path}: {e}")
+                self.logger.error(f"[AlphaSeeker] Version history fetch failed - {e}")
                 return ""
         return ""
 
@@ -158,7 +159,7 @@ class AlphaSeekerMetaAgent(BaseAgent):
                 return current_performance - parent_performance
             return current_performance  # For new strategies, return absolute performance
         except (ValueError, TypeError) as e:
-            self.logger.error(f"Error calculating performance delta: {e}")
+            self.logger.error(f"[AlphaSeeker] Delta calculation failed - {e}")
             return 0.0
             
     def determine_scenario(self, state: dict) -> str:
@@ -238,13 +239,13 @@ class AlphaSeekerMetaAgent(BaseAgent):
         try:
             # 1. Determine current scenario
             scenario = self.determine_scenario(state)
-            self.logger.info(f"Current scenario: {scenario}")
+
             
             # 2. Generate appropriate prompt
             prompt = self.create_improvement_prompt(scenario, state)
             
             # 3. Give human 15 seconds to review/modify prompt
-            self.logger.info(f"Prompt for Next Direction for Strategy Development:\n{prompt}")
+
             human_input = await self.wait_for_human_input(15)
             if human_input:
                 prompt = human_input
@@ -279,21 +280,18 @@ class AlphaSeekerMetaAgent(BaseAgent):
                         backtest_result["performance"],
                         state["parent_strategy_performance"]
                     )
-                    self.logger.info("Child strategy showed improvement - updating parent")
                 else:
-                    self.logger.info("Child strategy did not show improvement - keeping parent")
+                    pass
                     
             return state
             
         except Exception as e:
-            self.logger.error(f"Error in process_strategy_iteration: {e}")
+            self.logger.error(f"[AlphaSeeker] Strategy iteration failed - {e}")
             raise
 
     async def wait_for_human_input(self, timeout_seconds: int = 15) -> str:
         """Wait for human input with a timeout.
         Returns the input if received, otherwise None."""
-        self.logger.info(f"Waiting {timeout_seconds} seconds for human input...")
-        print("Enter modifications (or press Enter to continue with current prompt):")
         
         try:
             # Create an executor for running blocking input() in a separate thread
@@ -307,11 +305,11 @@ class AlphaSeekerMetaAgent(BaseAgent):
                     user_input = await asyncio.wait_for(input_future, timeout=timeout_seconds)
                     return user_input.strip() if user_input else None
                 except asyncio.TimeoutError:
-                    print("\nTimeout reached, continuing with generated prompt...")
+                    print("\n[AlphaSeeker] Timeout - continuing with current prompt")
                     return None
                     
         except Exception as e:
-            self.logger.error(f"Error waiting for input: {e}")
+            self.logger.error(f"[AlphaSeeker] Input error - {e}")
             return None
 
     async def _update_google_sheets(self, metrics: dict):
@@ -321,7 +319,7 @@ class AlphaSeekerMetaAgent(BaseAgent):
         """
         try:
             if not os.getenv('GOOGLE_SHEETS_CREDENTIALS'):
-                self.logger.warning("Google Sheets credentials not found in environment")
+                self.logger.warning("[AlphaSeeker] Missing Google Sheets credentials")
                 return
                 
             from google.oauth2.credentials import Credentials
@@ -355,7 +353,7 @@ class AlphaSeekerMetaAgent(BaseAgent):
             ).execute()
             
         except Exception as e:
-            self.logger.error(f"Error updating Google Sheets: {e}")
+            self.logger.error(f"[AlphaSeeker] Failed to update sheets - {e}")
 
     async def run(
         self,
@@ -371,7 +369,7 @@ class AlphaSeekerMetaAgent(BaseAgent):
             human_input (str): Initial guidance from user
             start_point_filepath (str): Path to existing strategy file if new_strategy is False
         """
-        self.logger.info("Starting AlphaSeeker run...")
+
         
         # Initialize state
         state = {
@@ -400,7 +398,7 @@ class AlphaSeekerMetaAgent(BaseAgent):
     
         while True:
             state["iteration"] += 1
-            self.logger.info(f"--- Iteration {state['iteration']} ---")
+
             
             # Get parent strategy results if this is first iteration and not a new strategy
             if state["iteration"] == 1 and not new_strategy and state["version_history_path"]:
@@ -422,18 +420,12 @@ class AlphaSeekerMetaAgent(BaseAgent):
                             state["parent_strategy_performance_analysis"] = backtest_output.get("analysis", {})
                             break
                 
-            for key, value in state.items():
-                if key in []:
-                    print('--' * 40)
-                    self.logger.info({f"{key}": value})
-                
-            
             try:
                 # Initial setup for new strategy if needed
                 if new_strategy and state["iteration"] == 1:
                     idea = await self._get_next_research_idea(state)
                     prompt = self._create_strategy_prompt(idea)
-                    strategy_path = await strategy_writer_tool_func(prompt, "Strategies/AgenticDev")
+                    strategy_path = await self.strategy_writer_tool_func(prompt, "Strategies/AgenticDev")
                     state["parent_strategy_path"] = strategy_path
                 
                 # Process one iteration
@@ -445,192 +437,12 @@ class AlphaSeekerMetaAgent(BaseAgent):
                     break
                 
             except Exception as e:
-                self.logger.error(f"Error in iteration {state['iteration']}: {e}")
+                self.logger.error(f"[AlphaSeeker] Error in iteration {state['iteration']} - {e}")
                 break
         
-        self.logger.info("AlphaSeeker run complete.")
+
         return state
     
-    async def run_old(
-        self,
-        new_strategy: bool,
-        human_input: str = "",
-        start_point_filepath: str = None,
-    ):
-        """
-        Run AlphaSeeker meta-agent with explicit inputs.
-
-        Parameters:
-        - new_strategy: True for new strategy mode, False for existing strategy
-        - human_input: Initial guidance or requirements from user
-        - strategy_code, version_control_history, backtest_results, analysis: used if new_strategy is False
-        """
-        iteration = 0
-        self.human_input = human_input
-
-        # For existing strategy, fetch code and version history
-        strategy_code = ""
-        version_history = ""
-        if not new_strategy:
-            if not start_point_filepath or not os.path.exists(start_point_filepath):
-                raise ValueError("A valid strategy_start_point_filepath must be provided for existing strategy mode.")
-            strategy_code = self.fetch_strategy_code(start_point_filepath)
-            version_history = self.fetch_version_history(start_point_filepath)
-
-        if new_strategy:
-            strategy_name = await self.generate_new_strategy_name()
-        else:
-            strategy_name = os.path.splitext(os.path.basename(start_point_filepath))[0]
-        
-        # Initialize state tracking
-        state = {
-            "mode": "new_strategy" if new_strategy else "existing_strategy",
-            "strategy_name": strategy_name,
-            "human_input": human_input,
-            "strategy_code": strategy_code,
-            "version_history": version_history,
-            "iteration": 0,
-            "research_outputs": [],
-            "strategy_updates": [],
-            "last_action": None,
-            "tested_ideas": [],  # Keep track of which ideas have been tested (as a list for JSON serialization)
-            "current_idea": None    # Currently being tested idea
-        }
-        
-        while True:
-            iteration += 1
-            state["iteration"] = iteration
-            # self.logger.info(f"--- AlphaSeeker Iteration {iteration} ---")
-
-            try:
-                # Let LLM decide next action
-                # self.logger.info("Deciding next action based on current state...")
-                decision = await self.decide_next_action(state)
-                self.logger.info(f"--- AlphaSeeker Iteration {iteration} --- Decision made: {decision}")
-                input("Press Enter to continue...")  # Pause for user to read logs
-                
-                tool = decision.get("tool")
-                prompt = decision.get("prompt")
-                
-                if tool == "STOP":
-                    self.logger.info("LLM decided to stop iterations.")
-                    break
-                
-                # Execute the chosen tool
-                self.logger.info(f"Executing {tool} with generated prompt...")
-                
-                if tool == "ResearchTool":
-                    result = await research_tool_func(query=prompt)
-                    if isinstance(result, dict):
-                        state["research_outputs"].append(result["ideas"])
-                    
-                elif tool == "StrategyWriterTool":
-                    # --- NEW STRATEGY DIRECTORY LOGIC ---
-                    if new_strategy:
-                        # Generate a new strategy name using LLM
-                        strategy_name = state["strategy_name"]
-                        base_dir = "Strategies/AgenticDev"
-                        strategy_dir = os.path.join(base_dir, strategy_name)
-                        # Ensure directory does not exist
-                        attempt = 1
-                        while os.path.exists(strategy_dir):
-                            strategy_name = await self.generate_new_strategy_name()
-                            strategy_dir = os.path.join(base_dir, strategy_name)
-                            attempt += 1
-                        os.makedirs(strategy_dir, exist_ok=True)
-                    else:
-                        # Existing strategy mode: require strategy_start_point_filepath
-                        if not hasattr(self, "strategy_start_point_filepath") or not self.strategy_start_point_filepath:
-                            raise ValueError("strategy_start_point_filepath is required when new_strategy == False.")
-                        if not os.path.exists(self.strategy_start_point_filepath):
-                            raise FileNotFoundError(f"strategy_start_point_filepath does not exist: {self.strategy_start_point_filepath}")
-                        # Copy the existing strategy to a new working directory
-                        strategy_name = os.path.splitext(os.path.basename(self.strategy_start_point_filepath))[0]
-                        base_dir = "Strategies/AgenticDev"
-                        strategy_dir = os.path.join(base_dir, strategy_name)
-                        if not os.path.exists(strategy_dir):
-                            os.makedirs(strategy_dir, exist_ok=True)
-                        shutil.copy2(self.strategy_start_point_filepath, os.path.join(strategy_dir, os.path.basename(self.strategy_start_point_filepath)))
-
-                    result = await strategy_writer_tool_func(
-                        instructions=prompt,
-                        strategy_dir=strategy_dir
-                    )
-                    state["strategy_updates"].append(result)
-                    state["strategy_code"] = result  # Update current strategy
-                    
-                    # Extract strategy path from result
-                    strategy_path_match = re.search(r"Strategy saved at: (.+\.py)", str(result))
-                    if strategy_path_match:
-                        state["current_strategy_path"] = strategy_path_match.group(1)
-                    
-                elif tool == "BacktesterTool":
-                    if "current_strategy_path" in state:
-                        result = await backtester_tool_func(state["current_strategy_path"])
-                        state["backtest_results"] = result
-                    else:
-                        raise ValueError("No strategy path available for backtesting")
-                    
-                    # Update version history with backtest results
-                    if state["current_idea"]:
-                        # Get directory from current strategy path
-                        if "current_strategy_path" in state:
-                            strategy_dir = os.path.dirname(state["current_strategy_path"])
-                            history_path = os.path.join(strategy_dir, "version_history.json")
-                            if os.path.exists(history_path):
-                                with open(history_path, 'r') as f:
-                                    history = json.load(f)
-                                    if history:
-                                        # Add test results to latest version
-                                        history[-1]["test_results"] = result
-                                        history[-1]["tested_idea"] = state["current_idea"]["name"]
-                                with open(history_path, 'w') as f:
-                                    json.dump(history, f, indent=2)
-                        
-                        # Update research ideas with test results
-                        ideas_path = "AgenticDeveloper/research_ideas/research_ideas.json"
-                        if os.path.exists(ideas_path):
-                            with open(ideas_path, 'r') as f:
-                                ideas = json.load(f)
-                                idea_name = state["current_idea"]["name"]
-                                if idea_name in ideas:
-                                    # Fix KeyError for 'learnings_from_testing'
-                                    if "learnings_from_testing" not in ideas[idea_name]:
-                                        ideas[idea_name]["learnings_from_testing"] = []
-                                    ideas[idea_name]["learnings_from_testing"].append({
-                                        "timestamp": datetime.now().isoformat(),
-                                        "backtest_results": result,
-                                        "strategy_path": state.get("current_strategy_path", "")
-                                    })
-                            with open(ideas_path, 'w') as f:
-                                json.dump(ideas, f, indent=2)
-                    
-                elif tool == "BacktestAnalyzerTool":
-                    result = await backtest_analyzer_tool_func(prompt)
-                    state["analysis"] = result
-                
-                state["last_action"] = {"tool": tool, "result": result}
-                # self.logger.info(f"{tool} output: {result}")
-
-            except KeyboardInterrupt:
-                try:
-                    user_input = input("\nHuman input (type STOP to exit): ")
-                except KeyboardInterrupt:
-                    self.logger.info("KeyboardInterrupt received again. Exiting AlphaSeeker.")
-                    break
-                if user_input.strip().upper() == "STOP":
-                    self.logger.info("STOP command received. Exiting AlphaSeeker.")
-                    break
-                else:
-                    # Update human input in state for next LLM decision
-                    self.human_input = user_input
-                    state["human_input"] = user_input
-                    # self.logger.info(f"Human input saved: {self.human_input}")
-                    continue
-
-        self.logger.info("AlphaSeeker orchestration complete.")
-        return state  # Return final state for analysis
-
     async def decide_next_action(self, context: dict) -> dict:
         """
         Use the LLM to decide the next tool and prompt based on current context.
@@ -691,12 +503,12 @@ class AlphaSeekerMetaAgent(BaseAgent):
                 decision = pyjson.loads(json_match.group(1))
                 return decision
             except Exception as e:
-                self.logger.warning(f"Failed to parse JSON from matched content: {e}")
+                self.logger.warning(f"[AlphaSeeker] Failed to parse decision JSON - {e}")
         
         # If no JSON found between backticks, try parsing the whole response
         try:
             decision = pyjson.loads(response)
             return decision
         except Exception:
-            self.logger.warning(f"Failed to parse LLM decision, defaulting to STOP. Response: {response}")
+            self.logger.warning("[AlphaSeeker] Invalid decision - defaulting to stop")
             return {"tool": "STOP", "prompt": ""}
