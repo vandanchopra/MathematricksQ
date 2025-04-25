@@ -3,16 +3,20 @@ import os
 import re
 import sys
 from datetime import datetime
-from typing import Dict
+from typing import Dict, List, Any, Optional
 import json
 
 from .base import BaseAgent
+from .memory_agent import MemoryAgent
 from AgenticDeveloper.logger import get_logger
 
 class BacktesterAgent(BaseAgent):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, config_path: Optional[str] = None, config: Optional[Dict] = None):
+        super().__init__(config_path=config_path, config=config)
         self.logger = get_logger("BacktesterAgent")
+
+        # Initialize memory agent
+        self.memory_agent = MemoryAgent(config_path=config_path, config=config)
 
     async def _prepare_backtest(self, strategy_path: str, mode: str) -> tuple[str, str]:
         """Prepare for backtest based on mode. Returns (strategy_path, command)."""
@@ -25,13 +29,13 @@ class BacktesterAgent(BaseAgent):
             self.logger.info("Starting cloud backtest preparation...")
             strategy_folder = os.path.dirname(strategy_path)
             self.logger.info(f"Strategy folder: {strategy_folder}")
-            
+
             new_path = await self._rename_to_main(strategy_path)
             if not await self._cloud_push(strategy_folder):
                 raise RuntimeError("Failed to push to cloud")
             else:
                 self.logger.info(f"Cloud push successful for {strategy_folder}")
-                
+
             command = "lean cloud backtest " + str(strategy_folder)
             self.logger.info(f"Using cloud backtest command: {command}")
             return new_path, command
@@ -63,23 +67,23 @@ class BacktesterAgent(BaseAgent):
             # Use --project option to specify the strategy folder
             cmd = "lean cloud push --project " + str(strategy_folder)
             self.logger.info(f"Executing: {cmd}")
-            
+
             # Show real-time output but also capture for error checking
             # Set env var to disable output buffering
             env = os.environ.copy()
             env['PYTHONUNBUFFERED'] = '1'
-            
+
             process = await asyncio.create_subprocess_shell(
                 cmd,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
                 env=env
             )
-            
+
             # Store complete output while displaying in real-time
             stdout_chunks = []
             stderr_chunks = []
-            
+
             # Read output in real-time
             async def read_stream(stream, chunks):
                 try:
@@ -93,20 +97,20 @@ class BacktesterAgent(BaseAgent):
                         sys.stdout.buffer.flush()
                 except Exception as e:
                     self.logger.error(f"Error reading stream: {e}")
-            
+
             # Run both readers concurrently and wait for completion
             await asyncio.gather(
                 read_stream(process.stdout, stdout_chunks),
                 read_stream(process.stderr, stderr_chunks)
             )
-            
+
             # Wait for process to complete
             await process.wait()
-            
+
             # Combine chunks into complete output
             stdout_str = b''.join(stdout_chunks).decode()
             stderr_str = b''.join(stderr_chunks).decode()
-            
+
             # Check for errors in output
             if process.returncode != 0 or "error" in stdout_str.lower():
                 self.logger.error("Cloud push failed")
@@ -115,10 +119,10 @@ class BacktesterAgent(BaseAgent):
                 if stderr_str:
                     self.logger.error(f"Error: {stderr_str}")
                 return False
-            
+
             self.logger.info("Cloud push completed successfully")
             return True
-            
+
         except Exception as e:
             self.logger.error(f"Failed to push to cloud: {e}")
             return False
@@ -126,14 +130,14 @@ class BacktesterAgent(BaseAgent):
     async def _execute_backtest(self, command: str) -> tuple[asyncio.subprocess.Process, str, str]:
         """Execute backtest command and return process, stdout, and stderr."""
         self.logger.info(f"Executing backtest command: {command}")
-        
+
         # Show command being executed with visual separator
         separator = f"{'='*80}"
         print(f"\n{separator}")
         print(f"BACKTESTER: Executing command")
         print(f"COMMAND: {command}")
         print(f"{separator}\n")
-        
+
         # Create process with pipes for stdout/stderr
         process = await asyncio.create_subprocess_shell(
             command,
@@ -141,14 +145,14 @@ class BacktesterAgent(BaseAgent):
             stderr=asyncio.subprocess.PIPE,
             env=os.environ
         )
-        
+
         self.logger.info(f"Process started with PID: {process.pid}")
-        
+
         try:
             # Collect output while displaying real-time
             stdout_chunks = []
             stderr_chunks = []
-            
+
             async def read_stream(stream, chunks):
                 while True:
                     line = await stream.readline()
@@ -158,29 +162,29 @@ class BacktesterAgent(BaseAgent):
                     # Print in real-time
                     sys.stdout.buffer.write(line)
                     sys.stdout.buffer.flush()
-            
+
             # Read both streams concurrently
             await asyncio.gather(
                 read_stream(process.stdout, stdout_chunks),
                 read_stream(process.stderr, stderr_chunks)
             )
-            
+
             # Wait for process completion
             await process.wait()
-            
+
             # Combine chunks into strings
             stdout_str = b''.join(stdout_chunks).decode()
             stderr_str = b''.join(stderr_chunks).decode()
-            
+
             self.logger.debug(f"Read {len(stdout_str)} bytes from log files")
-            
+
             if process.returncode != 0:
                 self.logger.error(f"Command failed with return code {process.returncode}")
             else:
                 self.logger.info("Command completed successfully")
-            
+
             return process, stdout_str, stderr_str
-            
+
         except asyncio.TimeoutError:
             self.logger.warning("Backtest timed out after 5 minutes")
             process.terminate()
@@ -200,7 +204,7 @@ class BacktesterAgent(BaseAgent):
                 os.path.join("Strategies", "AgenticDev", "AncientStoneGolem", "backtests", "latest", "log.txt"),
                 os.path.join("Strategies", "AgenticDev", "AncientStoneGolem", "backtests", "latest", "output.txt")
             ]
-            
+
             # Try reading from each possible location
             for location in output_locations:
                 if os.path.exists(location):
@@ -209,7 +213,7 @@ class BacktesterAgent(BaseAgent):
                         content = f.read()
                         self.logger.debug(f"Read {len(content)} bytes from {location}")
                         return content
-            
+
             self.logger.warning("No output files found in standard locations")
             return ""
         except Exception as e:
@@ -219,10 +223,10 @@ class BacktesterAgent(BaseAgent):
     def _get_process_output(self, process_result: tuple[asyncio.subprocess.Process, str, str]) -> str:
         """Get stdout from process result and log any errors."""
         process, stdout_str, stderr_str = process_result
-        
+
         if process.returncode != 0:
             self.logger.error(f"Process failed with return code {process.returncode}")
-            
+
         return stdout_str
 
     async def _create_backtest_folder(self, command_output: str, strategy_path: str, mode: str) -> tuple[str, str]:
@@ -230,7 +234,7 @@ class BacktesterAgent(BaseAgent):
         strategy_dir = os.path.dirname(strategy_path)
         backtests_dir = os.path.join(strategy_dir, "backtests")
         timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-        
+
         if mode == "cloud":
             # For cloud mode, first check if Lean CLI already created a backtest folder
             latest_backtest = None
@@ -249,29 +253,29 @@ class BacktesterAgent(BaseAgent):
         backtest_folder = os.path.join(backtests_dir, timestamp)
         os.makedirs(backtests_dir, exist_ok=True)
         os.makedirs(backtest_folder, exist_ok=True)
-        
+
         # Create standard folders
         code_dir = os.path.join(backtest_folder, "code")
         os.makedirs(code_dir, exist_ok=True)
-        
+
         # Save strategy code
         strategy_filename = os.path.basename(strategy_path)
         if strategy_filename == "main.py":
             strategy_filename = [f for f in os.listdir(strategy_dir) if f.startswith("strategy_") and f.endswith(".py")][0]
             strategy_path = os.path.join(strategy_dir, strategy_filename)
-            
+
         strategy_copy_path = os.path.join(code_dir, strategy_filename)
         self.logger.info(f"Saving strategy code to: {strategy_copy_path}")
         import shutil
         shutil.copy2(strategy_path, strategy_copy_path)
-        
+
         self.logger.info(f"Created backtest folder at: {backtest_folder}")
         return backtest_folder, timestamp
-    
+
     def _get_performance_data(self, mode: str, stdout_str: str, backtest_folder: str) -> Dict[str, str]:
         """Get performance data based on mode from appropriate source"""
         performance_data = {}
-        
+
         if mode == "cloud":
             # For cloud mode, parse from console output
             self.logger.info("Parsing performance data from console output...")
@@ -292,17 +296,17 @@ class BacktesterAgent(BaseAgent):
                         self.logger.info("Successfully loaded performance data from summary file")
             else:
                 self.logger.warning("No summary file found for local backtest")
-        
+
         return performance_data
 
     def _parse_performance_table(self, stdout_str: str) -> Dict[str, str]:
         """Parse performance table and statistics from output"""
         performance_data = {}
-        
+
         # Log input for debugging
         self.logger.debug("Starting performance table parsing")
         self.logger.debug(f"Input string length: {len(stdout_str)}")
-        
+
         # First try to parse STATISTICS:: format
         for line in stdout_str.splitlines():
             if 'STATISTICS::' in line:
@@ -318,7 +322,7 @@ class BacktesterAgent(BaseAgent):
                         performance_data[stat_name] = stat_value
                 except Exception as e:
                     self.logger.debug(f"Error parsing statistics line: {e}")
-        
+
         # Then try to parse table format
         try:
             in_table = False
@@ -331,7 +335,7 @@ class BacktesterAgent(BaseAgent):
                     self.logger.debug("Found end of table")
                     in_table = False
                     continue
-                
+
                 if in_table and '│' in line and '──' not in line:
                     self.logger.debug(f"Processing table row: {line}")
                     try:
@@ -349,11 +353,11 @@ class BacktesterAgent(BaseAgent):
                         self.logger.debug(f"Error parsing table row: {e}")
         except Exception as e:
             self.logger.error(f"Error parsing performance table: {e}")
-        
+
         # Log results
         self.logger.debug(f"Parsed {len(performance_data)} performance metrics")
         self.logger.debug(f"Performance data: {performance_data}")
-        
+
         self.logger.debug(f"Parsed performance data: {performance_data}")
         return performance_data
 
@@ -361,7 +365,7 @@ class BacktesterAgent(BaseAgent):
         """Create consolidated backtest output"""
         try:
             self.logger.debug("Creating backtest output...")
-            
+
             # For local mode, try to extract backtest folder from output first
             backtest_folder = None
             timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
@@ -371,7 +375,7 @@ class BacktesterAgent(BaseAgent):
                 if backtest_folder:
                     timestamp = os.path.basename(backtest_folder)
                     self.logger.info(f"Using lean backtest folder: {backtest_folder}")
-            
+
             # Create new folder if lean didn't create one
             if not backtest_folder:
                 strategy_dir = os.path.dirname(strategy_path)
@@ -380,48 +384,48 @@ class BacktesterAgent(BaseAgent):
                 os.makedirs(backtests_dir, exist_ok=True)
                 os.makedirs(backtest_folder, exist_ok=True)
                 self.logger.info(f"Created new backtest folder: {backtest_folder}")
-            
+
             # Clean up code directory
             self._cleanup_code_directory(backtest_folder, strategy_path)
-            
+
             # Initialize backtest output
             strategy_filename = os.path.basename(strategy_path)
             backtest_id = self._extract_backtest_id(stdout_str)
             backtest_output = self.get_backtest_output_template(strategy_filename, backtest_id)
-            
+
             # Update basic fields
             backtest_output["backtest_success"] = ("┌────────────────────────────┬" in stdout_str) or ("STATISTICS::" in stdout_str)
             backtest_output["backtest_folder_path"] = backtest_folder
             backtest_output["backtest_console_output"] = stdout_str
-            
+
             # Get performance data
             performance_data = self._get_performance_data(mode, stdout_str, backtest_folder)
             backtest_output["performance"] = performance_data
             self.logger.info(f"Found {len(performance_data)} performance metrics")
             for key, value in performance_data.items():
                 self.logger.info(f"  {key}: {value}")
-            
+
             # Check for errors and warnings
             self.logger.debug("Checking for errors and warnings in output...")
             error_messages, warning_messages = self.check_errors_in_console_output(stdout_str)
-            
+
             # Add warnings to output but don't affect success status
             if "warnings" not in backtest_output:
                 backtest_output["warnings"] = []
             backtest_output["warnings"].extend(warning_messages)
             if warning_messages:
                 self.logger.debug(f"Found warnings: {warning_messages}")
-            
+
             # Only errors affect success status
             if error_messages:
                 backtest_output["errors"].extend(error_messages)
                 backtest_output["backtest_success"] = False
                 self.logger.debug(f"Found errors: {error_messages}")
-            
+
             # Extract and add metadata
             name = self._extract_backtest_name(stdout_str)
             url = self._extract_backtest_url(stdout_str)
-            
+
             # Add metadata to output
             backtest_output["backtest_raw_data"].update({
                 "timestamp": timestamp,
@@ -429,9 +433,9 @@ class BacktesterAgent(BaseAgent):
                 "backtest_url": url,
                 "strategy_code_filepath": strategy_path.replace("main.py", "strategy_v1.py") if mode == "cloud" else strategy_path
             })
-            
+
             self.logger.debug(f"Metadata extracted - Name: {name}, URL: {url}")
-            
+
             # Save both output files
             try:
                 # Save backtest_output.json
@@ -439,27 +443,27 @@ class BacktesterAgent(BaseAgent):
                 self.logger.debug(f"Saving backtest output to: {output_json_path}")
                 with open(output_json_path, 'w') as f:
                     json.dump(backtest_output, f, indent=4)
-                
+
                 # Save raw output
                 output_txt_path = os.path.join(backtest_folder, 'output.txt')
                 self.logger.debug(f"Saving raw output to: {output_txt_path}")
                 with open(output_txt_path, 'w') as f:
                     f.write(stdout_str)
-                
+
                 self.logger.info(f"Results saved:")
                 self.logger.info(f"  - JSON: {output_json_path}")
                 self.logger.info(f"  - Output: {output_txt_path}")
                 self.logger.info(f"Results saved in {backtest_folder}")
-                
+
             except Exception as e:
                 self.logger.error(f"Error saving output files: {e}")
-            
+
             # Update version history
             self._update_version_history(strategy_path, backtest_folder, backtest_output["backtest_success"],
                                     backtest_output["errors"], backtest_output["warnings"], backtest_output["failed_data_requests"])
-            
+
             return backtest_output
-            
+
         except Exception as e:
             self.logger.error(f"Failed to create backtest output: {e}")
             error_results = self.get_backtest_output_template(os.path.basename(strategy_path), "")
@@ -475,6 +479,44 @@ class BacktesterAgent(BaseAgent):
         self.logger.info(f"Starting backtest for {strategy_path} in mode: {mode}")
 
         try:
+            # Check memory for similar strategies
+            try:
+                # Read the strategy file
+                with open(strategy_path, 'r') as f:
+                    strategy_code = f.read()
+
+                # Extract a description from the strategy code
+                description = self._extract_description_from_code(strategy_code)
+
+                # Query memory for similar ideas
+                similar_ideas_result = await self.memory_agent.run(
+                    "query_similar_ideas",
+                    query_text=description,
+                    top_k=3
+                )
+
+                if similar_ideas_result.get("results"):
+                    self.logger.info("Found similar strategies in memory:")
+                    for i, idea in enumerate(similar_ideas_result["results"]):
+                        self.logger.info(f"  {i+1}. {idea.get('description', '')[:100]}...")
+
+                        # Check if this idea has backtests
+                        try:
+                            backtest_results = await self.memory_agent.run(
+                                "query_backtests_for_idea",
+                                idea_id=idea.get("id", ""),
+                                limit=1
+                            )
+
+                            if backtest_results.get("results"):
+                                backtest = backtest_results["results"][0]
+                                metrics = backtest.get("metrics", {})
+                                self.logger.info(f"    Backtest metrics: Sharpe={metrics.get('Sharpe', 'N/A')}, CAGR={metrics.get('CAGR', 'N/A')}")
+                        except Exception as e:
+                            self.logger.warning(f"Error querying backtests for idea: {str(e)}")
+            except Exception as e:
+                self.logger.warning(f"Error querying memory for similar strategies: {str(e)}")
+
             # 1. Mode-specific setup
             self.logger.info("Step 1: Preparing backtest setup...")
             _strategy_path, command = await self._prepare_backtest(strategy_path, mode)
@@ -489,8 +531,22 @@ class BacktesterAgent(BaseAgent):
             self.logger.info(f"Using path for output: {original_strategy_path}")
             backtest_output = await self._create_backtest_output(stdout_str, original_strategy_path, mode)
             self.logger.info(f"Backtest completed. Success: {backtest_output['backtest_success']}")
+
+            # 4. Store backtest results in memory
+            try:
+                # Process backtest results in memory
+                backtest_folder = backtest_output.get("backtest_folder_path", "")
+                if backtest_folder and os.path.exists(backtest_folder):
+                    memory_result = await self.memory_agent.run(
+                        "process_backtest_results",
+                        backtest_dir=backtest_folder
+                    )
+                    self.logger.info(f"Stored backtest in memory: {memory_result.get('status', 'unknown')}")
+            except Exception as e:
+                self.logger.warning(f"Error storing backtest in memory: {str(e)}")
+
             return backtest_output
-            
+
         except Exception as e:
             self.logger.error(f"Backtest failed: {str(e)}")
             error_results = self.get_backtest_output_template(os.path.basename(strategy_path), "")
@@ -510,28 +566,28 @@ class BacktesterAgent(BaseAgent):
             # Handle both full and relative strategy paths
             abs_strategy_path = os.path.abspath(strategy_path)
             strategy_dir = os.path.dirname(abs_strategy_path)
-            
+
             # Navigate up to find Strategies/AgenticDev directory
             while strategy_dir and os.path.basename(strategy_dir) != "AgenticDev":
                 strategy_dir = os.path.dirname(strategy_dir)
-            
+
             if not strategy_dir:
                 self.logger.error("Could not find AgenticDev directory in strategy path")
                 return
-                
+
             # Get path to version_history.json
             version_history_path = os.path.join(strategy_dir,
                                               os.path.basename(os.path.dirname(abs_strategy_path)),
                                               "version_history.json")
-            
+
             if not os.path.exists(version_history_path):
                 self.logger.warning(f"Version history file not found: {version_history_path}")
                 return
-                
+
             # Load version history
             with open(version_history_path, 'r') as f:
                 version_history = json.load(f)
-            
+
             # Find summary.json file in backtest folder
             backtest_files = os.listdir(backtest_folder)
             summary_file = None
@@ -545,7 +601,7 @@ class BacktesterAgent(BaseAgent):
                 'portfolioStatistics': None,
                 'error': None
             }
-            
+
             if summary_file:
                 try:
                     with open(os.path.join(backtest_folder, summary_file), 'r') as f:
@@ -561,24 +617,25 @@ class BacktesterAgent(BaseAgent):
                     results_summary['error'] = f"Failed to parse summary file: {str(e)}"
             else:
                 results_summary['error'] = "No summary file found in backtest folder"
-            
-            
+
+
             # Get version from original strategy file name, not main.py
             strategy_filename = os.path.basename(strategy_path)
             if strategy_filename == "main.py":
                 # Get original strategy file name from version history or error data
-                if errors:
-                    strategy_filename = os.path.basename(error_data["strategy_code_filepath"])
+                if errors and isinstance(errors, list) and len(errors) > 0 and hasattr(errors[0], 'get') and errors[0].get("strategy_code_filepath"):
+                    strategy_filename = os.path.basename(errors[0].get("strategy_code_filepath"))
                 else:
+                    self.logger.warning("Could not determine original strategy filename from errors")
                     return  # Skip version history update if we can't determine the original file
-                
+
             version_match = re.search(r'strategy_v(\d+(?:_\d+)*)\.py$', strategy_filename)
             if not version_match:
                 self.logger.error(f"Could not extract version from original strategy filename: {strategy_filename}")
                 return
-                
+
             version = version_match.group(1)
-            
+
             # Find matching version in version history
             version_entry = None
             for entry in version_history:
@@ -587,18 +644,18 @@ class BacktesterAgent(BaseAgent):
                 if stored_version_match and stored_version_match.group(1) == version:
                     version_entry = entry
                     break
-                    
+
             if not version_entry:
                 self.logger.error(f"Version {version} not found in version history")
                 return
-                
+
             # Add new backtest result to the correct version
             if 'backtests' not in version_entry:
                 version_entry['backtests'] = []
-            
+
             # Store absolute paths for reference
             abs_backtest_folder = os.path.abspath(backtest_folder)
-            
+
             version_entry['backtests'].append({
                 'errors': errors,
                 'warnings': warnings,
@@ -608,11 +665,11 @@ class BacktesterAgent(BaseAgent):
                 'timestamp': datetime.now().isoformat(),
                 'failed_data_requests': failed_data_requests
             })
-            
+
             # Save updated version history
             with open(version_history_path, 'w') as f:
                 json.dump(version_history, f, indent=2)
-                
+
         except Exception as e:
             self.logger.error(f"Failed to update version history: {str(e)}")
 
@@ -620,25 +677,25 @@ class BacktesterAgent(BaseAgent):
         """Clean up code directory by recreating it with only the target strategy."""
         import shutil
         code_dir = os.path.join(backtest_folder, "code")
-        
+
         # Step 1: Delete code folder if it exists
         if os.path.exists(code_dir):
             shutil.rmtree(code_dir)
             self.logger.info(f"Deleted existing code directory: {code_dir}")
-        
+
         # Step 2: Create empty code folder
         os.makedirs(code_dir)
         self.logger.info(f"Created fresh code directory: {code_dir}")
-        
+
         # Step 3: Copy strategy file to code folder
         strategy_filename = os.path.basename(strategy_path)
         if strategy_filename == "main.py":
             strategy_filename = os.path.basename(strategy_path.replace("main.py", os.path.basename(strategy_path)))
-        
+
         strategy_copy_path = os.path.join(code_dir, strategy_filename)
         shutil.copy2(strategy_path, strategy_copy_path)
         self.logger.info(f"Copied strategy to code directory: {strategy_filename}")
-    
+
     def _extract_backtest_folder_from_output(self, stdout_str: str) -> str:
         """Extract backtest folder path from Lean CLI output"""
         self.logger.debug("Searching for backtest folder in output...")
@@ -696,7 +753,7 @@ class BacktesterAgent(BaseAgent):
                 or ("unable to" in line.lower())
                 or "compiler error" in line.lower()
             )
-            
+
             if is_warning or is_error:
                 message_block = [line.rstrip()]
                 i += 1
@@ -717,7 +774,7 @@ class BacktesterAgent(BaseAgent):
                     errors.append("\n".join(message_block))
             else:
                 i += 1
-                
+
         # Log found errors and warnings for debugging
         if errors:
             self.logger.debug(f"Found errors in console output: {errors}")
@@ -744,3 +801,34 @@ class BacktesterAgent(BaseAgent):
                 except Exception as e:
                     self.log_progress(f"Error reading {file_path}: {e}")
         return failed_requests
+
+    def _extract_description_from_code(self, code: str) -> str:
+        """Extract a description from the strategy code.
+
+        Args:
+            code: The strategy code
+
+        Returns:
+            A description of the strategy
+        """
+        # Look for docstrings or comments
+        import re
+
+        # Try to find a class or module docstring
+        docstring_match = re.search(r'"""(.*?)"""', code, re.DOTALL)
+        if docstring_match:
+            return docstring_match.group(1).strip()
+
+        # Try to find a comment block
+        comment_block = ""
+        for line in code.split('\n'):
+            if line.strip().startswith('#'):
+                comment_block += line.strip()[1:].strip() + " "
+            elif comment_block:
+                break
+
+        if comment_block:
+            return comment_block.strip()
+
+        # If no description is found, return a generic description
+        return "Trading strategy extracted from code"

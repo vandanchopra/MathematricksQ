@@ -41,6 +41,12 @@ The system is composed of multiple specialized agents working together:
 - Facilitates human interaction points
 - Tracks performance metrics
 
+### 6. Memory System
+- Stores trading ideas, scenarios, and backtest results
+- Hybrid architecture combining graph and vector databases
+- Enables similarity search for related trading ideas
+- Supports knowledge graph queries and recommendations
+
 ## Project Structure
 
 ```
@@ -53,12 +59,20 @@ MathematricksQ/
 │   ├── research_ideas/             # Research summaries and ideas JSON
 │   ├── research_papers/            # Downloaded original research PDFs
 │   └── tests/                      # Test suite
+├── src/                            # Core system components
+│   ├── memory/                     # Memory system
+│   │   ├── interface.py            # Memory backend protocol
+│   │   ├── patann_backend.py       # Vector database implementation
+│   │   ├── graph_backend.py        # Graph database implementation
+│   │   ├── hybrid_backend.py       # Combined memory system
+│   │   ├── rag_backend.py          # RAG implementation
+│   │   └── example.py              # Usage examples
 ├── Strategies/                     # Trading strategies
-│   └── SMAStrategy/               # Example strategy
-│       ├── main.py                # Strategy implementation
-│       ├── config.json            # Strategy config
-│       └── backtests/             # Backtest results
-└── data/                          # Trading data
+│   └── SMAStrategy/                # Example strategy
+│       ├── main.py                 # Strategy implementation
+│       ├── config.json             # Strategy config
+│       └── backtests/              # Backtest results
+└── data/                           # Trading data
 ```
 
 ## Features
@@ -71,6 +85,10 @@ MathematricksQ/
 - **Automated Analysis**: Comprehensive performance analysis and improvement suggestions
 - **Version Control**: Tracks strategy evolution and changes
 - **Human Oversight**: Includes pause points for human guidance
+- **Hybrid Memory System**: Combines graph and vector databases for optimal storage and retrieval
+- **Semantic Search**: Find similar trading ideas based on semantic meaning
+- **Knowledge Graph**: Store and query relationships between ideas, scenarios, and backtests
+- **Strategy Recommendations**: Get recommendations based on similarity and performance metrics
 
 ## Usage
 
@@ -117,6 +135,7 @@ The repository includes an example SMA (Simple Moving Average) strategy that dem
 - [x] Backtest analyzer agent
 - [x] Base agent framework
 - [x] Research agent implementation (multi-paper, multi-idea extraction, PDF saving)
+- [x] Hybrid memory system (graph + vector databases)
 
 ## Requirements
 

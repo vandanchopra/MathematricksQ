@@ -47,17 +47,17 @@ agents:
     tools: ["web_search", "pdf_reader", "file_manager"]
     max_iterations: 5
     research_folder: "research_ideas"
-    
+
   backtest_analyzer:
     name: "BacktestAnalyzerAgent"
     tools: ["data_analyzer", "metric_calculator"]
     max_iterations: 3
-    
+
   strategy_developer:
     name: "StrategyDeveloperAgent"
     tools: ["code_writer", "code_analyzer"]
     max_iterations: 5
-    
+
   backtester:
     name: "BacktesterAgent"
     tools: ["lean_cli"]
@@ -65,7 +65,12 @@ agents:
     test_data:
       min_period: "1Y"  # 1 year minimum for testing
       train_split: 0.7  # 70% for training
-    
+
+  memory:
+    name: "MemoryAgent"
+    tools: ["memory_system"]
+    max_iterations: 3
+
   reporter:
     name: "ReportingAgent"
     tools: ["logger", "notification"]
@@ -76,15 +81,22 @@ tools:
   web_search:
     engines: ["google", "arxiv"]
     max_results: 10
-    
+
   pdf_reader:
     supported_formats: ["pdf", "html"]
     max_file_size: 10485760  # 10MB
-    
+
   lean_cli:
     backtest_command: "lean backtest"
     timeout: 3600  # 1 hour
-    
+
+  memory_system:
+    neo4j_uri: "bolt://localhost:7687"
+    neo4j_user: "neo4j"
+    neo4j_password: "password"
+    patann_url: "http://localhost:9200"
+    model_name: "all-MiniLM-L6-v2"
+
   logger:
     level: "INFO"
     file: "system.log"

@@ -6,6 +6,7 @@ from typing import List, Dict, Optional
 from tqdm.asyncio import tqdm
 from AgenticDeveloper.tools.web_tools import ArxivSearchTool, PDFHandler, HTMLHandler
 from AgenticDeveloper.agents.base import BaseAgent
+from AgenticDeveloper.agents.memory_agent import MemoryAgent
 from AgenticDeveloper.logger import get_logger
 import uuid
 import datetime as dt
@@ -23,13 +24,16 @@ class IdeaResearcherAgent(BaseAgent):
             with open(self.ideas_dump_path, "w") as f:
                 json.dump({}, f)
 
+        # Initialize memory agent
+        self.memory_agent = MemoryAgent(config_path=config_path, config=config)
+
     def _get_chunk_size_from_config(self) -> int:
         """Get the maximum words per chunk based on LLM's context window."""
         llm_config = self.config.get("llm", {})
         research_provider = llm_config.get("research_provider", "openrouter_llama4-scout")
         provider_config = llm_config.get(research_provider, {})
         context_window_k = provider_config.get("context_window_in_k", 128)
-        
+
         # Since 1 token ≈ 0.75 words, and we want to use 50% of context window:
         # context_window_k * 1000 * 0.75 * 0.5
         max_words = int(context_window_k * 1000 * 0.75 * 0.5)
@@ -44,23 +48,23 @@ class IdeaResearcherAgent(BaseAgent):
         words = text.split()
         total_words = len(words)
         num_chunks = (total_words + max_words - 1) // max_words
-        
+
         chunks = []
         for i in range(num_chunks):
             start_idx = i * max_words
             end_idx = min((i + 1) * max_words, total_words)
             chunk = ' '.join(words[start_idx:end_idx])
             chunks.append(chunk)
-            
+
         return chunks
 
     async def _analyze_resource(self, text: str) -> Dict[str, dict]:
         # Get chunk size from config and create chunks
         max_words = self._get_chunk_size_from_config()
         chunks = self._chunk_text(text, max_words=max_words)
-        
+
         ideas = {}
-        
+
         # Process each chunk with the research LLM
         for chunk in tqdm(chunks, desc=f"Analyzing Text with LLM...", unit="chunk"):
             prompt = (
@@ -94,10 +98,10 @@ class IdeaResearcherAgent(BaseAgent):
             )
 
             response = await self.call_llm(prompt, llm_destination="research")
-            
+
             # Log response for debugging
             self.logger.info(f"LLM Response:\n{response}")
-            
+
             # Parse JSON from response
             chunk_ideas = {}
             try:
@@ -114,7 +118,7 @@ class IdeaResearcherAgent(BaseAgent):
                 if json_start == -1 or json_end == 0:
                     self.logger.warning("No JSON array found in response")
                     continue
-                
+
                 # Parse JSON array
                 json_str = response[json_start:json_end]
                 try:
@@ -123,13 +127,13 @@ class IdeaResearcherAgent(BaseAgent):
                     # Try cleaning up the JSON
                     json_str = json_str.replace('}\n  }', '}}')  # Fix common formatting issue
                     paper_ideas = json.loads(json_str)
-                
+
                 if not paper_ideas:
                     self.logger.warning("Empty JSON array in response")
                     continue
-                
+
                 self.logger.info(f"Found {len(paper_ideas)} potential ideas in response")
-                
+
                 # Process each idea
                 successful_ideas = 0
                 for idea_json in paper_ideas:
@@ -138,14 +142,14 @@ class IdeaResearcherAgent(BaseAgent):
                     if not idea_name:
                         self.logger.warning("Idea missing name, skipping")
                         continue
-                    
+
                     # Validate required fields
                     required_fields = ['description', 'edge', 'pseudo_code']
                     if not all(k in idea_json for k in required_fields):
                         missing = [k for k in required_fields if k not in idea_json]
                         self.logger.warning(f"Idea '{idea_name}' missing fields: {missing}")
                         continue
-                    
+
                     # Add to ideas dict with our internal format
                     chunk_ideas[idea_name] = {
                         'description': '\n'.join(idea_json['description']),
@@ -155,11 +159,11 @@ class IdeaResearcherAgent(BaseAgent):
                     }
                     successful_ideas += 1
                     self.logger.info(f"Successfully parsed idea: {idea_name}")
-                
+
                 if successful_ideas > 0:
                     tqdm.write(f"Extracted {successful_ideas} ideas from chunk")
                     ideas.update(chunk_ideas)
-                
+
             except json.JSONDecodeError as e:
                 self.logger.warning(f"Failed to parse JSON response: {str(e)}")
                 self.logger.warning(f"Failed to parse JSON, raw content: {json_str[:200]}...")
@@ -177,6 +181,22 @@ class IdeaResearcherAgent(BaseAgent):
         await self.search_and_process(query, max_results)
 
     async def search_and_process(self, query: str, max_results: int = 6) -> Dict[str, Dict]:
+        # First, check if we have similar ideas in memory
+        try:
+            similar_ideas_result = await self.memory_agent.run(
+                "query_similar_ideas",
+                query_text=query,
+                top_k=3
+            )
+
+            if similar_ideas_result.get("results"):
+                self.logger.info("Found similar ideas in memory:")
+                for i, idea in enumerate(similar_ideas_result["results"]):
+                    self.logger.info(f"  {i+1}. {idea.get('description', '')[:100]}...")
+        except Exception as e:
+            self.logger.warning(f"Error querying memory for similar ideas: {str(e)}")
+
+        # Continue with normal search process
         papers = await self.arxiv_tool.search(query, max_results)
 
         # Load existing ideas to skip duplicates
@@ -192,7 +212,7 @@ class IdeaResearcherAgent(BaseAgent):
             for idea in existing_ideas.values()
         }
         processed_urls.discard('')  # Remove empty URLs
-        
+
         new_ideas = {}
         for paper in papers:
             if paper["pdf_url"] in processed_urls:
@@ -207,7 +227,7 @@ class IdeaResearcherAgent(BaseAgent):
 
             # Extract multiple ideas from the paper
             paper_ideas = await self._analyze_resource(text)
-            
+
             # Add source info and save each idea
             for idea_name, idea in paper_ideas.items():
                 try:
@@ -216,23 +236,59 @@ class IdeaResearcherAgent(BaseAgent):
                         'url': paper["pdf_url"],
                         'title': paper["title"]
                     })
-                    
+
                     # Save idea and get ID
                     idea_id = self._save_idea(idea_name, idea)
                     if idea_id:
                         new_ideas[idea_id] = idea.copy()  # Store copy of saved idea
+
+                        # Also store in memory system
+                        try:
+                            # Extract description
+                            description = idea.get('description', '')
+
+                            # Store in memory
+                            memory_result = await self.memory_agent.run(
+                                "store_idea",
+                                idea_name=idea_name,
+                                description=description,
+                                context_ids=["default_context"],  # Default context
+                                source_info=idea.get('source_info', {})
+                            )
+
+                            # Update idea with memory ID
+                            idea['memory_id'] = memory_result.get('id', '')
+                            existing_ideas[idea_id]['memory_id'] = memory_result.get('id', '')
+
+                            self.logger.info(f"Stored idea in memory: {idea_name} (Memory ID: {memory_result.get('id', '')})")
+                        except Exception as e:
+                            self.logger.warning(f"Error storing idea in memory: {str(e)}")
                     else:
                         self.logger.warning(f"Failed to save idea: {idea_name} - no ID returned")
                 except Exception as e:
                     self.logger.error(f"Error saving idea {idea_name}: {str(e)}")
                     continue
 
+        # Save updated ideas
+        with open(self.ideas_dump_path, "w") as f:
+            json.dump(existing_ideas, f, indent=2)
+
         self.logger.info(f"Total ideas added in this run: {len(new_ideas)}")
         if new_ideas:
             self.logger.info("New ideas generated:")
             for idea_id, idea in new_ideas.items():
-                self.logger.info(f"  - {idea['idea_name']} (ID: {idea_id})")
-                
+                self.logger.info(f"  - {idea.get('idea_name', '')} (ID: {idea_id})")
+
+        # Process all ideas in memory
+        try:
+            memory_process_result = await self.memory_agent.run(
+                "process_research_ideas",
+                ideas_json_path=self.ideas_dump_path
+            )
+            self.logger.info(f"Processed {memory_process_result.get('processed_count', 0)} ideas in memory")
+        except Exception as e:
+            self.logger.warning(f"Error processing ideas in memory: {str(e)}")
+
         return {'new_ideas': new_ideas}
 
     def _save_idea(self, idea_name, idea) -> str:
@@ -242,13 +298,13 @@ class IdeaResearcherAgent(BaseAgent):
                 ideas = json.load(f)
         except (FileNotFoundError, json.JSONDecodeError):
             ideas = {}
-        
+
         # Update with new idea
         idea['idea_name'] = idea_name
         idea['updated_dt'] = dt.datetime.now().isoformat()
         idea_id = str(uuid.uuid4())
         ideas[idea_id] = idea.copy()  # Make a copy to avoid reference issues
-        
+
         # Save updated ideas atomically
         tmp_path = self.ideas_dump_path + ".tmp"
         with open(tmp_path, "w") as f:
@@ -258,5 +314,5 @@ class IdeaResearcherAgent(BaseAgent):
         abs_path = os.path.abspath(self.ideas_dump_path)
         self.logger.info(f"Research ideas saved at: {abs_path}")
         # self.logger.info(f"Research ideas content:\n{json.dumps(ideas, indent=2)}")
-        
+
         return idea_id

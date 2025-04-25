@@ -1,0 +1,28 @@
+indexer:
+  input:
+    - type: neo4j
+      uri: bolt://localhost:7687
+      user: neo4j
+      password: ${NEO4J_PASSWORD}
+      node_labels: [Idea, Backtest, Context, Scenario]
+      rel_types: [TESTED_IN, EXECUTED_IN, SUBIDEA_OF, APPLIES_IN]
+  output:
+    type: lancedb
+    uri: memory://
+    table: ideas
+  embedding:
+    model: sentence-transformers/all-MiniLM-L6-v2
+    batch_size: 32
+    device: cpu
+
+retriever:
+  type: hybrid
+  vector_weight: 0.7
+  graph_weight: 0.3
+  top_k: 10
+
+llm:
+  type: openai
+  model: gpt-4
+  temperature: 0.2
+  max_tokens: 1000
