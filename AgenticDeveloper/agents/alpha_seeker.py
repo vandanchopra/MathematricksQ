@@ -165,6 +165,9 @@ After each backtest:
             
     def determine_scenario(self, state: dict) -> str:
         """Determine which improvement scenario applies"""
+        if state["parent_strategy_performance"] is None:
+            return "new_strategy"
+        
         # SCENARIO 1: Check for errors first
         if state["parent_strategy_errors"]:
             return "error"
@@ -182,7 +185,7 @@ After each backtest:
         # SCENARIO 3: Need performance improvement
         return "improvement_needed"
 
-    def create_improvement_prompt(self, scenario: str, state: dict) -> str:
+    def create_improvement_prompt(self, scenario: str, state: dict, human_input: None) -> str:
         """Generate appropriate prompt based on scenario"""
         if scenario == "error":
             return f"Fix the following errors in the strategy:\n{state['parent_strategy_errors']}"
@@ -194,18 +197,14 @@ After each backtest:
                    "1. Adjusting entry/exit conditions\n"
                    "2. Adding more trading pairs\n"
                    "3. Reducing minimum trade thresholds")
-                   
+        elif scenario == "new_strategy" and human_input:
+            return human_input
         else:  # improvement_needed
             return self.create_strategy_performance_improvement_prompt(state)
 
     def create_strategy_performance_improvement_prompt(self, state: dict) -> str:
-        """Create a prompt for improving strategy performance based on current metrics"""
+        """Create a prompt for improving strategy performance based on current metrics, analysis, and research memory"""
         metrics = state["parent_strategy_performance"]
-        parent_strategy_performance_analysis = state["parent_strategy_performance_analysis"]
-        self.logger.debug({'parent_strategy_performance_analysis': parent_strategy_performance_analysis})
-        self.logger.debug({'state': state})
-        self.logger.debug({'state.keys()': state.keys()})
-        input("Press Enter to continue...")
         sharpe_ratio = metrics.get("Sharpe Ratio", "0")
         drawdown = metrics.get("Drawdown", "0%")
         
@@ -369,26 +368,23 @@ After each backtest:
 
     async def run(
         self,
-        new_strategy: bool,
         human_input: str = "",
         start_point_filepath: str = None,
+        backtest_directory_path: str = None,
     ):
         """
         Main entry point for AlphaSeeker's strategy development process.
         
         Args:
-            new_strategy (bool): True to create new strategy, False to modify existing
             human_input (str): Initial guidance from user
-            start_point_filepath (str): Path to existing strategy file if new_strategy is False
+            start_point_filepath (str): Path to existing strategy file to modify or None for new strategy
+            backtest_directory_path (str): Path to existing backtest results to start from
         """
-
-        
         # Initialize state
         state = {
-            "mode": "new_strategy" if new_strategy else "existing_strategy",
             "version_history_path": None,  # Path to version_history.json
             "parent_strategy_path": start_point_filepath,
-            "parent_strategy_backtest_path": None,  # Path to parent strategy backtest results
+            "parent_strategy_backtest_path": backtest_directory_path,  # Path to parent strategy backtest results
             "parent_strategy_errors": None,  # Errors from parent strategy
             "parent_strategy_performance": None,  # Performance metrics of parent strategy
             "parent_strategy_performance_analysis": None,  # Analysis of parent strategy performance
@@ -403,19 +399,19 @@ After each backtest:
         }
         self.logger.debug(f"Initial state created. Everything set to None.")
         
-        # If starting from existing strategy, initialize parent details
-        if not new_strategy and start_point_filepath:
-            strategy_dir = os.path.dirname(start_point_filepath)
+        # If we have a parent strategy, initialize its paths
+        if state['parent_strategy_path']:
+            strategy_dir = os.path.dirname(state['parent_strategy_path'])
             state["version_history_path"] = os.path.join(strategy_dir, "version_history.json")
-            self.logger.debug(f"Starting from an existing strategy. Version history updated to state.")
-    
+            self.logger.debug("Version history path set.")
+
         while True:
             state["iteration"] += 1
             print('--' * 40)
             self.logger.debug(f"Iteration {state['iteration']} started.")
             
             # Get parent strategy results if this is first iteration and not a new strategy
-            if state["iteration"] == 1 and not new_strategy and state["version_history_path"]:
+            if state["iteration"] == 1 and state['parent_strategy_path'] and not state["parent_strategy_performance"]:
                 # First get the latest backtest folder path from version history
                 with open(state["version_history_path"], 'r') as f:
                     history = json.load(f)
@@ -424,7 +420,7 @@ After each backtest:
                 for entry in reversed(history):
                     if "backtests" in entry and entry["backtests"]:
                         latest_backtest = entry["backtests"][-1]
-                        backtest_folder = latest_backtest.get("backtest_folder")
+                        backtest_folder = latest_backtest.get("backtest_folder", [])
                         if backtest_folder and os.path.exists(backtest_folder):
                             # Load results using BaseAgent's method
                             backtest_output = self._load_backtest_results(backtest_folder)
@@ -436,20 +432,12 @@ After each backtest:
                             break
             
             try:
-                # Initial setup for new strategy if needed
-                if new_strategy and state["iteration"] == 1:
-                    idea = await self._get_next_research_idea(state)
-                    prompt = self._create_strategy_prompt(idea)
-                    strategy_path = await self.strategy_writer_tool_func(prompt, "Strategies/AgenticDev")
-                    self.logger.debug(f"New strategy created at {strategy_path}")
-                    state["parent_strategy_path"] = strategy_path
-                                
                 # 1. Determine current scenario
                 scenario = self.determine_scenario(state)
                 self.logger.debug(f"Scenario determined: {scenario}")
                 
                 # 2. Generate appropriate prompt
-                prompt = self.create_improvement_prompt(scenario, state)
+                prompt = self.create_improvement_prompt(scenario, state, human_input)
                 self.logger.debug(f"Prompt for New Strategy generated: {prompt}")
                 # 3. Give human 15 seconds to review/modify prompt
                 human_input = await self.wait_for_human_input(15)
@@ -500,7 +488,7 @@ After each backtest:
                 
             except Exception as e:
                 self.logger.error(f"[AlphaSeeker] Error in iteration {state['iteration']} - {e}")
-                break
+                raise Exception(f"Error in iteration {state['iteration']} - {e}")
 
         return state
     
@@ -582,33 +570,28 @@ if __name__ == "__main__":
     logger = get_logger("AlphaSeekerMain")
 
     parser = argparse.ArgumentParser(description="AlphaSeeker Meta Agent CLI")
-    parser.add_argument("--new", action="store_true", help="Create a new strategy")
-    parser.add_argument("--modify", action="store_true", help="Modify existing strategy")
-    parser.add_argument("--strategy-path", type=str, help="Path to existing strategy (required for --modify)")
+    parser.add_argument("--strategy-path", type=str, help="Path to existing strategy to modify")
+    parser.add_argument("--backtest-path", type=str, help="Path to existing backtest results")
     parser.add_argument("--input", type=str, default="", help="Initial guidance for the agent")
 
     args = parser.parse_args()
 
-    if args.new and args.modify:
-        logger.error("Cannot specify both --new and --modify")
-        exit(1)
-
-    if args.modify and not args.strategy_path:
-        logger.error("--strategy-path is required when using --modify")
-        exit(1)
-
     async def main():
         agent = AlphaSeekerMetaAgent()
+        state = None
         try:
             state = await agent.run(
-                new_strategy=args.new,
                 human_input=args.input,
-                start_point_filepath=args.strategy_path if args.modify else None
+                start_point_filepath=args.strategy_path,
+                backtest_directory_path=args.backtest_path
             )
-            # logger.info("Final state:")
-            # logger.info(json.dumps(state, indent=2))
         except Exception as e:
-            logger.error(f"Error running AlphaSeeker: {e}")
+            import traceback
+            logger.error("Error running AlphaSeeker:")
+            logger.error(traceback.format_exc())
+            if state:
+                logger.error("State at error:")
+                logger.error(json.dumps(state, indent=2))
             exit(1)
 
     asyncio.run(main())

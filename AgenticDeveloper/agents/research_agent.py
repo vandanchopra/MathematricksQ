@@ -165,6 +165,18 @@ class IdeaResearcherAgent(BaseAgent):
 
         return ideas
 
+    async def _get_next_research_idea(self) -> dict:
+        """Get next research idea for strategy creation."""
+        return {
+            "name": "Basic Trading Strategy",
+            "description": "A simple trading strategy using price action",
+            "key_points": [
+                "Use price momentum",
+                "Include risk management",
+                "Handle multiple assets"
+            ]
+        }
+
     async def run(self, query: str = "momentum trading", max_results: int = 3):
         await self.search_and_process(query, max_results)
 
